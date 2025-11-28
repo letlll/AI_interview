@@ -41,6 +41,12 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         code = data.get('code')
         cache_key = f"email_code_{email}"
         cached_code = cache.get(cache_key)
+        
+        # 添加调试日志
+        print(f"[DEBUG] 验证码验证 - 邮箱: {email}")
+        print(f"[DEBUG] 验证码验证 - 用户输入: {code}")
+        print(f"[DEBUG] 验证码验证 - 缓存的验证码: {cached_code}")
+        
         if not cached_code:
             raise serializers.ValidationError({"code": "验证码已过期或不存在，请重新发送。"})
         if cached_code.lower() != code.lower():

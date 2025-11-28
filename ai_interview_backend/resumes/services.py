@@ -3,6 +3,7 @@ import os
 from django.conf import settings
 from docx import Document
 from pypdf import PdfReader
+from .ocr_service import extract_text_from_pdf_with_ocr
 
 def extract_text_from_file(file_path: str) -> str:
     """
@@ -30,12 +31,33 @@ def extract_text_from_file(file_path: str) -> str:
 def extract_text_from_pdf(pdf_path: str) -> str:
     """
     使用 pypdf 从 PDF 文件中提取文本。
+    如果提取失败（扫描版 PDF），则自动使用 OCR。
     """
     text = ""
-    with open(pdf_path, 'rb') as f:
-        reader = PdfReader(f)
-        for page in reader.pages:
-            text += page.extract_text() or ""
+    try:
+        # 第一步：尝试直接提取文本
+        with open(pdf_path, 'rb') as f:
+            reader = PdfReader(f)
+            print(f"[DEBUG] PDF 总页数: {len(reader.pages)}")
+            for i, page in enumerate(reader.pages):
+                page_text = page.extract_text() or ""
+                print(f"[DEBUG] 第 {i+1} 页提取文本长度: {len(page_text)}")
+                text += page_text
+        print(f"[DEBUG] PDF 总文本长度: {len(text)}")
+        
+        # 第二步：如果文本为空，使用 OCR
+        if not text.strip():
+            print("[INFO] PDF 文件是扫描版，启动 OCR 识别...")
+            text = extract_text_from_pdf_with_ocr(pdf_path)
+            if text.strip():
+                print(f"[INFO] OCR 成功提取 {len(text)} 个字符")
+            else:
+                print("[WARNING] OCR 也未能提取到文本")
+                
+    except Exception as e:
+        print(f"[ERROR] 解析 PDF 时出错: {e}")
+        import traceback
+        traceback.print_exc()
     return text
 
 def extract_text_from_docx(docx_path: str) -> str:

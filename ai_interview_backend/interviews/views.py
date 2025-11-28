@@ -313,9 +313,17 @@ class ResumeAnalysisView(APIView):
     def post(self, request, *args, **kwargs):
         resume_id = request.data.get('resume_id')
         jd_text = request.data.get('jd_text')
+        
+        # 添加调试日志
+        print(f"[DEBUG] ResumeAnalysisView - 收到请求")
+        print(f"[DEBUG] resume_id: {resume_id}")
+        print(f"[DEBUG] jd_text: {jd_text}")
+        print(f"[DEBUG] request.data: {request.data}")
 
         if not resume_id or not jd_text:
-            return Response({'error': '必须提供 resume_id 和 jd_text 字段'}, status=status.HTTP_400_BAD_REQUEST)
+            error_msg = '必须提供 resume_id 和 jd_text 字段'
+            print(f"[DEBUG] 错误: {error_msg}")
+            return Response({'error': error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             resume_instance = Resume.objects.get(id=resume_id, user=request.user)

@@ -45,12 +45,17 @@ export function useFaceApi() {
     }
 
     try {
+      // 检查视频元素是否有效且已连接到 DOM
+      if (!videoElement.isConnected || videoElement.readyState < 2) {
+        return;
+      }
+
       // --- [核心修改] 移除 withFaceLandmarks，因为它只为动作分析服务，可以节省性能 ---
       const detections = await faceapi
         .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
         .withFaceExpressions();
 
-      if (detections) {
+      if (detections && detections.expressions) {
         emotions.value = detections.expressions;
       } else {
         emotions.value = null;
