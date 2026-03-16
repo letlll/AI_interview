@@ -60,7 +60,7 @@ const routes: Array<RouteRecordRaw> = [
       { 
         path: 'generate-resume', 
         name: 'ResumeGenerator',
-         component: () => import('@/views/ResumeGenerator.vue') 
+         component: () => import('@/views/ResumeGeneratorNew.vue') 
         },
          { 
             path: 'blog', 

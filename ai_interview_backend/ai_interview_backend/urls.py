@@ -10,6 +10,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 from interviews.views import GenerateResumeView
+from interviews.resume_chat_view import GenerateResumeChatView
 from resumes.views_upload import FileUploadView
 
 admin.site.site_header = "IFaceOff 管理后台"
@@ -35,6 +36,7 @@ urlpatterns = [
         path('upload/', FileUploadView.as_view(), name='file-upload'),
         path('', include('reports.urls')),
         path('generate-resume/', GenerateResumeView.as_view(), name='generate-resume'),
+        path('generate-resume-chat/', GenerateResumeChatView.as_view(), name='generate-resume-chat'),
     ])),
     # 【核心新增】API Schema & 文档路由
     path('api/v1/schema/', SpectacularAPIView.as_view(), name='schema'),

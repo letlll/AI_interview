@@ -577,3 +577,208 @@ def generate_resume_by_ai(name: str, position: str, experience_years: str, keywo
     except Exception as e:
         print(f"调用 AI 生成简历时发生错误: {e}")
         return {"error": f"AI 生成失败: {e}"}
+
+
+def generate_resume_chat_response(
+    user_message: str,
+    current_resume: dict,
+    chat_history: list,
+    last_edited_field: str | None,
+    user: User
+) -> dict:
+    """
+    AI 对话式简历生成
+    
+    Args:
+        user_message: 用户输入的消息
+        current_resume: 当前简历数据
+        chat_history: 聊天历史（最近10轮）
+        last_edited_field: 最后编辑的字段路径
+        user: 当前用户
+        
+    Returns:
+        {
+            "instructions": [
+                {
+                    "action": "update",
+                    "path": "basicInfo.name",
+                    "value": "张三",
+                    "reason": "更新姓名"
+                }
+            ],
+            "message": "给用户的反馈消息"
+        }
+    """
+    api_key, model = _get_user_ai_config(user)
+    if not api_key or not model:
+        return {
+            "error": "AI 配置未找到",
+            "instructions": [],
+            "message": "抱歉，AI 服务配置有误，请联系管理员。"
+        }
+    
+    # 构建简历摘要
+    resume_summary = _build_resume_summary(current_resume)
+    
+    # 压缩聊天历史
+    compressed_history = _compress_chat_history(chat_history)
+    
+    # 检测用户意图
+    intent = _detect_user_intent(user_message, last_edited_field)
+    
+    # 构建系统提示词
+    system_prompt = (
+        "你是一个专业的简历撰写专家，擅长创建结构清晰、内容专业的简历。\n"
+        "你需要根据用户的要求，对简历进行增量更新，而不是重写整个简历。\n\n"
+        "输出格式要求：\n"
+        "1. 必须返回有效的 JSON 格式\n"
+        "2. 包含 instructions 数组和 message 字符串\n"
+        "3. instructions 中每个指令包含：action（add/update/delete/replace）、path（字段路径）、value（新值）、reason（修改理由）\n"
+        "4. path 使用点号分隔，如 'basicInfo.name' 或 'workExperience.0.description.1'\n"
+        "5. message 要简洁友好，告诉用户做了什么修改\n\n"
+        "示例输出：\n"
+        "{\n"
+        '  "instructions": [\n'
+        '    {\n'
+        '      "action": "update",\n'
+        '      "path": "basicInfo.name",\n'
+        '      "value": "张三",\n'
+        '      "reason": "更新姓名"\n'
+        '    }\n'
+        '  ],\n'
+        '  "message": "已更新您的姓名为张三"\n'
+        "}"
+    )
+    
+    # 构建用户提示词
+    user_prompt = (
+        f"## 当前简历状态\n{resume_summary}\n\n"
+        f"## 最近对话\n{compressed_history}\n\n"
+        f"## 用户意图\n{intent}\n\n"
+        f"## 用户请求\n{user_message}\n\n"
+        "请根据以上信息，返回 JSON 格式的增量更新指令。"
+    )
+    
+    try:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        response_text = _call_openai_api(api_key, model, messages, 2048, 0.7)
+        
+        # 解析 AI 响应
+        if isinstance(response_text, str):
+            try:
+                response_data = json.loads(response_text)
+            except json.JSONDecodeError:
+                # 如果 AI 没有返回有效的 JSON，尝试提取内容
+                return {
+                    "instructions": [],
+                    "message": response_text
+                }
+        else:
+            response_data = response_text
+        
+        # 确保返回格式正确
+        if not isinstance(response_data, dict):
+            response_data = {"instructions": [], "message": str(response_data)}
+        
+        if "instructions" not in response_data:
+            response_data["instructions"] = []
+        if "message" not in response_data:
+            response_data["message"] = "处理完成"
+        
+        return response_data
+        
+    except Exception as e:
+        print(f"AI 对话生成失败: {e}")
+        return {
+            "error": f"AI 生成失败: {e}",
+            "instructions": [],
+            "message": "抱歉，AI 服务暂时不可用，请稍后重试。"
+        }
+
+
+def _build_resume_summary(resume: dict) -> str:
+    """构建简历摘要"""
+    if not resume:
+        return "姓名：未填写\n岗位：未指定\n工作年限：0年\n统计：技能0项、工作0段、项目0个"
+    
+    basic_info = resume.get('basicInfo', {})
+    name = basic_info.get('name', '未填写')
+    skills = resume.get('skills', [])
+    work_exp = resume.get('workExperience', [])
+    projects = resume.get('projects', [])
+    
+    # 提取关键词
+    keywords = []
+    if skills:
+        # 处理 skills 可能是列表或字典的情况
+        if isinstance(skills, list):
+            keywords.extend(skills[:5])  # 只取前5个技能
+        elif isinstance(skills, dict):
+            # 如果是字典，尝试提取值
+            skill_values = list(skills.values())[:5]
+            keywords.extend([str(v) for v in skill_values if v])
+    
+    # 计算统计数据
+    skills_count = len(skills) if isinstance(skills, (list, dict)) else 0
+    work_count = len(work_exp) if isinstance(work_exp, list) else 0
+    project_count = len(projects) if isinstance(projects, list) else 0
+    
+    summary = (
+        f"姓名：{name}\n"
+        f"岗位：未指定\n"
+        f"工作年限：{work_count}年\n"
+        f"统计：技能{skills_count}项、工作{work_count}段、项目{project_count}个"
+    )
+    
+    if keywords:
+        summary += f"\n关键词：{', '.join(keywords)}"
+    
+    return summary
+
+
+def _compress_chat_history(history: list) -> str:
+    """压缩聊天历史"""
+    if not history:
+        return "（无对话历史）"
+    
+    # 只保留最近5轮对话
+    recent = history[-10:]
+    
+    compressed = []
+    for msg in recent:
+        role = "用户" if msg.get('role') == 'user' else "AI"
+        content = msg.get('content', '')
+        # 截断过长的消息
+        if len(content) > 200:
+            content = content[:200] + "..."
+        compressed.append(f"{role}：{content}")
+    
+    return "\n".join(compressed)
+
+
+def _detect_user_intent(message: str, last_edited_field: str | None) -> str:
+    """检测用户意图"""
+    message_lower = message.lower()
+    
+    if any(keyword in message_lower for keyword in ['生成', '创建', '帮我写']):
+        return "类型：create（创建新内容）\n目标：全局"
+    elif any(keyword in message_lower for keyword in ['优化', '改进', '润色']):
+        if last_edited_field:
+            return f"类型：optimize（优化）\n目标：{last_edited_field}"
+        return "类型：optimize（优化）\n目标：全局"
+    elif any(keyword in message_lower for keyword in ['添加', '增加', '加上']):
+        if '工作' in message_lower or '经历' in message_lower:
+            return "类型：add（添加）\n目标：workExperience"
+        elif '项目' in message_lower:
+            return "类型：add（添加）\n目标：projects"
+        elif '教育' in message_lower or '学历' in message_lower:
+            return "类型：add（添加）\n目标：education"
+        return "类型：add（添加）\n目标：未知"
+    elif any(keyword in message_lower for keyword in ['删除', '去掉', '移除']):
+        return "类型：delete（删除）\n目标：待确定"
+    else:
+        return "类型：query（咨询）\n目标：全局"

@@ -19,6 +19,13 @@ def send_verification_code(email: str) -> bool:
 
     # 将验证码存入 Redis，有效期 5 分钟 (300 秒)
     cache.set(cache_key, code, timeout=300)
+    
+    # 【调试】验证存储是否成功
+    stored_code = cache.get(cache_key)
+    print(f"[DEBUG] 存储验证码 - 邮箱: {email}")
+    print(f"[DEBUG] 存储验证码 - 生成的验证码: {code}")
+    print(f"[DEBUG] 存储验证码 - Redis Key: {cache_key}")
+    print(f"[DEBUG] 存储验证码 - 验证存储: {stored_code}")
 
     # 【核心修正】
     subject = '【IFaceOff】您的注册验证码'
@@ -32,8 +39,13 @@ def send_verification_code(email: str) -> bool:
             [email],
             fail_silently=False,
         )
-        print(f"成功发送验证码 {code} 到 {email}")
+        print(f"✓ 成功发送验证码 {code} 到 {email}")
         return True
     except Exception as e:
-        print(f"发送邮件到 {email} 时失败: {e}")
+        print(f"✗ 发送邮件到 {email} 时失败: {e}")
+        # 【开发环境修正】在开发环境下，即使邮件发送失败也返回成功
+        # 验证码已经存入 Redis，用户可以从控制台查看
+        if settings.DEBUG:
+            print(f"⚠ 开发模式：验证码已存入 Redis，请使用: {code}")
+            return True
         return False

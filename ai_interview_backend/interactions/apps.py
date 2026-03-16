@@ -3,6 +3,7 @@ from django.apps import AppConfig
 class InteractionsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'interactions'
+    verbose_name = '交互'
 
     # 【核心新增】重写 ready 方法
     def ready(self):

@@ -46,11 +46,16 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         print(f"[DEBUG] 验证码验证 - 邮箱: {email}")
         print(f"[DEBUG] 验证码验证 - 用户输入: {code}")
         print(f"[DEBUG] 验证码验证 - 缓存的验证码: {cached_code}")
+        print(f"[DEBUG] 验证码验证 - 完整数据: {data}")
         
         if not cached_code:
+            print(f"[DEBUG] 验证失败 - 验证码不存在或已过期")
             raise serializers.ValidationError({"code": "验证码已过期或不存在，请重新发送。"})
         if cached_code.lower() != code.lower():
+            print(f"[DEBUG] 验证失败 - 验证码不匹配")
             raise serializers.ValidationError({"code": "验证码错误。"})
+        
+        print(f"[DEBUG] 验证成功 - 验证码匹配")
         return data
 
     def create(self, validated_data):
@@ -61,6 +66,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         cache.delete(f"email_code_{validated_data['email']}")
+        print(f"[DEBUG] 用户创建成功 - {user.username} ({user.email})")
         return user
 
 

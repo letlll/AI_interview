@@ -83,3 +83,34 @@ export const generateResumeApi = (name: string, position: string, experience_yea
     data: { name, position, experience_years, keywords }
   });
 };
+
+// AI 对话式简历生成 API
+export interface AIResumeInstruction {
+  action: 'add' | 'update' | 'delete' | 'replace';
+  path: string;
+  value?: any;
+  reason?: string;
+}
+
+export interface AIResumeResponse {
+  instructions: AIResumeInstruction[];
+  message: string;
+}
+
+export const generateResumeFromChatApi = (
+  userMessage: string,
+  currentResumeData?: any,
+  chatHistory?: Array<{ role: string; content: string }>,
+  lastEditedField?: string
+): Promise<AIResumeResponse> => {
+  return request({
+    url: '/generate-resume-chat/',
+    method: 'post',
+    data: {
+      user_message: userMessage,
+      current_resume: currentResumeData,
+      chat_history: chatHistory,
+      last_edited_field: lastEditedField
+    }
+  });
+};
