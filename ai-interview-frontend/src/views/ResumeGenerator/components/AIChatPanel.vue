@@ -125,12 +125,12 @@ const welcomeMessage: Message = {
 
 // 分页状态
 const allMessages = ref<Message[]>([]);      // 完整消息列表
-const displayedCount = ref(0);                  // 当前显示的消息数
+const displayStartIndex = ref(0);                  // 当前显示的消息数
 // 分页计算属性
-const hasMoreMessages = computed(() => allMessages.value.length > displayedCount.value);
-const remainingRounds = computed(() => Math.ceil((allMessages.value.length - displayedCount.value) / 2));
-// 显示的消息 = 欢迎消息 + 历史消息的前 N 条
-const displayedMessages = computed(() => [welcomeMessage, ...allMessages.value.slice(0, displayedCount.value)]);
+const hasMoreMessages = computed(() => allMessages.value.length > displayStartIndex.value);
+const remainingRounds = computed(() => Math.ceil((allMessages.value.length - displayStartIndex.value) / 2));
+// 显示的消息 = 欢迎消息 + 从 displayStartIndex 到末尾的所有消息（即最新的部分）
+const displayedMessages = computed(() => [welcomeMessage, ...allMessages.value.slice(displayStartIndex.value)]);
 const loadingMore = ref(false);
 
 // 滚动状态
@@ -180,8 +180,8 @@ const handleSend = () => {
   });
 
   // 确保新消息在显示范围内
-  if (displayedCount.value < allMessages.value.length) {
-    displayedCount.value = allMessages.value.length;
+  if (displayStartIndex.value < allMessages.value.length) {
+    displayStartIndex.value = allMessages.value.length;
   }
 
   // 发送给父组件处理
@@ -209,21 +209,11 @@ const loadMoreMessages = () => {
   const oldScrollHeight = messagesContainer.value?.scrollHeight || 0;
 
   setTimeout(() => {
-    const newCount = Math.min(
-      displayedCount.value + LOAD_MORE_ROUNDS * 2,
-      allMessages.value.length
+    displayStartIndex.value = Math.max(
+      0,
+      displayStartIndex.value - LOAD_MORE_ROUNDS * 2
     );
-    displayedCount.value = newCount;
-
     loadingMore.value = false;
-
-    // 恢复滚动位置（加载后向上滚动一点，让用户看到新加载的内容结尾）
-    nextTick(() => {
-      if (messagesContainer.value) {
-        const newScrollHeight = messagesContainer.value.scrollHeight;
-        messagesContainer.value.scrollTop = newScrollHeight - oldScrollHeight - 200;
-      }
-    });
   }, 300);
 };
 
@@ -279,8 +269,8 @@ defineExpose({
     scrollToBottom();
   },
   setMessages: (msgs: Message[]) => {
-    allMessages.value = msgs;
-    displayedCount.value = Math.min(INITIAL_ROUNDS * 2, msgs.length);
+    allMessages.value = msgs.sort((a, b) => a.timestamp - b.timestamp);
+    displayStartIndex.value = Math.max(0, msgs.length - INITIAL_ROUNDS * 2);
     userScrolledUp.value = false;
     nextTick(() => scrollToBottom());
   }

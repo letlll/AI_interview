@@ -3,7 +3,6 @@
  *
  * 设计原则：
  * - content 存完整的 Markdown 字符串，不再解析为结构化数组
- * - basicInfo 只存简单键值对
  * - AI 对话历史单独存 history
  */
 

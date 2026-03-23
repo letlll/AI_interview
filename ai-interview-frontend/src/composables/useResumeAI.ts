@@ -60,6 +60,8 @@ export interface ResumeData {
   content?: string;
   /** AI 多轮对话历史 */
   history?: Message[];
+  /** 用户自定义的顶层 CSS 样式 */
+  extraStyles?: string;
 }
 
 // ==================== 意图识别 ====================

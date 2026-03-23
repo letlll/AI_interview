@@ -16,11 +16,14 @@ import '@/assets/styles/resume-markdown.css';
 
 const props = defineProps<{
   content: string;
+  themeClass?: string;   // ← 新增，默认在下面第 10 行处理
+  extraStyles?: string;   // ← 新增：用户自定义 CSS
 }>();
 
 const emit = defineEmits<{
   (e: 'section-title-change', payload: { oldTitle: string; newTitle: string; sectionType: string }): void;
   (e: 'content-change', markdown: string): void;
+  (e: 'extra-styles-append', css: string): void;  // ← 新增
 }>();
 
 const markdownRoot = ref<HTMLDivElement | null>(null);
@@ -250,12 +253,41 @@ function onTitleChanged(element: HTMLElement, oldTitle: string, newTitle: string
   onContentChanged();
 }
 
+const INJECTED_STYLE_ID = 'user-extra-styles';
+
+function injectExtraStyles() {
+  if (!markdownRoot.value) return;
+
+  let styleEl = document.getElementById(INJECTED_STYLE_ID);
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = INJECTED_STYLE_ID;
+    // 插在 markdown-body 末尾，这样用户样式会覆盖 resume-markdown.css 的样式
+    markdownRoot.value.appendChild(styleEl);
+  }
+  styleEl.textContent = props.extraStyles ?? '';
+}
+
 const renderAll = async () => {
   if (!markdownRoot.value || !props.content) return;
 
   // 预处理：追加 contenteditable 和 section 类型
   const processed = preprocessMarkdown(props.content);
-  markdownRoot.value.innerHTML = markedInstance.parse(processed) as string;
+  markdownRoot.value.innerHTML = `<div class="resume-document">${markedInstance.parse(processed)}</div>`;
+
+  // 主题类加在外层
+  markdownRoot.value.classList.remove('theme-blue', 'theme-dark', 'theme-minimal', 'theme-classic', 'theme-modern');
+  markdownRoot.value.classList.add(props.themeClass || 'theme-blue');
+
+  // 主题类也加在 resume-document 上（方便 CSS 选择器直接匹配）
+  const doc = markdownRoot.value.querySelector('.resume-document');
+  if (doc) {
+    doc.classList.remove('theme-blue', 'theme-dark', 'theme-minimal', 'theme-classic', 'theme-modern');
+    doc.classList.add(props.themeClass || 'theme-blue');
+  }
+
+  // 注入用户自定义样式
+  injectExtraStyles();
 
   await nextTick();
 
@@ -335,13 +367,27 @@ const renderAll = async () => {
 
 onMounted(renderAll);
 watch(() => props.content, renderAll);
+watch(() => props.themeClass, () => {   // ← 新增，themeClass 变时只更新 class
+  const doc = markdownRoot.value?.querySelector('.resume-document');
+  if (!doc) return;
+  doc.classList.remove('theme-blue', 'theme-dark', 'theme-minimal', 'theme-classic', 'theme-modern');
+  doc.classList.add(props.themeClass || 'theme-blue');
+  injectExtraStyles();   // ← 新增：主题变时用户自定义样式仍然保留
+});
+watch(() => props.extraStyles, injectExtraStyles);
+defineExpose({
+  appendExtraStyles(css: string) {
+    emit('extra-styles-append', css);
+    injectExtraStyles();
+  }
+});
 </script>
 
 <style scoped>
 /* 基础容器 */
 :deep(.markdown-body) {
-  line-height: 1.75;
-  font-size: 16px;
+  height: 100%;
+  overflow: auto;
 }
 
 /* 简历文档容器 */

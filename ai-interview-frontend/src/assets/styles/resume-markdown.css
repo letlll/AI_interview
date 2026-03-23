@@ -313,3 +313,143 @@
   .resume-document::-webkit-scrollbar-thumb:hover {
     background: #c0c4cc;
   }
+
+  /* ============================================
+   基础变量（所有主题共享）
+   ============================================ */
+.resume-document {
+  /* 间距/字体/圆角/阴影 —— 各主题统一 */
+  max-width: 800px;
+  padding: 40px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.75;
+  font-size: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================
+   颜色变量（按主题切换 .resume-document 的 class）
+   ============================================ */
+
+/* 主题：专业蓝（默认）*/
+.resume-document.theme-blue {
+  --accent: #409eff;
+  --accent-light: #66b1ff;
+  --text-primary: #1f1f1f;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --bg: #ffffff;
+  --border: #e8e8e8;
+  --hover-bg: #f5f7fa;
+  --focus-bg: #ecf5ff;
+  --tag-bg: #f0f2f5;
+}
+
+/* 主题：暗色 */
+.resume-document.theme-dark {
+  --accent: #58a6ff;
+  --accent-light: #79c0ff;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --bg: #161b22;
+  --border: #30363d;
+  --hover-bg: #21262d;
+  --focus-bg: rgba(56, 139, 253, 0.15);
+  --tag-bg: #21262d;
+}
+
+/* 主题：极简灰 */
+.resume-document.theme-minimal {
+  --accent: #333333;
+  --accent-light: #666666;
+  --text-primary: #1a1a1a;
+  --text-secondary: #555555;
+  --text-muted: #888888;
+  --bg: #ffffff;
+  --border: #e0e0e0;
+  --hover-bg: #f8f8f8;
+  --focus-bg: #f0f0f0;
+  --tag-bg: #f5f5f5;
+}
+
+/* 主题：经典黑白 */
+.resume-document.theme-classic {
+  --accent: #1a1a1a;
+  --accent-light: #4a4a4a;
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --text-muted: #666666;
+  --bg: #ffffff;
+  --border: #000000;
+  --hover-bg: #f5f5f5;
+  --focus-bg: #eeeeee;
+  --tag-bg: #f0f0f0;
+  box-shadow: none;   /* 经典风格不用阴影 */
+}
+
+/* 主题：现代紫 */
+.resume-document.theme-modern {
+  --accent: #7c3aed;
+  --accent-light: #a78bfa;
+  --text-primary: #1f1f1f;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --bg: #ffffff;
+  --border: #ede9fe;
+  --hover-bg: #f5f3ff;
+  --focus-bg: #ede7f6;
+  --tag-bg: #f3e8ff;
+}
+
+/* ============================================
+   所有元素的颜色使用变量（不再写死色值）
+   ============================================ */
+
+.resume-document {
+  color: var(--text-primary);
+  background: var(--bg);
+}
+
+.resume-document h1 {
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--accent);
+}
+
+.resume-document h2 {
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border);
+  border-bottom-color: var(--border);
+}
+
+.resume-document [data-section-type="summary"] { border-bottom-color: var(--accent); }
+.resume-document [data-section-type="skills"]   { border-bottom-color: #67c23a; }
+.resume-document [data-section-type="work"]     { border-bottom-color: var(--accent); }
+.resume-document [data-section-type="projects"] { border-bottom-color: #f56c6c; }
+.resume-document [data-section-type="education"] { border-bottom-color: #909399; }
+
+.resume-document p,
+.resume-document li { color: var(--text-secondary); }
+.resume-document .item-duration { color: var(--text-muted); }
+
+.resume-document [contenteditable="true"]:hover { background-color: var(--hover-bg); }
+.resume-document [contenteditable="true"]:focus {
+  background-color: var(--focus-bg);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+/* ============================================
+   可编辑标题的高亮下划线（使用 section accent）
+   ============================================ */
+.resume-document h2[contenteditable="true"]:focus,
+.resume-document h2[contenteditable="true"]:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* resume-markdown.css */
+.markdown-body {
+  height: 100%;
+  overflow: auto;
+  /* 确保撑满父容器 */
+}

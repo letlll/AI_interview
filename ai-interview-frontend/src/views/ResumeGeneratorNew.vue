@@ -1,7 +1,10 @@
 <template>
   <div class="resume-generator-new">
     <!-- 左侧模板选择栏 -->
-    <TemplateSidebar v-model="selectedTemplate" />
+    <TemplateSidebar
+      v-model="selectedTemplate"
+      @themeClassChange="handleThemeClassChange"
+    />
 
     <!-- 主内容区 -->
     <div class="main-content" :style="{ marginLeft: sidebarWidth }">
@@ -75,6 +78,7 @@
             <el-radio-button value="ai">AI 对话</el-radio-button>
             <el-radio-button value="markdown">Markdown</el-radio-button>
             <el-radio-button value="source">源码</el-radio-button>
+            <el-radio-button value="style">样式</el-radio-button>
           </el-radio-group>
 
           <el-divider direction="vertical" />
@@ -160,6 +164,13 @@
           </div>
         </template>
 
+        <!-- 样式调整模式 -->
+        <template v-else-if="editMode === 'style'">
+          <div class="style-section">
+            <StyleAdjustmentPanel :extraStyles="extraStyles" @update:extraStyles="onExtraStylesUpdate" />
+          </div>
+        </template>
+
         <!-- 右侧：简历预览区 -->
         <div class="preview-section" v-show="!isPreviewCollapsed">
           <div class="preview-header">
@@ -168,8 +179,12 @@
           <div class="preview-content">
             <MarkdownRenderer
               :content="internalMarkdown"
+              :theme-class="resumeThemeClass"
+              :extra-styles="extraStyles"
               @section-title-change="handleSectionTitleChange"
               @content-change="handleContentChange"
+              @extra-styles-append="v => extraStyles += '\n' + v"
+              ref="markdownRendererRef"
             />
           </div>
         </div>
@@ -183,6 +198,8 @@
         </button>
       </div>
     </div>
+
+    <!-- 样式调整面板（已改为内嵌模式，不再需要） -->
   </div>
 </template>
 
@@ -193,6 +210,7 @@ import { DocumentCopy, Download, DArrowLeft, DArrowRight, View, Plus, Edit, Prom
 import TemplateSidebar from './ResumeGenerator/components/TemplateSidebar.vue';
 import AIChatPanel from './ResumeGenerator/components/AIChatPanel.vue';
 import ResumePreviewPanel from './ResumeGenerator/components/ResumePreviewPanel.vue';
+import StyleAdjustmentPanel from './ResumeGenerator/components/StyleAdjustmentPanel.vue';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue';
 import { generateResumeApi, generateResumeFromChatApi, createAIConversationApi, getAIMessagesApi, sendAIMessageApi, type AIResumeResponse, type AIResumeInstruction } from '@/api/modules/resumeEditor';
 import { createResumeApi, getResumeListApi , updateResumeApi } from '@/api/modules/resume';
@@ -218,7 +236,7 @@ const currentConversationId = ref<number | null>(null);
 const chatHistory = ref<Message[]>([]);
 const lastEditedField = ref<string>();
 const isPreviewCollapsed = ref(false); // 默认显示预览
-const editMode = ref<'ai' | 'markdown' | 'source'>('ai'); // ai对话 / markdown编辑 / 源码模式
+const editMode = ref<'ai' | 'markdown' | 'source'| 'style'>('ai'); // ai对话 / markdown编辑 / 源码模式
 const internalMarkdown = ref('');
 const sourceCode = ref('');
 const isAiLoading = ref(false); // AI 对话加载状态
@@ -247,6 +265,20 @@ const loadResumeList = async () => {
     resumeList.value = [];
   }
 };
+
+const extraStyles = ref('');       // 用户自定义 CSS 字符串
+const markdownRendererRef = ref(); // MarkdownRenderer 实例
+
+// 获取简历数据（合并 extraStyles）
+const getResumeDataToSave = () => ({
+  ...resumeData.value,
+  extraStyles: extraStyles.value
+});
+
+// 接收 StyleAdjustmentPanel 的样式更新
+function onExtraStylesUpdate(v: string) {
+  extraStyles.value = v;
+}
 
 onMounted(() => {
   initConversation();
@@ -288,6 +320,10 @@ const handleResumeChange = async (resumeId: number) => {
       internalMarkdown.value = cleanedContent.content;
     } else {
       internalMarkdown.value = cleanedContent.content || '';
+    }
+    // 恢复 extraStyles
+    if (cleanedContent.extraStyles !== undefined) {
+      extraStyles.value = cleanedContent.extraStyles || '';
     }
 
     // 加载消息历史
@@ -426,12 +462,21 @@ const initConversation = async () => {
 const loadMessages = async (conversationId: number) => {
   try {
     const result = await getAIMessagesApi(conversationId);
-    // 将服务器消息转换为本地格式
-    chatHistory.value = result.messages.map(msg => ({
-      role: msg.sender?.id === getCurrentUserId() ? 'user' : 'assistant' as const,
-      content: msg.content,
-      timestamp: new Date(msg.timestamp).getTime(),
-    }));
+        // 将服务器消息转换为本地格式
+        chatHistory.value = result.messages.map(msg => {
+      let role: 'user' | 'assistant' = 'user';
+      try {
+        const meta = typeof msg.metadata === 'string'
+          ? JSON.parse(msg.metadata)
+          : msg.metadata;
+        if (meta?.is_ai_response === true) role = 'assistant';
+      } catch {}
+      return {
+        role,
+        content: msg.content,
+        timestamp: new Date(msg.timestamp).getTime(),
+      };
+    });
     // 同步到 AIChatPanel
     if (chatPanelRef.value) {
       chatPanelRef.value.setMessages([...chatHistory.value]);
@@ -515,13 +560,17 @@ const togglePreview = () => {
 };
 
 // 切换编辑模式
-const switchEditMode = (mode: 'ai' | 'markdown' | 'source') => {
+const switchEditMode = (mode: 'ai' | 'markdown' | 'source' | 'style') => {
   editMode.value = mode;
   if (mode === 'source' && resumeData.value) {
     sourceCode.value = JSON.stringify(resumeData.value, null, 2);
   }
   if (mode === 'markdown' && !isMarkdownEditing.value) {
     markdownEditorValue.value = internalMarkdown.value;
+  }
+  // 切回 AI 模式时：v-if 会重建 AIChatPanel，watch 不会触发，手动同步历史
+  if (mode === 'ai' && chatPanelRef.value) {
+    chatPanelRef.value.setMessages([...chatHistory.value]);
   }
 };
 
@@ -613,6 +662,24 @@ const handleUserMessage = async (message: string) => {
       optimizedPrompt
     );
     
+    // ══════════════════════════════════════════════════════
+    // 样式指令处理（必须在 addAssistantMessage 之前）
+    // ══════════════════════════════════════════════════════
+    const directMatch = message.match(/^styles?\s*[:：]\s*([\s\S]+)$/i);
+    if (directMatch) {
+      extraStyles.value = directMatch[1].trim();  // 改为直接赋值
+      chatPanelRef.value.addAssistantMessage('样式已更新，请查看效果。');
+      chatPanelRef.value.setLoading(false);
+      return;
+    }
+
+    const aiStyleMatch = response.message.match(/\/\* style:([\s\S]*?)\*\//);
+    if (aiStyleMatch) {
+      extraStyles.value = aiStyleMatch[1].trim();  // 改为直接赋值
+      response.message = response.message.replace(/\/\* style:[\s\S]*?\*\//g, '').trim();
+    }
+
+
     // 应用更新指令
     if (response.instructions && response.instructions.length > 0) {
       console.log('收到更新指令:', response.instructions);
@@ -629,6 +696,13 @@ const handleUserMessage = async (message: string) => {
       console.log('最终简历数据:', resumeData.value);
     }
 
+    // 将用户消息追加到历史
+    chatHistory.value.push({
+      role: 'user',
+      content: message,
+      timestamp: Date.now()
+    });
+
     // 添加 AI 回复到历史
     const aiMessage: Message = {
       role: 'assistant',
@@ -636,13 +710,6 @@ const handleUserMessage = async (message: string) => {
       timestamp: Date.now()
     };
     chatHistory.value.push(aiMessage);
-
-    // 将用户消息追加到历史（放在 AI 回复之后，这样历史里是 user→assistant 配对）
-    chatHistory.value.push({
-      role: 'user',
-      content: message,
-      timestamp: Date.now()
-    });
 
     // 显示 AI 回复
     chatPanelRef.value.addAssistantMessage(response.message);
@@ -658,6 +725,7 @@ const handleUserMessage = async (message: string) => {
   } finally {
     chatPanelRef.value.setLoading(false);
   }
+  
 };
 
 // 处理字段编辑（仅更新 basicInfo / summary，主体内容走 content）
@@ -795,7 +863,7 @@ const handleSave = async () => {
         const newResume = await createResumeApi({
           title: `${title} (副本)`,
           status: 'draft',
-          content_json: resumeData.value,
+          content_json: getResumeDataToSave(),
           template_name: selectedTemplate.value,
         } as any);
 
@@ -819,14 +887,14 @@ const handleSave = async () => {
       await updateResumeApi(currentResumeId.value!, {
         title: title,
         status: 'published',
-        content_json: resumeData.value as any,
+        content_json: getResumeDataToSave() as any,
         template_name: selectedTemplate.value,
       });
 
       // 更新列表中的该简历内容
       const targetResume = resumeList.value.find(r => r.id === currentResumeId.value);
       if (targetResume) {
-        targetResume.content_json = resumeData.value;
+        targetResume.content_json = getResumeDataToSave();
         targetResume.status = 'published';
       }
 
@@ -844,11 +912,11 @@ const handleSave = async () => {
       await updateResumeApi(currentResumeId.value, {
         title: target?.title,
         status: target?.status || 'draft',
-        content_json: resumeData.value as any,
+        content_json: getResumeDataToSave() as any,
         template_name: selectedTemplate.value,
       });
       if (target) {
-        target.content_json = resumeData.value;
+        target.content_json = getResumeDataToSave();
       }
       ElMessage.success('已更新');
     } else {
@@ -868,7 +936,7 @@ const handleSave = async () => {
       const newResume = await createResumeApi({
         title: userTitle,      // ✅ 使用用户输入的标题
         status: 'draft',
-        content_json: resumeData.value,
+        content_json: getResumeDataToSave(),
         template_name: selectedTemplate.value,
       } as any);
 
@@ -951,6 +1019,13 @@ const handleExport = () => {
   // TODO: 实现 PDF 导出功能
   ElMessage.info('PDF 导出功能开发中...');
 };
+
+const resumeThemeClass = ref('theme-blue');   // 初始值
+
+const handleThemeClassChange = (themeClass: string) => {
+  resumeThemeClass.value = themeClass;
+};
+
 </script>
 
 <style scoped lang="scss">
@@ -1044,6 +1119,7 @@ const handleExport = () => {
 .chat-section,
 .markdown-section,
 .source-section,
+.style-section,
 .preview-section {
   height: 100%;
   min-height: 0;
@@ -1055,9 +1131,10 @@ const handleExport = () => {
   }
 }
 
-// Markdown 和源码编辑器样式
+// Markdown、源码、样式编辑器样式
 .markdown-section,
-.source-section {
+.source-section,
+.style-section {
   display: flex;
   flex-direction: column;
   background: var(--el-bg-color);
