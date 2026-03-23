@@ -97,11 +97,96 @@ export interface AIResumeResponse {
   message: string;
 }
 
+// ========== 简历对话持久化 API ==========
+
+export interface ChatConversation {
+  id: number;
+  participants: any[];
+  conversation_type: 'user_user' | 'user_ai';
+  resume_id: number | null;
+  resume_title: string | null;
+  resume: {
+    id: number;
+    title: string;
+    content_json: any;
+    template_name: string;
+  } | null;
+  conversation_type_display: string;
+  updated_at: string;
+  latest_message: ChatMessage | null;
+  unread_count: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  sender: any;
+  content: string;
+  message_type: string;
+  file_url: string | null;
+  timestamp: string;
+  is_read: boolean;
+  metadata: Record<string, any>;
+}
+
+export interface AIMessageResponse {
+  user_message: ChatMessage;
+  ai_response: ChatMessage;
+  instructions: AIResumeInstruction[];
+  message: string;
+  updated_resume?: any;
+}
+
+// 获取用户的所有 AI 对话会话
+export const getAIConversationsApi = (): Promise<ChatConversation[]> => {
+  return request({
+    url: '/chat/ai/conversations/',
+    method: 'get',
+  });
+};
+
+// 创建或获取 AI 对话会话
+export const createAIConversationApi = (resumeId?: number): Promise<ChatConversation> => {
+  return request({
+    url: '/chat/ai/conversations/',
+    method: 'post',
+    data: resumeId ? { resume_id: resumeId } : {},
+  });
+};
+
+// 获取对话消息历史
+export const getAIMessagesApi = (conversationId: number): Promise<{ conversation_id: number; resume_id: number | null; resume_content?: any; messages: ChatMessage[] }> => {
+  return request({
+    url: `/chat/ai/conversations/${conversationId}/messages/`,
+    method: 'get',
+  });
+};
+
+// 发送消息并获取 AI 回复
+export const sendAIMessageApi = (
+  conversationId: number,
+  content: string,
+  lastEditedField?: string,
+  optimizedPrompt?: string
+): Promise<AIMessageResponse> => {
+  return request({
+    url: `/chat/ai/conversations/${conversationId}/messages/`,
+    method: 'post',
+    data: {
+      content,
+      last_edited_field: lastEditedField,
+      optimized_prompt: optimizedPrompt,
+    },
+  });
+};
+
+// ========== 原有 API ==========
+
 export const generateResumeFromChatApi = (
   userMessage: string,
   currentResumeData?: any,
   chatHistory?: Array<{ role: string; content: string }>,
-  lastEditedField?: string
+  lastEditedField?: string,
+  optimizedPrompt?: string
 ): Promise<AIResumeResponse> => {
   return request({
     url: '/generate-resume-chat/',
@@ -110,7 +195,8 @@ export const generateResumeFromChatApi = (
       user_message: userMessage,
       current_resume: currentResumeData,
       chat_history: chatHistory,
-      last_edited_field: lastEditedField
+      last_edited_field: lastEditedField,
+      optimized_prompt: optimizedPrompt
     }
   });
 };

@@ -584,7 +584,8 @@ def generate_resume_chat_response(
     current_resume: dict,
     chat_history: list,
     last_edited_field: str | None,
-    user: User
+    user: User,
+    optimized_prompt: str | None = None
 ) -> dict:
     """
     AI 对话式简历生成
@@ -617,80 +618,68 @@ def generate_resume_chat_response(
             "message": "抱歉，AI 服务配置有误，请联系管理员。"
         }
     
-    # 构建简历摘要
-    resume_summary = _build_resume_summary(current_resume)
-    
-    # 压缩聊天历史
-    compressed_history = _compress_chat_history(chat_history)
-    
-    # 检测用户意图
-    intent = _detect_user_intent(user_message, last_edited_field)
-    
-    # 构建系统提示词
+    # 构建系统提示词（不变，所有路径共用）
     system_prompt = (
         "你是一个专业的简历撰写专家，擅长创建结构清晰、内容专业的简历。\n"
-        "你需要根据用户的要求，对简历进行增量更新，而不是重写整个简历。\n\n"
-        "输出格式要求：\n"
-        "1. 必须返回有效的 JSON 格式\n"
-        "2. 包含 instructions 数组和 message 字符串\n"
-        "3. instructions 中每个指令包含：action（add/update/delete/replace）、path（字段路径）、value（新值）、reason（修改理由）\n"
-        "4. path 使用点号分隔，如 'basicInfo.name' 或 'workExperience.0.description.1'\n"
-        "5. message 要简洁友好，告诉用户做了什么修改\n\n"
-        "示例输出：\n"
+        "你只需要对简历进行增量更新，不要重写整个简历。\n\n"
+        "输出格式：返回以下 JSON，不要包含其他内容。\n"
         "{\n"
         '  "instructions": [\n'
-        '    {\n'
-        '      "action": "update",\n'
-        '      "path": "basicInfo.name",\n'
-        '      "value": "张三",\n'
-        '      "reason": "更新姓名"\n'
-        '    }\n'
+        '    { "action": "update|add|delete|replace", "path": "content", "value": "Markdown内容", "reason": "修改理由" }\n'
         '  ],\n'
-        '  "message": "已更新您的姓名为张三"\n'
-        "}"
+        '  "message": "给用户的反馈消息"\n'
+        "}\n\n"
+        "关键规则：\n"
+        "1. 整个简历就是 content，一个 Markdown 字符串（包含姓名、各区块等全部内容）\n"
+        "2. action：add（追加到 content 末尾）、update/replace（覆盖 content）、delete（清空 content）\n"
+        "3. content 直接写 Markdown 原文，不要 JSON.stringify()\n"
+        "4. 只返回增量修改，不要重写整份简历\n"
     )
-    
-    # 构建用户提示词
-    user_prompt = (
-        f"## 当前简历状态\n{resume_summary}\n\n"
-        f"## 最近对话\n{compressed_history}\n\n"
-        f"## 用户意图\n{intent}\n\n"
-        f"## 用户请求\n{user_message}\n\n"
-        "请根据以上信息，返回 JSON 格式的增量更新指令。"
-    )
-    
-    try:
+
+    # 优先使用前端传来的完整 prompt；否则后端自建
+    if optimized_prompt:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": optimized_prompt}
+        ]
+    else:
+        resume_summary = _build_resume_summary(current_resume)
+        compressed_history = _compress_chat_history(chat_history)
+        intent = _detect_user_intent(user_message, last_edited_field)
+        resume_content = current_resume.get('content', '') if current_resume else ''
+        user_prompt = (
+            f"## 当前简历完整内容\n{resume_content or '（简历为空）'}\n\n"
+            f"## 简历摘要\n{resume_summary}\n\n"
+            f"## 最近对话\n{compressed_history}\n\n"
+            f"## 用户意图\n{intent}\n\n"
+            f"## 用户请求\n{user_message}\n\n"
+            "请根据以上信息，返回 JSON 格式的增量更新指令。"
+        )
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ]
-        
+
+    try:
         response_text = _call_openai_api(api_key, model, messages, 2048, 0.7)
-        
-        # 解析 AI 响应
+
         if isinstance(response_text, str):
             try:
                 response_data = json.loads(response_text)
             except json.JSONDecodeError:
-                # 如果 AI 没有返回有效的 JSON，尝试提取内容
-                return {
-                    "instructions": [],
-                    "message": response_text
-                }
+                return {"instructions": [], "message": response_text}
         else:
             response_data = response_text
-        
-        # 确保返回格式正确
+
         if not isinstance(response_data, dict):
             response_data = {"instructions": [], "message": str(response_data)}
-        
         if "instructions" not in response_data:
             response_data["instructions"] = []
         if "message" not in response_data:
             response_data["message"] = "处理完成"
-        
+
         return response_data
-        
+
     except Exception as e:
         print(f"AI 对话生成失败: {e}")
         return {
@@ -701,43 +690,40 @@ def generate_resume_chat_response(
 
 
 def _build_resume_summary(resume: dict) -> str:
-    """构建简历摘要"""
+    """构建简历摘要（极简版 schema）"""
     if not resume:
-        return "姓名：未填写\n岗位：未指定\n工作年限：0年\n统计：技能0项、工作0段、项目0个"
-    
-    basic_info = resume.get('basicInfo', {})
-    name = basic_info.get('name', '未填写')
-    skills = resume.get('skills', [])
-    work_exp = resume.get('workExperience', [])
-    projects = resume.get('projects', [])
-    
-    # 提取关键词
-    keywords = []
-    if skills:
-        # 处理 skills 可能是列表或字典的情况
-        if isinstance(skills, list):
-            keywords.extend(skills[:5])  # 只取前5个技能
-        elif isinstance(skills, dict):
-            # 如果是字典，尝试提取值
-            skill_values = list(skills.values())[:5]
-            keywords.extend([str(v) for v in skill_values if v])
-    
-    # 计算统计数据
-    skills_count = len(skills) if isinstance(skills, (list, dict)) else 0
-    work_count = len(work_exp) if isinstance(work_exp, list) else 0
-    project_count = len(projects) if isinstance(projects, list) else 0
-    
-    summary = (
+        return "姓名：未填写\n岗位：未指定\n统计：工作0段、项目0个、教育0段"
+
+    content = resume.get('content', '') or ''
+
+    import re
+    name_m = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
+    name = name_m.group(1).strip() if name_m else '未填写'
+    pos_m = re.search(r'(?:岗位|职位)[：:]\s*(.+)', content)
+    position = pos_m.group(1).strip() if pos_m else '未指定'
+
+    # 统计各区块数量（通过 ## 标题匹配）
+    def count_sections(prefix):
+        import re
+        return len(re.findall(rf'^##\s+.+{prefix}', content, re.MULTILINE))
+
+    work_count = count_sections('工作')
+    project_count = count_sections('项目')
+    education_count = count_sections('教育')
+
+    # 提取关键词：从 content 前500字中取中文词
+    import re
+    words = re.findall(r'[\u4e00-\u9fa5]{2,}', content[:500])
+    common = {'的', '了', '在', '是', '和', '有', '为', '等', '使用', '负责', '开发', '完成', '实现', '提升'}
+    keywords = [w for w in words if w not in common][:8]
+    keyword_str = f"\n关键词：{', '.join(keywords)}" if keywords else ""
+
+    return (
         f"姓名：{name}\n"
-        f"岗位：未指定\n"
-        f"工作年限：{work_count}年\n"
-        f"统计：技能{skills_count}项、工作{work_count}段、项目{project_count}个"
+        f"岗位：{position}\n"
+        f"统计：工作{work_count}段、项目{project_count}个、教育{education_count}段"
+        f"{keyword_str}"
     )
-    
-    if keywords:
-        summary += f"\n关键词：{', '.join(keywords)}"
-    
-    return summary
 
 
 def _compress_chat_history(history: list) -> str:

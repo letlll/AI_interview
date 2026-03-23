@@ -5,3 +5,6 @@ class ResumesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'resumes'
     verbose_name = '简历'
+
+    def ready(self):
+        import resumes.signals  # noqa: F401

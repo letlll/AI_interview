@@ -26,57 +26,21 @@ from reports.serializers import ResumeAnalysisReportSerializer
 
 def format_resume_to_text(resume: Resume) -> str:
     """
-    一个统一的函数，从任何类型的 Resume 实例中提取纯文本内容。
+    从 Resume 实例中提取 Markdown 纯文本内容。
+    优先级：content_json.content > parsed_content > ""
     """
-    # 优先级 1: 新的 content_json (无论是对象还是数组)
+    # 优先级 1: content_json.content（Markdown 字符串）
     if resume.content_json:
-        components = []
-        # 兼容新的二维布局对象
-        if isinstance(resume.content_json, dict) and 'main' in resume.content_json:
-            components.extend(resume.content_json.get('sidebar', []))
-            components.extend(resume.content_json.get('main', []))
-        # 兼容旧的一维数组
-        elif isinstance(resume.content_json, list):
-            components = resume.content_json
-
-        all_text = []
-        for module in components:
-            if not module or not isinstance(module, dict): continue
-            props = module.get('props', {})
-            if not props or not isinstance(props, dict): continue
-
-            all_text.append(f"\n--- {props.get('title', module.get('title', ''))} ---\n")
-
-            # 提取简单 props
-            for key, value in props.items():
-                if isinstance(value, str) and key not in ['title', 'layoutZone', 'titleStyle']:
-                    all_text.append(value)
-
-            # 提取列表型 props
-            for list_key in ['items', 'educations', 'experiences', 'projects', 'skills']:
-                if list_key in props and isinstance(props[list_key], list):
-                    for item in props[list_key]:
-                        if not item or not isinstance(item, dict): continue
-                        item_texts = []
-                        for item_key, item_value in item.items():
-                            if isinstance(item_value, str) and item_key != 'id':
-                                item_texts.append(item_value)
-                        all_text.append(" ".join(item_texts))
-
-        return "\n".join(filter(None, all_text))
+        if isinstance(resume.content_json, dict):
+            content = resume.content_json.get('content', '')
+            if content:
+                return content
+        elif isinstance(resume.content_json, str):
+            return resume.content_json
 
     # 优先级 2: 文件简历的解析内容
     if resume.parsed_content:
         return resume.parsed_content
-
-    # 优先级 3: 旧版的、基于模型字段的在线简历
-    # (这个逻辑可以逐步废弃，但为了兼容性暂时保留)
-    if resume.status in [Resume.Status.DRAFT, Resume.Status.PUBLISHED]:
-        parts = []
-        if resume.full_name: parts.append(f"姓名: {resume.full_name}")
-        if resume.job_title: parts.append(f"期望职位: {resume.job_title}")
-        if resume.summary: parts.append(f"\n个人总结:\n{resume.summary}")
-        return "\n".join(parts)
 
     return ""
 

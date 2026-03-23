@@ -11,7 +11,8 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ['id', 'sender', 'content', 'message_type', 'file_url', 'timestamp', 'is_read']
+        fields = ['id', 'sender', 'content', 'message_type', 'file_url', 'timestamp', 'is_read', 'metadata']
+        read_only_fields = ['id', 'sender', 'timestamp']
 
 
 class ConversationSerializer(serializers.ModelSerializer):
@@ -21,10 +22,29 @@ class ConversationSerializer(serializers.ModelSerializer):
     # 添加最新一条消息和未读消息数
     latest_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
+    resume_id = serializers.IntegerField(source='resume.id', read_only=True, allow_null=True)
+    resume_title = serializers.CharField(source='resume.title', read_only=True, allow_null=True)
+    # 返回完整简历对象供前端加载
+    resume = serializers.SerializerMethodField()
+    conversation_type_display = serializers.CharField(source='get_conversation_type_display', read_only=True)
 
     class Meta:
         model = Conversation
-        fields = ['id', 'participants', 'updated_at', 'latest_message', 'unread_count']
+        fields = [
+            'id', 'participants', 'conversation_type', 'conversation_type_display',
+            'resume_id', 'resume_title', 'resume', 'updated_at', 'latest_message', 'unread_count'
+        ]
+
+    def get_resume(self, obj):
+        """返回关联简历的完整数据"""
+        if obj.resume:
+            return {
+                'id': obj.resume.id,
+                'title': obj.resume.title,
+                'content_json': obj.resume.content_json,
+                'template_name': getattr(obj.resume, 'template_name', 'classic'),
+            }
+        return None
 
     def get_latest_message(self, obj):
         """获取该对话的最新一条消息"""
@@ -42,3 +62,21 @@ class ConversationSerializer(serializers.ModelSerializer):
             # 计算由对方发送且当前用户未读的消息数量
             return obj.messages.filter(is_read=False).exclude(sender=user).count()
         return 0
+
+
+class ConversationDetailSerializer(ConversationSerializer):
+    """对话详情序列化器，包含消息历史"""
+    messages = MessageSerializer(many=True, read_only=True)
+
+    class Meta(ConversationSerializer.Meta):
+        fields = ConversationSerializer.Meta.fields + ['messages', 'created_at']
+
+
+class CreateMessageSerializer(serializers.Serializer):
+    """创建消息的输入序列化器"""
+    content = serializers.CharField(required=True, allow_blank=False)
+    message_type = serializers.ChoiceField(
+        choices=Message.MessageType.choices,
+        default=Message.MessageType.TEXT
+    )
+    metadata = serializers.JSONField(required=False, default=dict)

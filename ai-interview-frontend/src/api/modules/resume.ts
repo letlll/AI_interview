@@ -61,7 +61,7 @@ export const getResumeListApi = (params?: any): Promise<PaginatedResponse<Resume
 };
 
 // 创建简历 (同时支持在线创建和文件上传创建)
-export const createResumeApi = (formData: FormData | { title: string, status: string }): Promise<ResumeItem> => {
+export const createResumeApi = (formData: FormData | { title: string, status: string, content_json?: any, template_name?: string }): Promise<ResumeItem> => {
   if (formData instanceof FormData) {
     // 文件上传
     return request({

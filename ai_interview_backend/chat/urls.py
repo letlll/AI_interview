@@ -1,8 +1,11 @@
 # ai-interview-backend/chat/urls.py (新建文件)
 
 from rest_framework_nested import routers
-from .views import ConversationViewSet, MessageViewSet,StartConversationView
-from django.urls import path # <-- 导入 path
+from .views import (
+    ConversationViewSet, MessageViewSet, StartConversationView,
+    AIConversationView, AIMessageView
+)
+from django.urls import path  # <-- 导入 path
 
 # 1. 创建主路由
 router = routers.DefaultRouter()
@@ -16,6 +19,10 @@ conversations_router.register(r'messages', MessageViewSet, basename='conversatio
 
 # 将所有 URL 合并
 urlpatterns = router.urls + conversations_router.urls + [
-    # 【核心新增】为新视图添加路径
+    # 用户间聊天
     path('conversations/start_with/<int:user_id>/', StartConversationView.as_view(), name='start-conversation'),
+
+    # AI 简历对话
+    path('chat/ai/conversations/', AIConversationView.as_view(), name='ai-conversations'),
+    path('chat/ai/conversations/<int:conversation_id>/messages/', AIMessageView.as_view(), name='ai-messages'),
 ]

@@ -1,10 +1,25 @@
 <template>
   <div class="ai-chat-panel">
     <!-- 对话消息列表 -->
-    <div class="messages-container" ref="messagesContainer">
+    <div
+      class="messages-container"
+      ref="messagesContainer"
+      @scroll="handleScroll"
+    >
+      <!-- 加载更多按钮 -->
+      <div v-if="hasMoreMessages && !loadingMore" class="load-more-container">
+        <el-button size="small" @click="loadMoreMessages" :loading="loadingMore">
+          加载更多消息 ({{ remainingRounds }} 轮对话)
+        </el-button>
+      </div>
+      <div v-if="loadingMore" class="load-more-loading">
+        <el-icon class="is-loading"><Loading /></el-icon>
+        加载中...
+      </div>
+
       <div
-        v-for="(message, index) in messages"
-        :key="index"
+        v-for="(message, index) in displayedMessages"
+        :key="`${message.timestamp}-${index}`"
         class="message-item"
         :class="message.role"
       >
@@ -18,7 +33,7 @@
             </el-icon>
           </el-avatar>
         </div>
-        
+
         <div class="message-content">
           <div class="message-header">
             <span class="message-sender">
@@ -84,8 +99,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue';
-import { ChatDotRound, User, Plus, Edit, MagicStick, DocumentCopy } from '@element-plus/icons-vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
+import { ChatDotRound, User, Plus, Edit, MagicStick, DocumentCopy, Loading } from '@element-plus/icons-vue';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -97,17 +112,35 @@ const emit = defineEmits<{
   (e: 'message-sent', message: string): void;
 }>();
 
-const messages = ref<Message[]>([
-  {
-    role: 'assistant',
-    content: '你好！我是 AI 简历助手。我可以帮你：\n\n• 生成完整的简历内容\n• 优化现有的简历描述\n• 添加工作经历和项目经验\n• 提供专业的建议\n\n请告诉我你的需求，或使用下方的快捷指令开始！',
-    timestamp: Date.now()
-  }
-]);
+// 分页配置
+const INITIAL_ROUNDS = 3;       // 初始显示轮数
+const LOAD_MORE_ROUNDS = 5;     // 每次加载更多轮数
 
+// 欢迎消息（不计入历史消息）
+const welcomeMessage: Message = {
+  role: 'assistant',
+  content: '你好！我是 AI 简历助手。我可以帮你：\n\n• 生成完整的简历内容\n• 优化现有的简历描述\n• 添加工作经历和项目经验\n• 提供专业的建议\n\n请告诉我你的需求，或使用下方的快捷指令开始！',
+  timestamp: Date.now()
+};
+
+// 分页状态
+const allMessages = ref<Message[]>([]);      // 完整消息列表
+const displayedCount = ref(0);                  // 当前显示的消息数
+// 分页计算属性
+const hasMoreMessages = computed(() => allMessages.value.length > displayedCount.value);
+const remainingRounds = computed(() => Math.ceil((allMessages.value.length - displayedCount.value) / 2));
+// 显示的消息 = 欢迎消息 + 历史消息的前 N 条
+const displayedMessages = computed(() => [welcomeMessage, ...allMessages.value.slice(0, displayedCount.value)]);
+const loadingMore = ref(false);
+
+// 滚动状态
+const isAtBottom = ref(true);
+const messagesContainer = ref<HTMLElement>();
+const userScrolledUp = ref(false);
+
+// 用户输入和加载状态
 const userInput = ref('');
 const isLoading = ref(false);
-const messagesContainer = ref<HTMLElement>();
 
 const quickActions = [
   {
@@ -140,11 +173,16 @@ const handleSend = () => {
   if (!userInput.value.trim() || isLoading.value) return;
 
   // 添加用户消息
-  messages.value.push({
+  allMessages.value.push({
     role: 'user',
     content: userInput.value,
     timestamp: Date.now()
   });
+
+  // 确保新消息在显示范围内
+  if (displayedCount.value < allMessages.value.length) {
+    displayedCount.value = allMessages.value.length;
+  }
 
   // 发送给父组件处理
   emit('message-sent', userInput.value);
@@ -161,13 +199,63 @@ const handleQuickAction = (prompt: string) => {
   handleSend();
 };
 
+// 加载更多消息
+const loadMoreMessages = () => {
+  if (loadingMore.value || !hasMoreMessages.value) return;
+
+  loadingMore.value = true;
+
+  // 保存当前滚动高度
+  const oldScrollHeight = messagesContainer.value?.scrollHeight || 0;
+
+  setTimeout(() => {
+    const newCount = Math.min(
+      displayedCount.value + LOAD_MORE_ROUNDS * 2,
+      allMessages.value.length
+    );
+    displayedCount.value = newCount;
+
+    loadingMore.value = false;
+
+    // 恢复滚动位置（加载后向上滚动一点，让用户看到新加载的内容结尾）
+    nextTick(() => {
+      if (messagesContainer.value) {
+        const newScrollHeight = messagesContainer.value.scrollHeight;
+        messagesContainer.value.scrollTop = newScrollHeight - oldScrollHeight - 200;
+      }
+    });
+  }, 300);
+};
+
+// 滚动事件处理
+const handleScroll = () => {
+  if (!messagesContainer.value) return;
+  const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value;
+
+  // 判断是否在底部（阈值50px）
+  const nowAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+
+  // 如果用户在底部，自动滚动新消息
+  if (nowAtBottom) {
+    isAtBottom.value = true;
+    userScrolledUp.value = false;
+  } else {
+    // 用户主动上滑
+    isAtBottom.value = false;
+    userScrolledUp.value = true;
+  }
+};
+
 const addAssistantMessage = (content: string) => {
-  messages.value.push({
+  allMessages.value.push({
     role: 'assistant',
     content,
     timestamp: Date.now()
   });
-  scrollToBottom();
+  // 如果用户没有主动上滑，自动滚动到底部
+  if (isAtBottom.value || !userScrolledUp.value) {
+    scrollToBottom();
+  }
 };
 
 const scrollToBottom = () => {
@@ -189,6 +277,12 @@ defineExpose({
   setLoading: (loading: boolean) => {
     isLoading.value = loading;
     scrollToBottom();
+  },
+  setMessages: (msgs: Message[]) => {
+    allMessages.value = msgs;
+    displayedCount.value = Math.min(INITIAL_ROUNDS * 2, msgs.length);
+    userScrolledUp.value = false;
+    nextTick(() => scrollToBottom());
   }
 });
 
@@ -209,25 +303,43 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  
+
   // 美化滚动条
   &::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: var(--el-border-color-light);
     border-radius: 4px;
     transition: background 0.3s;
-    
+
     &:hover {
       background: var(--el-border-color);
     }
   }
+}
+
+// 加载更多区域
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.load-more-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
 }
 
 .message-item {

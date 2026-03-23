@@ -36,6 +36,8 @@ class GenerateResumeChatView(APIView):
                     'error': '用户消息不能为空'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            optimized_prompt = request.data.get('optimized_prompt')
+
             # 记录请求日志
             logger.info(f"用户 {request.user.username} 发起简历对话: {user_message[:50]}...")
 
@@ -45,7 +47,8 @@ class GenerateResumeChatView(APIView):
                 current_resume=current_resume,
                 chat_history=chat_history,
                 last_edited_field=last_edited_field,
-                user=request.user
+                user=request.user,
+                optimized_prompt=optimized_prompt
             )
 
             # 检查是否有错误
