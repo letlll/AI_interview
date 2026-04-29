@@ -49,7 +49,8 @@
   <textarea id="htmlInput" placeholder="在此粘贴 HTML..."></textarea>
   <br><br>
   <button onclick="sendRequest()" id="sendBtn">发送 POST /api/preview</button>
-  <button onclick="loadSample()" class="secondary">加载示例</button>
+  <button onclick="loadSample()" class="secondary">加载示例（1页）</button>
+  <button onclick="loadSample3Pages()" class="secondary">加载示例（3页）</button>
   <button onclick="sendDebug()" class="secondary">GET /api/debug（调试截图）</button>
   <button onclick="sendParsedebug()" class="secondary">GET /api/parsedebug（PDF结构）</button>
 
@@ -63,11 +64,16 @@
   <pre id="response"></pre>
 
   <script src="sample.js"></script>
+  <script src="sample-3pages.js"></script>
   <script>
     document.getElementById('htmlInput').value = window.SAMPLE_HTML;
 
     function loadSample() {
       document.getElementById('htmlInput').value = window.SAMPLE_HTML;
+    }
+
+    function loadSample3Pages() {
+      document.getElementById('htmlInput').value = window.SAMPLE_HTML_3PAGES;
     }
 
     async function sendParsedebug() {

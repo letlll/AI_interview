@@ -65,13 +65,66 @@ function createWindow() {
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
+ * 向 HTML 注入 CSS @page 规则，使 Chromium printToPDF 按 A4 分页。
+ *
+ * 关键：Chromium 的 pageSize 选项只决定每个 Page 的 MediaBox 尺寸，
+ * 不自动在内容满页时插入分页符。必须在 CSS 中声明 @page { size: A4 }
+ * 并用 page-break-* 类控制断点，否则所有内容会溢出到单页。
+ *
+ * @param {string} html
+ * @param {number} marginTop
+ * @param {number} marginBottom
+ * @param {number} marginLeft
+ * @param {number} marginRight
+ * @returns {string} 注入后的 HTML
+ */
+function injectPageCss(html, marginTop, marginBottom, marginLeft, marginRight) {
+  const pageCss = `
+<style>
+@page {
+  size: A4;
+  margin: ${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px;
+}
+/* 避免标题被分割到两页 */
+h1, h2, h3, h4, h5, h6 {
+  page-break-after: avoid;
+}
+/* 图片和表格尽量不分割 */
+img, table, pre {
+  page-break-inside: avoid;
+}
+/* 分页保留标记元素视觉隐藏（不影响打印分页逻辑） */
+.page-break-before {
+  page-break-before: always;
+}
+</style>
+`;
+
+  // 追加到 <head> 结尾；若没有 </head> 则直接追加到 body 前
+  if (html.includes('</head>')) {
+    return html.replace('</head>', pageCss + '</head>');
+  } else if (html.includes('<body')) {
+    return html.replace(/<body/i, pageCss + '<body');
+  } else {
+    return pageCss + html;
+  }
+}
+
+/**
  * 向隐藏窗口写入 HTML，等待渲染完成后注入打印锚点。
  * 对应 Obsidian render.ts 的 fixDoc + utils.ts 的 modifyDest。
  *
  * @param {string} html 完整 HTML 字符串（应包含 <style> 和 <body>）
  * @returns {Promise<void>}
  */
-async function loadHtmlWithAnchors(html) {
+async function loadHtmlWithAnchors(html, options = {}) {
+  const {
+    marginTop = 40,
+    marginBottom = 40,
+    marginLeft = 50,
+    marginRight = 50,
+  } = options;
+
   if (!mainWindow || mainWindow.isDestroyed()) {
     createWindow();
   }
@@ -91,6 +144,11 @@ async function loadHtmlWithAnchors(html) {
   // 生成唯一文件名（避免并发冲突）
   const fileName = `resume-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.html`;
   const filePath = path.join(TEMP_DIR, fileName);
+
+  // 写入临时 HTML 文件之前，注入 @page 规则强制 Chromium 按 A4 分页
+  // Chromium 的 pageSize 选项只决定 MediaBox 尺寸，不自动分页；
+  // 必须配合 CSS @page { size: A4 } 和 page-break-* 才会在 PDF 中真正分页
+  html = injectPageCss(html, marginTop, marginBottom, marginLeft, marginRight);
 
   // 写入临时 HTML 文件
   fs.writeFileSync(filePath, html, 'utf8');
@@ -205,17 +263,17 @@ function parsePdfPageBreaks(pdfDoc) {
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
 
-    // pdf-lib 提供的便捷方法，直接返回数值（pt）
-    const heightPt = page.getHeight();
-    const widthPt = page.getWidth();
+    // pdf-lib getHeight()/getWidth() 返回微米（μm），不是点
+    // 微米 / 1000 = 毫米；毫米 / 25.4 * 72 = 点
+    const heightPt = page.getHeight() / 1000 / 25.4 * 72;
+    const widthPt  = page.getWidth()  / 1000 / 25.4 * 72;
 
-    console.log(`[parsePdfPageBreaks] 页 ${i + 1}: width=${widthPt}pt, height=${heightPt}pt`);
+    console.log(`[parsePdfPageBreaks] 页 ${i + 1}: width=${widthPt.toFixed(2)}pt, height=${heightPt.toFixed(2)}pt`);
 
-    // mediabox 原点通常为 (0, 0)，y2/y1 用于描述坐标系方向
     pageBreaks.push({
       pageIndex: i,
-      heightPt: heightPt,
-      widthPt: widthPt,
+      heightPt,
+      widthPt,
       mediaboxBottom: 0,
       mediaboxTop: heightPt,
     });
@@ -238,45 +296,41 @@ function parsePdfPageBreaks(pdfDoc) {
  * @returns {Promise<Array<string>>} 每页 base64 PNG 字符串数组
  */
 async function capturePageImagesByPdfBreaks(win, pageBreaks) {
-  // 1. 获取渲染后的内容宽度
-  const { contentHeight, contentWidth } = await win.webContents.executeJavaScript(`
-    ({
-      contentHeight: Math.round(document.body.scrollHeight),
-      contentWidth: Math.round(document.body.scrollWidth)
-    })
-  `);
+  // A4 内容区尺寸（px，96 DPI）
+  // A4 纸宽 210mm → 794pt → 1058px（等于视口宽）
+  // A4 纸高 841.89pt → 1123px（每页固定内容高）
+  const ptToPx = 96 / 72;
+  const A4ContentWidthPx = 1058;
+  const A4ContentHeightPx = Math.ceil(841.89 * ptToPx); // ≈ 1123
 
-  const windowWidth = Math.ceil(contentWidth);
+  // 先让窗口高度匹配 DOM 总内容高度，确保 CSS 分页布局全部就位
+  const domScrollHeight = await win.webContents.executeJavaScript(
+    'document.body.scrollHeight'
+  );
+  await win.setContentSize(A4ContentWidthPx, domScrollHeight + 200);
+  await sleep(300);
 
-  // 2. 计算 PDF pt → 像素（96 DPI，1pt = 4/3 px）
-  const ptToPx = DPI / PT_PER_INCH; // 4/3
-  let cumulativeScrollY = 0;
   const pageImages = [];
 
   for (let i = 0; i < pageBreaks.length; i++) {
-    const { heightPt } = pageBreaks[i];
-    const pageHeightPx = Math.ceil(parseFloat(heightPt) * ptToPx);
+    // 使用正确的 heightPt（点）→ 像素，与 PDF 实际每页高度精确对应
+    const scrollY = Math.round(i * A4ContentHeightPx);
 
-    // 滚动到第 i 页的起始位置（DOM 像素坐标系）
-    await win.webContents.executeJavaScript('window.scrollTo(0, ' + Math.round(cumulativeScrollY) + ')');
-    await sleep(400); // 等待滚动 + 重绘完成
+    await win.webContents.executeJavaScript('window.scrollTo(0, ' + scrollY + ')');
+    await sleep(400);
 
-    // 调整窗口高度为当前页高度，capturePage 只截取可见区域
-    // 用 Math.min 限制不超过剩余内容高度，避免截取底部大片空白
-    const cappedHeight = Math.min(pageHeightPx + 50, Math.ceil(contentHeight - cumulativeScrollY) + 50);
-    await win.setContentSize(windowWidth, cappedHeight);
-    await new Promise(resolve => setTimeout(resolve, 300)); // 等待窗口 resize 生效
+    // 视口高度固定为 A4 内容高 + 50px；capturePage 只截视口可见区
+    await win.setContentSize(A4ContentWidthPx, A4ContentHeightPx + 50);
+    await sleep(300);
 
     const screenshot = await win.webContents.capturePage();
     const pngBase64 = screenshot.toPNG().toString('base64');
-    console.log('[capturePageImages] 第' + (i + 1) + '页截图大小:', pngBase64.length, 'bytes, cappedHeight:', cappedHeight);
+    console.log('[capturePageImages] 第' + (i + 1) + '页截图大小:', pngBase64.length, 'bytes');
     pageImages.push('data:image/png;base64,' + pngBase64);
-
-    cumulativeScrollY += pageHeightPx;
   }
 
-  // 3. 恢复窗口高度（供下次使用）
-  await win.setContentSize(windowWidth, Math.ceil(contentHeight));
+  // 恢复窗口高度（供下次使用）
+  await win.setContentSize(A4ContentWidthPx, A4ContentHeightPx + 200);
   await sleep(100);
 
   return pageImages;
@@ -307,7 +361,7 @@ async function generatePdfPreview(html, options = {}) {
   console.log('[generatePdfPreview] 开始生成预览，HTML ��度:', html.length);
 
   // 1. 加载 HTML 并注入锚点（对应 Obsidian renderMarkdown + fixDoc + modifyDest）
-  await loadHtmlWithAnchors(html);
+  await loadHtmlWithAnchors(html, { marginTop, marginBottom, marginLeft, marginRight });
 
   // 2. 等待渲染稳定
   await waitForRender(win);
@@ -341,19 +395,20 @@ async function generatePdfPreview(html, options = {}) {
       <span class="pageNumber"></span>&nbsp;/&nbsp;<span class="totalPages"></span>
     </div>`;
 
+  // pageSize 单位：英寸（Electron 官方要求）；margins 单位：英寸（CSS 像素 / 96）
   const pdfData = await win.webContents.printToPDF({
     printBackground: true,
     landscape: false,
     pageSize: {
-      width: A4_WIDTH_MM * 1000, // mm → 微米（printToPDF 官方要求）
-      height: A4_HEIGHT_MM * 1000,
+      width: A4_WIDTH_MM / 25.4,
+      height: A4_HEIGHT_MM / 25.4,
     },
     margins: {
       marginType: 'custom',
-      top: marginTop,
-      bottom: marginBottom,
-      left: marginLeft,
-      right: marginRight,
+      top: marginTop / 96,
+      bottom: marginBottom / 96,
+      left: marginLeft / 96,
+      right: marginRight / 96,
     },
     displayHeaderFooter: displayHeaderFooter,
     headerTemplate: headerTemplate ?? DEFAULT_HEADER_TEMPLATE,
@@ -496,15 +551,15 @@ async function generatePdf(html, options = {}) {
     printBackground: true,
     landscape: false,
     pageSize: {
-      width: A4_WIDTH_MM * 1000,
-      height: A4_HEIGHT_MM * 1000,
+      width: A4_WIDTH_MM / 25.4,
+      height: A4_HEIGHT_MM / 25.4,
     },
     margins: {
       marginType: 'custom',
-      top: marginTop,
-      bottom: marginBottom,
-      left: marginLeft,
-      right: marginRight,
+      top: marginTop / 96,
+      bottom: marginBottom / 96,
+      left: marginLeft / 96,
+      right: marginRight / 96,
     },
     displayHeaderFooter: displayHeader,
     headerTemplate: headerTemplate ?? DEFAULT_HEADER_TEMPLATE,
