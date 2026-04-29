@@ -85,6 +85,9 @@ function injectPageCss(html, marginTop, marginBottom, marginLeft, marginRight) {
   size: A4;
   margin: ${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px;
 }
+@page :first {
+  margin-top: 0;  /* 补偿 .resume-document padding-top: 40px */
+}
 /* 避免标题被分割到两页 */
 h1, h2, h3, h4, h5, h6 {
   page-break-after: avoid;
@@ -386,7 +389,7 @@ async function generatePdfPreview(html, options = {}) {
   const DEFAULT_HEADER_TEMPLATE = `
     <div style="width:100%;font-size:9px;text-align:center;
       font-family:'Microsoft YaHei',SimHei,sans-serif;color:#888;
-      border-bottom:1px solid #e8e8e8;padding-bottom:3px;margin-bottom:4px;">
+      padding-bottom:3px;margin-bottom:4px;">
       <span class="title">${escapeHtml(resumeName)}</span>
     </div>`;
   const DEFAULT_FOOTER_TEMPLATE = `
