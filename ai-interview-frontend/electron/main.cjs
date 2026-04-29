@@ -1,0 +1,719 @@
+/**
+ * electron/main.cjs
+ *
+ * Electron PDF 微服务：
+ * - 在隐藏 BrowserWindow 中渲染 HTML
+ * - 注入打印锚点（供 PDF 分页解析）
+ * - 通过 Chromium printToPDF 生成分页 PDF
+ * - 用 pdf-lib 解析 PDF 获取每页 mediabox 高度
+ * - 按精确页边界逐页截图（用于预览）
+ * - 同时返回预览图 + PDF blob（预览无 header/footer，PDF 有）
+ * - 启动 Node.js HTTP 服务器 (:9999) 接收前端请求
+ *
+ * 无需 GUI 窗口，纯后台运行。
+ *
+ * 注意：使用 .cjs 后缀强制 CommonJS 模块（package.json 为 "type": "module"）
+ */
+
+const { app, BrowserWindow } = require('electron');
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+// 引入 pdf-lib（用于解析 PDF 获取精确分页位置）
+const { PDFDocument, PDFName, PDFArray } = require('pdf-lib');
+
+const HTTP_PORT = 9999;
+const TEMP_DIR = path.join(os.tmpdir(), 'electron-pdf-temp');
+
+// 隐藏 BrowserWindow 尺寸
+// 内容区 .resume-document: max-width:800px + padding:40px*2 = 880px
+// 预留 60px 余量（避免边角被裁切），设为 940px 宽
+const A4_WIDTH = 940;
+const A4_HEIGHT = 1400;
+
+// DPI 和 pt 换算常量（与 Obsidian constant.ts 保持一致）
+const MM_PER_INCH = 25.4;
+const PT_PER_INCH = 72;
+const DPI = 96; // Chromium 默认 DPI
+
+// A4 尺寸（mm）
+const A4_WIDTH_MM = 210;
+const A4_HEIGHT_MM = 297;
+
+let mainWindow = null;
+// 最近一次 generatePdfPreview 生成的原始 PDF 数据（供 /api/parsedebug 使用）
+let lastPdfData = null;
+
+/** 创建隐藏窗口（仅用于 PDF 渲染） */
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: A4_WIDTH,
+    height: A4_HEIGHT,
+    show: false,          // 完全隐藏
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,      // 关闭 sandbox 允许加载本地 file://
+    },
+  });
+  return mainWindow;
+}
+
+/** 等待指定毫秒（对应 Obsidian utils.ts sleep） */
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * 向隐藏窗口写入 HTML，等待渲染完成后注入打印锚点。
+ * 对应 Obsidian render.ts 的 fixDoc + utils.ts 的 modifyDest。
+ *
+ * @param {string} html 完整 HTML 字符串（应包含 <style> 和 <body>）
+ * @returns {Promise<void>}
+ */
+async function loadHtmlWithAnchors(html) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+  }
+
+  const win = mainWindow;
+
+  // 截断超长 HTML（>1MB）防止 data URL 溢出
+  if (html.length > 1024 * 1024) {
+    throw new Error(`HTML 内容过长 (${Math.round(html.length / 1024)}KB)，请减少简历内容`);
+  }
+
+  // 确保临时目录存在
+  if (!fs.existsSync(TEMP_DIR)) {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+
+  // 生成唯一文件名（避免并发冲突）
+  const fileName = `resume-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.html`;
+  const filePath = path.join(TEMP_DIR, fileName);
+
+  // 写入临时 HTML 文件
+  fs.writeFileSync(filePath, html, 'utf8');
+  const fileUrl = `file://${filePath.replace(/\\/g, '/')}`; // Windows 反斜杠转正斜杠
+
+  try {
+    // 等待页面完全加载
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('页面加载超时（15s）')), 15000);
+
+      win.webContents.once('did-finish-load', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      win.webContents.once('did-fail-load', (_event, errorCode, errorDescription) => {
+        clearTimeout(timeout);
+        reject(new Error(`页面加载失败: ${errorCode} ${errorDescription}`));
+      });
+
+      win.loadURL(fileUrl).catch(err => {
+        clearTimeout(timeout);
+        reject(new Error(`loadURL 失败: ${err.message}`));
+      });
+    });
+
+    // 等待 JS 渲染完成：轮询检测 .resume-document 元素出现且有实际内容
+    await win.webContents.executeJavaScript(`
+      new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('DOM 内容渲染超时（20s）')), 20000);
+        const start = Date.now();
+        function poll() {
+          const el = document.querySelector('.resume-document') || document.querySelector('.markdown-body');
+          const bodyTextLen = document.body ? document.body.textContent.trim().length : 0;
+          console.log('[PDF render poll] body text length:', bodyTextLen, 'el children:', el ? el.children.length : 'null');
+          const hasContent = el && (
+            el.children.length > 0 ||
+            bodyTextLen > 10
+          );
+          if (hasContent) {
+            clearTimeout(timeout);
+            console.log('[PDF render poll] 内容已就绪，body text:', bodyTextLen, 'el children:', el ? el.children.length : 0);
+            setTimeout(resolve, 300);
+          } else if (Date.now() - start > 18000) {
+            console.log('[PDF render poll] 超时前最后一次确认，强制继续');
+            resolve();
+          } else {
+            setTimeout(poll, 100);
+          }
+        }
+        poll();
+      })
+    `);
+
+    // ========== 注入打印锚点（供 PDF 分页解析使用） ==========
+    // 为每个 h1-h6 和主要区块注入锚点（<a href="af://{flag}">），
+    // flag 格式：h2-{index}-{textHash}，textHash = heading text 的 hash
+    await win.webContents.executeJavaScript(`
+      (function() {
+        var counter = 0;
+        function hashStr(str) {
+          // 简单 hash：取文本前 16 字符的 charCode 和
+          var s = str.trim().substring(0, 16);
+          var h = 0;
+          for (var i = 0; i < s.length; i++) {
+            h = ((h << 5) - h) + s.charCodeAt(i);
+            h = h & h;
+          }
+          return Math.abs(h).toString(36);
+        }
+        var headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6, .section, .subsection');
+        headings.forEach(function(el) {
+          if (el.querySelector('.md-print-anchor')) return;
+          var a = document.createElement('a');
+          var tag = el.tagName ? el.tagName.toLowerCase() : 'block';
+          var text = el.textContent ? el.textContent.trim() : '';
+          var hash = hashStr(text);
+          var flag = tag + '-' + (++counter) + '-' + hash;
+          a.href = 'af://' + flag;
+          a.className = 'md-print-anchor';
+          // 视觉上不可见，但 Chromium 会为其创建 PDF Link 注解
+          a.style.cssText = 'position:absolute;width:1px;height:1px;right:0;overflow:hidden;display:inline-block;';
+          el.appendChild(a);
+        });
+        console.log('[injectPrintAnchors] 注入锚点数量:', counter);
+      })();
+    `);
+
+  } finally {
+    // 清理临时文件（忽略删除失败）
+    try { fs.unlinkSync(filePath); } catch (_) {}
+  }
+}
+
+/**
+ * 等待渲染稳定
+ * @param {BrowserWindow} win
+ */
+async function waitForRender(win) {
+  await sleep(1000);
+}
+
+/**
+ * 解析 PDF 获取每页的 mediabox 高度。
+ *
+ * @param {PDFDocument} pdfDoc - pdf-lib PDFDocument 实例
+ * @returns {Array<{pageIndex: number, heightPt: number, mediaboxBottom: number, mediaboxTop: number}>}
+ */
+function parsePdfPageBreaks(pdfDoc) {
+  const pages = pdfDoc.getPages();
+  const pageBreaks = [];
+
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+
+    // pdf-lib 提供的便捷方法，直接返回数值（pt）
+    const heightPt = page.getHeight();
+    const widthPt = page.getWidth();
+
+    console.log(`[parsePdfPageBreaks] 页 ${i + 1}: width=${widthPt}pt, height=${heightPt}pt`);
+
+    // mediabox 原点通常为 (0, 0)，y2/y1 用于描述坐标系方向
+    pageBreaks.push({
+      pageIndex: i,
+      heightPt: heightPt,
+      widthPt: widthPt,
+      mediaboxBottom: 0,
+      mediaboxTop: heightPt,
+    });
+  }
+
+  return pageBreaks;
+}
+
+/**
+ * 按 PDF 精确页边界逐页截图（用于预览图）。
+ *
+ * 策略：scroll + resize + capturePage 逐页截图。
+ * Chromium capturePage() 截取的是当前视口可见区域，
+ * 配合 windowHeight 调整可精确控制每页截取范围。
+ *
+ * 注意：DOM 中无 header/footer，所以截图预览天然无页码。
+ *
+ * @param {BrowserWindow} win
+ * @param {Array} pageBreaks - parsePdfPageBreaks 返回的页边界数组
+ * @returns {Promise<Array<string>>} 每页 base64 PNG 字符串数组
+ */
+async function capturePageImagesByPdfBreaks(win, pageBreaks) {
+  // 1. 获取渲染后的内容宽度
+  const { contentHeight, contentWidth } = await win.webContents.executeJavaScript(`
+    ({
+      contentHeight: Math.round(document.body.scrollHeight),
+      contentWidth: Math.round(document.body.scrollWidth)
+    })
+  `);
+
+  const windowWidth = Math.ceil(contentWidth);
+
+  // 2. 计算 PDF pt → 像素（96 DPI，1pt = 4/3 px）
+  const ptToPx = DPI / PT_PER_INCH; // 4/3
+  let cumulativeScrollY = 0;
+  const pageImages = [];
+
+  for (let i = 0; i < pageBreaks.length; i++) {
+    const { heightPt } = pageBreaks[i];
+    const pageHeightPx = Math.ceil(parseFloat(heightPt) * ptToPx);
+
+    // 滚动到第 i 页的起始位置（DOM 像素坐标系）
+    await win.webContents.executeJavaScript('window.scrollTo(0, ' + Math.round(cumulativeScrollY) + ')');
+    await sleep(400); // 等待滚动 + 重绘完成
+
+    // 调整窗口高度为当前页高度，capturePage 只截取可见区域
+    // 用 Math.min 限制不超过剩余内容高度，避免截取底部大片空白
+    const cappedHeight = Math.min(pageHeightPx + 50, Math.ceil(contentHeight - cumulativeScrollY) + 50);
+    await win.setContentSize(windowWidth, cappedHeight);
+    await new Promise(resolve => setTimeout(resolve, 300)); // 等待窗口 resize 生效
+
+    const screenshot = await win.webContents.capturePage();
+    const pngBase64 = screenshot.toPNG().toString('base64');
+    console.log('[capturePageImages] 第' + (i + 1) + '页截图大小:', pngBase64.length, 'bytes, cappedHeight:', cappedHeight);
+    pageImages.push('data:image/png;base64,' + pngBase64);
+
+    cumulativeScrollY += pageHeightPx;
+  }
+
+  // 3. 恢复窗口高度（供下次使用）
+  await win.setContentSize(windowWidth, Math.ceil(contentHeight));
+  await sleep(100);
+
+  return pageImages;
+}
+
+/**
+ * 核心函数：生成 PDF 预览（同时返回预览图 + PDF）。
+ * 对应 Obsidian 精确分页方案 + 前端 /api/preview 接口。
+ *
+ * 关键设计：
+ * - 预览图（pageImages）：HTML 截图，displayHeaderFooter: false，无页码 header/footer
+ * - 最终 PDF（pdfBase64）：Chromium printToPDF，displayHeaderFooter: true，有页码
+ * - 两者使用同一套渲染基准（一致的字体、布局、分页），用户可接受细微差异
+ *
+ * @param {string} html 完整 HTML 字符串（含内联 CSS）
+ * @param {object} options { resumeName, marginTop, marginBottom, marginLeft, marginRight, displayHeader, headerTemplate, footerTemplate }
+ * @returns {Promise<{pageImages: string[], pdfBase64: string, pageCount: number, pageBreaks: number[]}>}
+ */
+async function generatePdfPreview(html, options = {}) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+  }
+
+  const win = mainWindow;
+  const { resumeName = '', marginTop = 40, marginBottom = 40, marginLeft = 50, marginRight = 50,
+    displayHeaderFooter = true, headerTemplate, footerTemplate } = options;
+
+  console.log('[generatePdfPreview] 开始生成预览，HTML ��度:', html.length);
+
+  // 1. 加载 HTML 并注入锚点（对应 Obsidian renderMarkdown + fixDoc + modifyDest）
+  await loadHtmlWithAnchors(html);
+
+  // 2. 等待渲染稳定
+  await waitForRender(win);
+
+  // ========== 调试：printToPDF 前检查 DOM 状态 ==========
+  const domBeforePdf = await win.webContents.executeJavaScript(`
+    JSON.stringify({
+      bodyScrollHeight: document.body.scrollHeight,
+      bodyScrollWidth: document.body.scrollWidth,
+      bodyTextLength: document.body.textContent.trim().length,
+      hasResumeDoc: !!document.querySelector('.resume-document'),
+      hasMarkdownBody: !!document.querySelector('.markdown-body'),
+    })
+  `);
+  console.log('[DEBUG] printToPDF 前 DOM:', domBeforePdf);
+
+  // ============================================================
+  // 3. 生成 PDF（Chromium 分页的权威来源）
+  //    displayHeaderFooter: true 让 PDF 有页码 header/footer
+  //    对应 Obsidian exportToPDF 的 printOptions
+  // ============================================================
+  const DEFAULT_HEADER_TEMPLATE = `
+    <div style="width:100%;font-size:9px;text-align:center;
+      font-family:'Microsoft YaHei',SimHei,sans-serif;color:#888;
+      border-bottom:1px solid #e8e8e8;padding-bottom:3px;margin-bottom:4px;">
+      <span class="title">${escapeHtml(resumeName)}</span>
+    </div>`;
+  const DEFAULT_FOOTER_TEMPLATE = `
+    <div style="width:100%;font-size:9px;text-align:center;
+      font-family:'Microsoft YaHei',SimHei,sans-serif;color:#aaa;">
+      <span class="pageNumber"></span>&nbsp;/&nbsp;<span class="totalPages"></span>
+    </div>`;
+
+  const pdfData = await win.webContents.printToPDF({
+    printBackground: true,
+    landscape: false,
+    pageSize: {
+      width: A4_WIDTH_MM * 1000, // mm → 微米（printToPDF 官方要求）
+      height: A4_HEIGHT_MM * 1000,
+    },
+    margins: {
+      marginType: 'custom',
+      top: marginTop,
+      bottom: marginBottom,
+      left: marginLeft,
+      right: marginRight,
+    },
+    displayHeaderFooter: displayHeaderFooter,
+    headerTemplate: headerTemplate ?? DEFAULT_HEADER_TEMPLATE,
+    footerTemplate: footerTemplate ?? DEFAULT_FOOTER_TEMPLATE,
+  });
+
+  console.log('[generatePdfPreview] PDF 生成完成，大小:', pdfData.length, 'bytes');
+
+  // 保存最近一次 PDF 数据供 /api/parsedebug 使用
+  lastPdfData = pdfData;
+
+  // ========== 调试：printToPDF 后立即 capturePage 对比 ==========
+  {
+    const debugScreenshot = await win.webContents.capturePage();
+    const debugPng = debugScreenshot.toPNG();
+    console.log('[DEBUG] capturePage PNG 大小:', debugPng.length, 'bytes');
+    console.log('[DEBUG] capturePage PNG 前 8 bytes:', debugPng.slice(0, 8).toString('hex'));
+    // 如果两者大小相近但 PDF 空白，说明 printToPDF 在这次调用时页面未就绪
+  }
+
+  // ============================================================
+  // 4. 解析 PDF 分页结构（获取每页 mediabox 高度）
+  // ============================================================
+  const pdfDoc = await PDFDocument.load(pdfData);
+  const pageBreaks = parsePdfPageBreaks(pdfDoc);
+  const pageCount = pageBreaks.length;
+  console.log('[generatePdfPreview] PDF 页数:', pageCount);
+  console.log('[generatePdfPreview] 每页 mediabox 高度（pt）:', pageBreaks.map(p => p.heightPt));
+
+  // ============================================================
+  // 5. 按精确页边界截图（预览图，无 header/footer）
+  //    capturePage() 直接截取 DOM 可见区域，DOM 中无 header/footer
+  // ============================================================
+  const pageImages = await capturePageImagesByPdfBreaks(win, pageBreaks);
+  console.log('[generatePdfPreview] 预览截图生成完成，数量:', pageImages.length);
+
+  // 6. 返回结果（pdfBase64 使用原始 pdfData，不走 pdfDoc.save()，
+  //    因为 pdf-lib 的 save() 会丢弃 Chromium header/footer 注解，导致 PDF 空白）
+  return {
+    pageImages,                                     // 每页 base64 PNG 预览（无 header/footer）
+    pdfBase64: Buffer.from(pdfData).toString('base64'),    // 原始 printToPDF 输出（含 header/footer）
+    pageCount,
+    pageBreaks: pageBreaks.map(p => parseFloat(p.heightPt.toString())),
+  };
+}
+
+/**
+ * 原有 PDF 生成函数（保持不变，用于直接下载 PDF）。
+ * 对应 Obsidian exportToPDF（不含预览截图逻辑）。
+ *
+ * @param {string} html 完整 HTML 字符串（含内联 CSS）
+ * @param {object} options { resumeName, marginTop, marginBottom, marginLeft, marginRight, displayHeader, headerTemplate, footerTemplate }
+ * @returns {Promise<Buffer>} PDF 二进制数据
+ */
+async function generatePdf(html, options = {}) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+  }
+
+  const win = mainWindow;
+
+  if (html.length > 1024 * 1024) {
+    throw new Error(`HTML 内容过长 (${Math.round(html.length / 1024)}KB)，请减少简历内容`);
+  }
+
+  if (!fs.existsSync(TEMP_DIR)) {
+    fs.mkdirSync(TEMP_DIR, { recursive: true });
+  }
+
+  const fileName = `resume-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.html`;
+  const filePath = path.join(TEMP_DIR, fileName);
+
+  fs.writeFileSync(filePath, html, 'utf8');
+  const fileUrl = `file://${filePath.replace(/\\/g, '/')}`;
+
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('页面加载超时（15s）')), 15000);
+
+      win.webContents.once('did-finish-load', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      win.webContents.once('did-fail-load', (_event, errorCode, errorDescription) => {
+        clearTimeout(timeout);
+        reject(new Error(`页面加载失败: ${errorCode} ${errorDescription}`));
+      });
+
+      win.loadURL(fileUrl).catch(err => {
+        clearTimeout(timeout);
+        reject(new Error(`loadURL 失败: ${err.message}`));
+      });
+    });
+
+    await win.webContents.executeJavaScript(`
+      new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('DOM 内容渲染超时（20s）')), 20000);
+        const start = Date.now();
+        function poll() {
+          const el = document.querySelector('.resume-document') || document.querySelector('.markdown-body');
+          const bodyTextLen = document.body ? document.body.textContent.trim().length : 0;
+          const hasContent = el && (
+            el.children.length > 0 ||
+            bodyTextLen > 10
+          );
+          if (hasContent) {
+            clearTimeout(timeout);
+            setTimeout(resolve, 300);
+          } else if (Date.now() - start > 18000) {
+            resolve();
+          } else {
+            setTimeout(poll, 100);
+          }
+        }
+        poll();
+      })
+    `);
+  } finally {
+    try { fs.unlinkSync(filePath); } catch (_) {}
+  }
+
+  console.log(`[Electron PDF] 内容渲染就绪，开始生成 PDF`);
+
+  const { resumeName = '', marginTop = 40, marginBottom = 40, marginLeft = 50, marginRight = 50,
+    displayHeader = true, headerTemplate, footerTemplate } = options;
+
+  const DEFAULT_HEADER_TEMPLATE = `
+    <div style="width:100%;font-size:9px;text-align:center;
+      font-family:'Microsoft YaHei',SimHei,sans-serif;color:#888;
+      border-bottom:1px solid #e8e8e8;padding-bottom:3px;margin-bottom:4px;">
+      <span class="title">${escapeHtml(resumeName)}</span>
+    </div>`;
+  const DEFAULT_FOOTER_TEMPLATE = `
+    <div style="width:100%;font-size:9px;text-align:center;
+      font-family:'Microsoft YaHei',SimHei,sans-serif;color:#aaa;">
+      <span class="pageNumber"></span>&nbsp;/&nbsp;<span class="totalPages"></span>
+    </div>`;
+
+  const pdfData = await win.webContents.printToPDF({
+    printBackground: true,
+    landscape: false,
+    pageSize: {
+      width: A4_WIDTH_MM * 1000,
+      height: A4_HEIGHT_MM * 1000,
+    },
+    margins: {
+      marginType: 'custom',
+      top: marginTop,
+      bottom: marginBottom,
+      left: marginLeft,
+      right: marginRight,
+    },
+    displayHeaderFooter: displayHeader,
+    headerTemplate: headerTemplate ?? DEFAULT_HEADER_TEMPLATE,
+    footerTemplate: footerTemplate ?? DEFAULT_FOOTER_TEMPLATE,
+  });
+
+  return pdfData;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** HTTP 服务器：接收前端请求 */
+function createHttpServer() {
+  return new Promise((resolve) => {
+    const server = http.createServer(async (req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
+      // ============================================================
+      // 接口 1：POST /api/preview
+      // 完整流程：渲染 → 锚点注入 → PDF(Chromium分页) → pdf-lib解析 → 精确截图
+      // 返回预览图 + PDF blob + 分页信息
+      // ============================================================
+      if (req.method === 'POST' && req.url === '/api/preview') {
+        const MAX_BODY_SIZE = 10 * 1024 * 1024;
+        let body = [];
+        let bodySize = 0;
+        let tooLarge = false;
+
+        req.on('data', chunk => {
+          bodySize += chunk.length;
+          if (bodySize > MAX_BODY_SIZE) {
+            tooLarge = true;
+            req.destroy();
+            return;
+          }
+          body.push(chunk);
+        });
+
+        req.on('end', async () => {
+          if (tooLarge) {
+            console.error('[Electron PDF] 请求体过大:', bodySize);
+            res.writeHead(413, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: '请求体过大，请减少简历内容后重试' }));
+            return;
+          }
+
+          try {
+            const raw = Buffer.concat(body).toString();
+            const { html, options } = JSON.parse(raw);
+            console.log(`[Electron PDF /api/preview] HTML 长度: ${html?.length ?? 0}`);
+
+            const result = await generatePdfPreview(html, options);
+            console.log(`[Electron PDF /api/preview] 生成完成，预览 ${result.pageCount} 页，PDF 大小: ${result.pdfBase64.length} bytes`);
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result));
+          } catch (err) {
+            console.error('[Electron PDF /api/preview] 生成失败:', err.message, err.stack);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: err.message || '预览生成失败' }));
+          }
+        });
+        return;
+      }
+
+      // ============================================================
+      // 接口 2：POST /api/pdf
+      // 原有逻辑不变，返回纯 PDF binary
+      // ============================================================
+      if (req.method === 'POST' && req.url === '/api/pdf') {
+        const MAX_BODY_SIZE = 10 * 1024 * 1024;
+        let body = [];
+        let bodySize = 0;
+        let tooLarge = false;
+
+        req.on('data', chunk => {
+          bodySize += chunk.length;
+          if (bodySize > MAX_BODY_SIZE) {
+            tooLarge = true;
+            req.destroy();
+            return;
+          }
+          body.push(chunk);
+        });
+
+        req.on('end', async () => {
+          if (tooLarge) {
+            console.error('[Electron PDF] 请求体过大:', bodySize);
+            res.writeHead(413, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: '请求体过大，请减少简历内容后重试' }));
+            return;
+          }
+
+          try {
+            const raw = Buffer.concat(body).toString();
+            const { html, options } = JSON.parse(raw);
+            console.log(`[Electron PDF /api/pdf] HTML 长度: ${html?.length ?? 0}`);
+            const pdfBuffer = await generatePdf(html, options);
+            console.log(`[Electron PDF /api/pdf] 生成完成，大小: ${pdfBuffer.length} bytes`);
+            res.writeHead(200, { 'Content-Type': 'application/pdf' });
+            res.end(pdfBuffer);
+          } catch (err) {
+            console.error('[Electron PDF /api/pdf] 生成失败:', err.message, err.stack);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: err.message || 'PDF 生成失败' }));
+          }
+        });
+        return;
+      }
+
+      if (req.method === 'GET' && req.url === '/api/debug') {
+        try {
+          if (!mainWindow || mainWindow.isDestroyed()) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Electron 窗口未就绪，请先调用 /api/preview' }));
+            return;
+          }
+          const win = mainWindow;
+          const info = await win.webContents.executeJavaScript(`
+            ({
+              bodyScrollHeight: document.body ? document.body.scrollHeight : 0,
+              bodyScrollWidth: document.body ? document.body.scrollWidth : 0,
+              bodyTextLength: document.body ? document.body.textContent.trim().length : 0,
+              hasResumeDoc: !!document.querySelector('.resume-document'),
+              hasMarkdownBody: !!document.querySelector('.markdown-body'),
+              documentTitle: document.title,
+              readyState: document.readyState,
+            })
+          `);
+          const screenshot = await win.webContents.capturePage();
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            domInfo: info,
+            screenshotBase64: screenshot.toPNG().toString('base64'),
+          }, null, 2));
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+        return;
+      }
+
+      if (req.method === 'GET' && req.url === '/api/parsedebug') {
+        try {
+          if (!lastPdfData) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: '暂无 PDF 数据，请先调用 /api/preview' }));
+            return;
+          }
+          const pdfDoc = await PDFDocument.load(Buffer.from(lastPdfData));
+          const pages = pdfDoc.getPages();
+          const raw = pages.map((page, i) => {
+            const heightPt = page.getHeight();
+            const widthPt = page.getWidth();
+            return {
+              page: i + 1,
+              bounds: { x1: 0, y1: 0, x2: widthPt, y2: heightPt },
+              heightPt: heightPt,
+              widthPt: widthPt,
+            };
+          });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(raw, null, 2));
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+        return;
+      }
+
+      if (req.method === 'GET' && req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+        return;
+      }
+
+      res.writeHead(404);
+      res.end();
+    });
+
+    server.listen(HTTP_PORT, () => {
+      console.log(`[Electron PDF 微服务] 运行于 http://localhost:${HTTP_PORT}`);
+      console.log(`  - POST /api/preview  → 预览图 + PDF blob + 分页信息`);
+      console.log(`  - POST /api/pdf      → 纯 PDF binary（原有逻辑）`);
+      resolve(server);
+    });
+  });
+}
+
+// 应用启动
+app.whenReady().then(async () => {
+  createWindow();
+  await createHttpServer();
+});
+
+app.on('window-all-closed', () => {
+  app.quit();
+});

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF API 测试</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background: #fafafa; }
+    h1 { color: #333; }
+    h2 { color: #555; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    textarea { width: 100%; height: 180px; font-family: monospace; font-size: 13px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 8px 16px; cursor: pointer; background: #409eff; color: #fff; border: none; border-radius: 4px; font-size: 14px; }
+    button:hover { background: #66b1ff; }
+    button:disabled { background: #a0cfff; cursor: not-allowed; }
+    button.secondary { background: #909399; }
+    #status { padding: 12px; margin: 10px 0; border-radius: 4px; font-size: 14px; }
+    .success { background: #f0f9eb; color: #67c23a; border: 1px solid #c8e6c9; }
+    .error   { background: #fef0f0; color: #f56c6c; border: 1px solid #fbc4c4; }
+    .loading { background: #fdf6ec; color: #e6a23c; border: 1px solid #faecd8; }
+    #previewImages { margin-top: 16px; }
+    #previewImages img { max-width: 100%; border: 1px solid #ddd; margin: 8px 0; border-radius: 2px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .page-label { font-weight: bold; color: #409eff; margin-top: 16px; }
+    pre { background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto; max-height: 200px; font-size: 12px; border: 1px solid #e8e8e8; }
+    .info { background: #ecf5ff; padding: 10px; border-radius: 4px; color: #409eff; font-size: 13px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>PDF API 测试页面</h1>
+  <div class="info">
+    接口地址：<strong>POST http://localhost:9999/api/preview</strong><br>
+    前置条件：Electron 微服务已启动（npm run electron:dev）
+  </div>
+
+  <h2>1. 参数配置</h2>
+  <div style="margin-bottom: 12px;">
+    <label><strong>resumeName:</strong>
+      <input type="text" id="resumeName" value="测试简历" style="width:220px; margin-left:8px;">
+    </label>
+    &nbsp;
+    <label><strong>页边距:</strong>
+      <input type="number" id="marginTop" value="40" style="width:60px; margin-left:8px;" title="上">px
+      <input type="number" id="marginBottom" value="40" style="width:60px;" title="下">px
+      <input type="number" id="marginLeft" value="50" style="width:60px;" title="左">px
+      <input type="number" id="marginRight" value="50" style="width:60px;" title="右">px
+    </label>
+  </div>
+
+  <h2>2. HTML 内容（将被 Chromium 渲染）</h2>
+  <textarea id="htmlInput" placeholder="在此粘贴 HTML..."></textarea>
+  <br><br>
+  <button onclick="sendRequest()" id="sendBtn">发送 POST /api/preview</button>
+  <button onclick="loadSample()" class="secondary">加载示例</button>
+  <button onclick="sendDebug()" class="secondary">GET /api/debug（调试截图）</button>
+  <button onclick="sendParsedebug()" class="secondary">GET /api/parsedebug（PDF结构）</button>
+
+  <h2>3. 请求状态</h2>
+  <div id="status"></div>
+
+  <h2>4. 预览图（Chromium 精确截图）</h2>
+  <div id="previewImages"></div>
+
+  <h2>5. 响应原始数据</h2>
+  <pre id="response"></pre>
+
+  <script src="sample.js"></script>
+  <script>
+    document.getElementById('htmlInput').value = window.SAMPLE_HTML;
+
+    function loadSample() {
+      document.getElementById('htmlInput').value = window.SAMPLE_HTML;
+    }
+
+    async function sendParsedebug() {
+      const status = document.getElementById('status');
+      const responsePre = document.getElementById('response');
+      const previewDiv = document.getElementById('previewImages');
+      status.className = 'loading';
+      status.textContent = '正在获取 PDF 结构...';
+      previewDiv.innerHTML = '';
+      responsePre.textContent = '';
+
+      try {
+        const res = await fetch('http://localhost:9999/api/parsedebug');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+        status.className = 'success';
+        status.textContent = 'PDF 结构获取成功';
+        responsePre.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        status.className = 'error';
+        status.textContent = 'PDF 结构获取失败: ' + err.message;
+        responsePre.textContent = err.stack || err.message;
+      }
+    }
+
+    async function sendDebug() {
+      const status = document.getElementById('status');
+      const responsePre = document.getElementById('response');
+      const previewDiv = document.getElementById('previewImages');
+      status.className = 'loading';
+      status.textContent = '正在获取调试截图...';
+      previewDiv.innerHTML = '';
+      responsePre.textContent = '';
+
+      try {
+        const res = await fetch('http://localhost:9999/api/debug');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+        status.className = 'success';
+        status.textContent = '调试数据获取成功';
+
+        responsePre.textContent = JSON.stringify(data.domInfo, null, 2);
+
+        if (data.screenshotBase64) {
+          const label = document.createElement('div');
+          label.className = 'page-label';
+          label.textContent = '当前页面截图（DEBUG）';
+          previewDiv.appendChild(label);
+          const imgEl = document.createElement('img');
+          imgEl.src = 'data:image/png;base64,' + data.screenshotBase64;
+          imgEl.alt = 'debug screenshot';
+          previewDiv.appendChild(imgEl);
+        }
+      } catch (err) {
+        status.className = 'error';
+        status.textContent = '调试失败: ' + err.message;
+        responsePre.textContent = err.stack || err.message;
+      }
+    }
+
+    async function sendRequest() {
+      const btn = document.getElementById('sendBtn');
+      const status = document.getElementById('status');
+      const previewDiv = document.getElementById('previewImages');
+      const responsePre = document.getElementById('response');
+
+      btn.disabled = true;
+      status.className = 'loading';
+      status.textContent = '请求中，请等待 Chromium 渲染...';
+      previewDiv.innerHTML = '';
+      responsePre.textContent = '';
+
+      const html = document.getElementById('htmlInput').value;
+      const resumeName = document.getElementById('resumeName').value;
+      const marginTop = parseInt(document.getElementById('marginTop').value) || 40;
+      const marginBottom = parseInt(document.getElementById('marginBottom').value) || 40;
+      const marginLeft = parseInt(document.getElementById('marginLeft').value) || 50;
+      const marginRight = parseInt(document.getElementById('marginRight').value) || 50;
+
+      try {
+        const start = Date.now();
+        const res = await fetch('http://localhost:9999/api/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            html,
+            options: {
+              resumeName,
+              marginTop,
+              marginBottom,
+              marginLeft,
+              marginRight,
+              displayHeader: true,
+            }
+          })
+        });
+
+        const elapsed = Date.now() - start;
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+        status.className = 'success';
+        status.textContent = `成功！${data.pageCount} 页，耗时 ${elapsed}ms`;
+
+        // 预览图
+        data.pageImages.forEach((img, i) => {
+          const label = document.createElement('div');
+          label.className = 'page-label';
+          label.textContent = `第 ${i + 1} 页（共 ${data.pageCount} 页）`;
+          previewDiv.appendChild(label);
+
+          const imgEl = document.createElement('img');
+          imgEl.src = img;
+          imgEl.alt = `Page ${i + 1}`;
+          previewDiv.appendChild(imgEl);
+        });
+
+        // 下载按钮
+        if (data.pdfBase64) {
+          let bytes;
+          try {
+            const binary = atob(data.pdfBase64);
+            bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          } catch (e) {
+            status.className = 'error';
+            status.textContent = 'PDF 解码失败: ' + e.message;
+            return;
+          }
+          const dlDiv = document.createElement('div');
+          dlDiv.style.marginTop = '16px';
+          const a = document.createElement('a');
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          a.href = URL.createObjectURL(blob);
+          a.download = `简历-${resumeName}.pdf`;
+          a.style.cssText = 'display:inline-block;padding:10px 24px;background:#67c23a;color:#fff;text-decoration:none;border-radius:4px;font-size:14px;';
+          a.textContent = '下载 PDF（带页码 header/footer）';
+          dlDiv.appendChild(a);
+          previewDiv.appendChild(dlDiv);
+        }
+
+        // 响应信息
+        responsePre.textContent = JSON.stringify({
+          pageCount: data.pageCount,
+          pageBreaks: data.pageBreaks,
+          pdfBase64_length: data.pdfBase64 ? data.pdfBase64.length : 0,
+          pageImages_count: data.pageImages.length,
+        }, null, 2);
+
+      } catch (err) {
+        status.className = 'error';
+        status.textContent = '失败: ' + err.message;
+        responsePre.textContent = err.stack || err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
