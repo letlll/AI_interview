@@ -266,10 +266,10 @@ function parsePdfPageBreaks(pdfDoc) {
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
 
-    // pdf-lib getHeight()/getWidth() 返回微米（μm），不是点
-    // 微米 / 1000 = 毫米；毫米 / 25.4 * 72 = 点
-    const heightPt = page.getHeight() / 1000 / 25.4 * 72;
-    const widthPt  = page.getWidth()  / 1000 / 25.4 * 72;
+    // pdf-lib getHeight()/getWidth() 直接返回 PDF 点（pt），无需任何转换
+    // A4 纸尺寸：595.28pt 宽 × 841.89pt 高（210mm × 297mm）
+    const heightPt = page.getHeight();
+    const widthPt  = page.getWidth();
 
     console.log(`[parsePdfPageBreaks] 页 ${i + 1}: width=${widthPt.toFixed(2)}pt, height=${heightPt.toFixed(2)}pt`);
 
@@ -299,41 +299,55 @@ function parsePdfPageBreaks(pdfDoc) {
  * @returns {Promise<Array<string>>} 每页 base64 PNG 字符串数组
  */
 async function capturePageImagesByPdfBreaks(win, pageBreaks) {
-  // A4 内容区尺寸（px，96 DPI）
-  // A4 纸宽 210mm → 794pt → 1058px（等于视口宽）
-  // A4 纸高 841.89pt → 1123px（每页固定内容高）
+  // A4 尺寸（96dpi）：
+  // 纸宽：210mm * 96/25.4 ≈ 794px（内容区）；视口总宽（含边距 50+50）= 894px
+  // 纸高：297mm * 96/25.4 ≈ 1123px（总高，内容区 841.89pt → 1123px）
   const ptToPx = 96 / 72;
-  const A4ContentWidthPx = 1058;
-  const A4ContentHeightPx = Math.ceil(841.89 * ptToPx); // ≈ 1123
+  const A4_VIEWPORT_WIDTH_PX = 894;  // 794 + 50 + 50，视口总宽（含边距）
+  const A4_PAGE_HEIGHT_PX    = Math.ceil(841.89 * ptToPx); // = 1123px，每页固定滚动量
+
+  // 获取 DPR（Electron capturePage() 返回物理像素，需缩放回逻辑像素）
+  const dpr = parseFloat(
+    await win.webContents.executeJavaScript('window.devicePixelRatio')
+  ) || 1;
+  console.log('[capturePageImages] 当前 DPR:', dpr);
 
   // 先让窗口高度匹配 DOM 总内容高度，确保 CSS 分页布局全部就位
   const domScrollHeight = await win.webContents.executeJavaScript(
     'document.body.scrollHeight'
   );
-  await win.setContentSize(A4ContentWidthPx, domScrollHeight + 200);
+  await win.setContentSize(A4_VIEWPORT_WIDTH_PX, domScrollHeight + 200);
   await sleep(300);
 
   const pageImages = [];
 
   for (let i = 0; i < pageBreaks.length; i++) {
-    // 使用正确的 heightPt（点）→ 像素，与 PDF 实际每页高度精确对应
-    const scrollY = Math.round(i * A4ContentHeightPx);
+    // scrollY 按 PDF pt 换算（841.89pt × ptToPx = 1123px/页）
+    const scrollY = Math.round(i * A4_PAGE_HEIGHT_PX);
 
     await win.webContents.executeJavaScript('window.scrollTo(0, ' + scrollY + ')');
     await sleep(400);
 
     // 视口高度固定为 A4 内容高 + 50px；capturePage 只截视口可见区
-    await win.setContentSize(A4ContentWidthPx, A4ContentHeightPx + 50);
+    await win.setContentSize(A4_VIEWPORT_WIDTH_PX, A4_PAGE_HEIGHT_PX + 50);
     await sleep(300);
 
+
+
+
+    // capturePage 返回物理像素，NativeImage.resize() 原地修改后仍返回同一对象
     const screenshot = await win.webContents.capturePage();
+    const { width: rawWidth, height: rawHeight } = screenshot.getSize();
+    screenshot.resize({ width: Math.round(rawWidth / dpr), height: Math.round(rawHeight / dpr) });
+
+    screenshot.resize({ width: Math.round(rawWidth / dpr), height: Math.round(rawHeight / dpr) });
     const pngBase64 = screenshot.toPNG().toString('base64');
-    console.log('[capturePageImages] 第' + (i + 1) + '页截图大小:', pngBase64.length, 'bytes');
+    console.log('[capturePageImages] 第' + (i + 1) + '页截图: 物理 ' + rawWidth + 'x' + rawHeight + ' → 逻辑 ' + Math.round(rawWidth / dpr) + 'x' + Math.round(rawHeight / dpr));
     pageImages.push('data:image/png;base64,' + pngBase64);
   }
 
   // 恢复窗口高度（供下次使用）
-  await win.setContentSize(A4ContentWidthPx, A4ContentHeightPx + 200);
+  await win.setContentSize(A4_VIEWPORT_WIDTH_PX, A4_PAGE_HEIGHT_PX + 200);
   await sleep(100);
 
   return pageImages;

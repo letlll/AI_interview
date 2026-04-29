@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF 实时差异化渲染测试</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #f0f2f5;
+      height: 100vh;
+      overflow: hidden;
+      font-size: 14px;
+      color: #333;
+    }
+    #topbar {
+      height: 48px;
+      background: #1a1a2e;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+    #topbar h1 { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; }
+    #topbar .spacer { flex: 1; }
+    #render-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      background: #333;
+      transition: all 0.3s;
+    }
+    #render-indicator.text-mode { background: #1b7d3a; }
+    #render-indicator.structure-mode { background: #1d5fd4; }
+    #render-indicator.electron-mode { background: #8b5cf6; }
+    #render-indicator .dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+    #render-indicator.electron-mode .dot { animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    #timing-info { font-size: 12px; color: #aaa; font-family: 'Consolas', monospace; }
+    #main { display: flex; height: calc(100vh - 48px); }
+    #editor-panel { width: 42%; display: flex; flex-direction: column; border-right: 1px solid #ddd; background: #fff; }
+    #editor-panel .panel-header {
+      padding: 10px 16px;
+      background: #fafafa;
+      border-bottom: 1px solid #e8e8e8;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .tag { font-size: 11px; padding: 1px 7px; border-radius: 3px; font-weight: 500; }
+    .tag-green { background: #d4edda; color: #1b7d3a; }
+    .tag-blue { background: #d6e8ff; color: #1d5fd4; }
+    .tag-purple { background: #ede9fe; color: #7c3aed; }
+    .tag-gray { background: #f3f4f6; color: #6b7280; }
+    #html-editor {
+      flex: 1;
+      width: 100%;
+      padding: 14px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      border: none;
+      resize: none;
+      outline: none;
+      background: #fff;
+      color: #333;
+      overflow-y: auto;
+    }
+    #editor-panel .panel-footer {
+      padding: 8px 16px;
+      background: #fafafa;
+      border-top: 1px solid #e8e8e8;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    button {
+      padding: 7px 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: none; }
+    .btn-green { background: #10b981; color: #fff; }
+    .btn-blue { background: #3b82f6; color: #fff; }
+    .btn-purple { background: #8b5cf6; color: #fff; }
+    .btn-red { background: #ef4444; color: #fff; }
+    .btn-gray { background: #6b7280; color: #fff; }
+    .btn-outline { background: #fff; color: #333; border: 1px solid #d1d5db; }
+    #preview-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .preview-tabs { display: flex; background: #fafafa; border-bottom: 1px solid #e8e8e8; flex-shrink: 0; }
+    .preview-tab {
+      padding: 9px 18px;
+      cursor: pointer;
+      font-size: 13px;
+      border: none;
+      background: none;
+      color: #666;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      border-radius: 0;
+    }
+    .preview-tab:hover { color: #333; }
+    .preview-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; font-weight: 600; }
+    .preview-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+    #dom-preview-wrap {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      background: #e8eaed;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    #dom-preview-wrap .page-label { font-size: 12px; color: #666; align-self: flex-start; display: flex; align-items: center; gap: 6px; }
+    #dom-preview-frame { width: 894px; min-height: 1123px; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden; }
+    #dom-preview-meta { font-size: 11px; color: #888; align-self: flex-start; font-family: 'Consolas', monospace; }
+    #electron-preview-wrap {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #e8eaed;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    #electron-preview-wrap.active { display: flex; }
+    #dom-preview-wrap.hidden { display: none; }
+    #electron-preview-wrap .page-label { font-size: 12px; color: #666; align-self: flex-start; display: flex; align-items: center; gap: 6px; }
+    .preview-page-img { max-width: 100%; border: 1px solid #ddd; border-radius: 2px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); background: #fff; }
+    #electron-preview-meta {
+      font-size: 11px;
+      color: #888;
+      align-self: flex-start;
+      font-family: 'Consolas', monospace;
+      white-space: pre-wrap;
+      background: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+    #status-bar {
+      height: 32px;
+      background: #fafafa;
+      border-top: 1px solid #e8e8e8;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      font-size: 12px;
+      color: #666;
+      flex-shrink: 0;
+    }
+    #status-bar .status-msg { flex: 1; }
+    #status-bar .status-msg.success { color: #10b981; }
+    #status-bar .status-msg.error { color: #ef4444; }
+    #status-bar .status-msg.loading { color: #f59e0b; }
+    .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: #d4edda; color: #1b7d3a; }
+    .badge-blue { background: #d6e8ff; color: #1d5fd4; }
+    .badge-purple { background: #ede9fe; color: #7c3aed; }
+    .badge-gray { background: #f3f4f6; color: #6b7280; }
+    .badge-red { background: #fee2e2; color: #dc2626; }
+    #diff-panel {
+      padding: 10px 16px;
+      background: #fafafa;
+      border-top: 1px solid #e8e8e8;
+      font-size: 12px;
+      color: #555;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    #diff-panel .diff-item { display: flex; align-items: center; gap: 4px; }
+    #diff-panel .diff-item span:first-child { color: #888; }
+    .dl-btn {
+      display: inline-block;
+      padding: 8px 20px;
+      background: #10b981;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .dl-btn:hover { background: #059669; }
+  </style>
+</head>
+<body>
+
+  <!-- 加载外部脚本（必须在 DOM 之前加载） -->
+  <script src="functions.js"></script>
+  <script src="sample.js"></script>
+  <script src="sample-3pages.js"></script>
+  <script src="change-detector.js"></script>
+
+  <!-- 顶部状态栏 -->
+  <div id="topbar">
+    <h1>PDF 实时差异化渲染测试</h1>
+    <div class="spacer"></div>
+    <div id="render-indicator">
+      <div class="dot"></div>
+      <span id="render-mode-text">就绪</span>
+    </div>
+    <div id="timing-info"></div>
+  </div>
+
+  <!-- 主布局 -->
+  <div id="main">
+
+    <!-- 左侧：编辑器 -->
+    <div id="editor-panel">
+      <div class="panel-header">
+        HTML 编辑器
+        <span class="tag tag-gray">输入区</span>
+        <span id="change-type-badge" class="tag tag-gray">—</span>
+      </div>
+      <textarea id="html-editor" spellcheck="false" placeholder="在此编辑 HTML..."></textarea>
+
+      <!-- 差异分析 -->
+      <div id="diff-panel">
+        <div class="diff-item"><span>变更类型:</span><strong id="diff-type">—</strong></div>
+        <div class="diff-item"><span>原因:</span><span id="diff-reason">—</span></div>
+        <div class="diff-item"><span>字数变化:</span><span id="diff-stats">—</span></div>
+        <div class="diff-item"><span>渲染路径:</span><span id="diff-path">—</span></div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="panel-footer">
+        <button class="btn-green" id="btn-text-edit" title="仅修改文本内容，走 DOM 轻量路径">文本编辑（DOM）</button>
+        <button class="btn-blue" id="btn-structure-change" title="修改结构样式，走 Electron 精确路径">结构调整（Electron）</button>
+        <button class="btn-purple" id="btn-precise" title="强制调用 Electron API 精确预览">精确预览</button>
+        <button class="btn-outline" id="btn-load-sample" title="加载 1 页示例">示例 1 页</button>
+        <button class="btn-outline" id="btn-load-sample-3p" title="加载 3 页示例">示例 3 页</button>
+        <button class="btn-gray" id="btn-clear" title="清除预览">清除</button>
+      </div>
+    </div>
+
+    <!-- 右侧：预览 -->
+    <div id="preview-panel">
+      <div class="preview-tabs">
+        <button class="preview-tab active" id="tab-dom">DOM 实时预览 <span class="badge badge-green" style="margin-left:4px;">轻量</span></button>
+        <button class="preview-tab" id="tab-electron">Electron 精确预览 <span class="badge badge-purple" style="margin-left:4px;">精确</span></button>
+        <button class="preview-tab" id="tab-both">合并对比</button>
+      </div>
+
+      <div class="preview-content">
+        <!-- DOM 预览 -->
+        <div id="dom-preview-wrap">
+          <div class="page-label">
+            <span class="badge badge-green">DOM 预览</span>
+            <span>A4 794px(内容区) · 894px(含边距) · 1123px(纸高) @ 96dpi · 无 header/footer</span>
+          </div>
+          <iframe id="dom-preview-frame" sandbox="allow-same-origin allow-scripts" scrolling="auto"></iframe>
+          <div id="dom-preview-meta">DOM 渲染 · 尚未生成</div>
+        </div>
+
+        <!-- Electron 预览 -->
+        <div id="electron-preview-wrap">
+          <div class="page-label">
+            <span class="badge badge-purple">Electron 精确预览</span>
+            <span>Chromium 截图 · 带 header/footer</span>
+          </div>
+          <div id="electron-preview-pages"></div>
+          <div id="electron-preview-meta">Electron 渲染 · 尚未生成</div>
+          <div id="electron-download-area"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 底部状态栏 -->
+  <div id="status-bar">
+    <span class="status-msg" id="status-msg">就绪。左侧编辑 HTML，右上角自动检测变更类型并选择渲染路径。</span>
+    <span id="char-count">字符数: 0</span>
+  </div>
+
+  <!-- 初始化脚本（外部脚本加载完成后执行） -->
+  <script>
+    editor = document.getElementById('html-editor');
+    editor.addEventListener('input', updateAll);
+    loadSample();
+    document.getElementById('btn-text-edit').addEventListener('click', doTextEdit);
+    document.getElementById('btn-structure-change').addEventListener('click', doStructureChange);
+    document.getElementById('btn-precise').addEventListener('click', doPrecisePreview);
+    document.getElementById('btn-load-sample').addEventListener('click', loadSample);
+    document.getElementById('btn-load-sample-3p').addEventListener('click', loadSample3Pages);
+    document.getElementById('btn-clear').addEventListener('click', clearPreview);
+    document.getElementById('tab-dom').addEventListener('click', function() { switchTab('dom'); });
+    document.getElementById('tab-electron').addEventListener('click', function() { switchTab('electron'); });
+    document.getElementById('tab-both').addEventListener('click', function() { switchTab('both'); });
+  </script>
+
+</body>
+</html>
