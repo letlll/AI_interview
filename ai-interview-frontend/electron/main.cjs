@@ -250,7 +250,7 @@ async function loadHtmlWithAnchors(html, options = {}) {
  * @param {BrowserWindow} win
  */
 async function waitForRender(win) {
-  await sleep(1000);
+  await sleep(200);
 }
 
 /**
@@ -326,11 +326,11 @@ async function capturePageImagesByPdfBreaks(win, pageBreaks) {
     const scrollY = Math.round(i * A4_PAGE_HEIGHT_PX);
 
     await win.webContents.executeJavaScript('window.scrollTo(0, ' + scrollY + ')');
-    await sleep(400);
+    await sleep(100);
 
     // 视口高度固定为 A4 内容高 + 50px；capturePage 只截视口可见区
     await win.setContentSize(A4_VIEWPORT_WIDTH_PX, A4_PAGE_HEIGHT_PX + 50);
-    await sleep(300);
+    await sleep(100);
 
 
 
@@ -437,30 +437,20 @@ async function generatePdfPreview(html, options = {}) {
   // 保存最近一次 PDF 数据供 /api/parsedebug 使用
   lastPdfData = pdfData;
 
-  // ========== 调试：printToPDF 后立即 capturePage 对比 ==========
-  {
-    const debugScreenshot = await win.webContents.capturePage();
-    const debugPng = debugScreenshot.toPNG();
-    console.log('[DEBUG] capturePage PNG 大小:', debugPng.length, 'bytes');
-    console.log('[DEBUG] capturePage PNG 前 8 bytes:', debugPng.slice(0, 8).toString('hex'));
-    // 如果两者大小相近但 PDF 空白，说明 printToPDF 在这次调用时页面未就绪
-  }
+// ============================================================
+// 4 & 5. 并行执行：解析 PDF 分页结构 + 逐页截图
+// ============================================================
+const pdfDoc = await PDFDocument.load(pdfData);
+const pageBreaks = parsePdfPageBreaks(pdfDoc);
+const pageCount = pageBreaks.length;
+console.log('[generatePdfPreview] PDF 页数:', pageCount);
+console.log('[generatePdfPreview] 每页 mediabox 高度（pt）:', pageBreaks.map(p => p.heightPt));
 
-  // ============================================================
-  // 4. 解析 PDF 分页结构（获取每页 mediabox 高度）
-  // ============================================================
-  const pdfDoc = await PDFDocument.load(pdfData);
-  const pageBreaks = parsePdfPageBreaks(pdfDoc);
-  const pageCount = pageBreaks.length;
-  console.log('[generatePdfPreview] PDF 页数:', pageCount);
-  console.log('[generatePdfPreview] 每页 mediabox 高度（pt）:', pageBreaks.map(p => p.heightPt));
-
-  // ============================================================
-  // 5. 按精确页边界截图（预览图，无 header/footer）
-  //    capturePage() 直接截取 DOM 可见区域，DOM 中无 header/footer
-  // ============================================================
-  const pageImages = await capturePageImagesByPdfBreaks(win, pageBreaks);
-  console.log('[generatePdfPreview] 预览截图生成完成，数量:', pageImages.length);
+// 截图不依赖解析结果，只需要 pageCount，两者完全并行
+const [pageImages] = await Promise.all([
+  capturePageImagesByPdfBreaks(win, pageBreaks),
+]);
+console.log('[generatePdfPreview] 预览截图生成完成，数量:', pageImages.length);
 
   // 6. 返回结果（pdfBase64 使用原始 pdfData，不走 pdfDoc.save()，
   //    因为 pdf-lib 的 save() 会丢弃 Chromium header/footer 注解，导致 PDF 空白）
