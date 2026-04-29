@@ -193,7 +193,7 @@ async function loadHtmlWithAnchors(html, options = {}) {
           if (hasContent) {
             clearTimeout(timeout);
             console.log('[PDF render poll] 内容已就绪，body text:', bodyTextLen, 'el children:', el ? el.children.length : 0);
-            setTimeout(resolve, 300);
+            resolve();
           } else if (Date.now() - start > 18000) {
             console.log('[PDF render poll] 超时前最后一次确认，强制继续');
             resolve();

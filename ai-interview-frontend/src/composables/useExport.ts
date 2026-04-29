@@ -6,13 +6,25 @@ import { ElLoading, ElMessage } from 'element-plus';
 
 type PreExportHook = () => Promise<void> | void;
 
+/** 返回类型：预览所需数据 */
+export interface PdfPreviewData {
+  blob: Blob;
+  pageCount: number;
+  pageImages: string[]; // 每页 base64 图片
+}
+
 export function useExport(elementRef: Ref<HTMLElement | null>, filename: string) {
   const isExporting = ref(false);
 
-  const exportToPdf = async (preExportHook?: PreExportHook) => {
+  /** 生成 PDF Blob（仅生成，不下载），返回页图片用于预览 */
+  const generatePdfBlob = async (
+    preExportHook?: PreExportHook,
+    onProgress?: (text: string) => void
+  ): Promise<PdfPreviewData | null> => {
     if (!elementRef.value) {
+      console.warn('[useExport generatePdfBlob] elementRef 为空');
       ElMessage.error('无法找到要导出的内容');
-      return;
+      return null;
     }
 
     isExporting.value = true;
@@ -23,62 +35,101 @@ export function useExport(elementRef: Ref<HTMLElement | null>, filename: string)
     });
 
     try {
-      if (preExportHook) {
-        await preExportHook();
-      }
-      
+      if (preExportHook) await preExportHook();
       await nextTick();
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 等待图表渲染
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      loadingInstance.text.value = '正在逐页生成 PDF...';
-      if (!elementRef.value) {
-        throw new Error("导出目标元素已不存在。");
-      }
+      onProgress?.('正在逐页生成 PDF...');
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const margin = 10;
-      const contentWidth = pdfWidth - margin * 2;
-      let currentY = margin;
+      const el = elementRef.value;
+      const scrollHeight = el.scrollHeight;
+      const scrollWidth = el.scrollWidth;
+      console.log('[useExport generatePdfBlob] html2canvas 参数', {
+        scrollHeight,
+        scrollWidth,
+        clientHeight: el.clientHeight,
+        clientWidth: el.clientWidth,
+        offsetHeight: el.offsetHeight,
+        offsetWidth: el.offsetWidth,
+        elDisplay: getComputedStyle(el).display,
+        elVisibility: getComputedStyle(el).visibility,
+      });
 
-      // [核心重构] 找到所有独立的卡片作为分页单元
-      const elementsToPrint = elementRef.value.querySelectorAll<HTMLElement>('.page-break-inside-avoid');
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      const a4Width = 595.28;
+      const a4Height = 841.89;
 
-      for (let i = 0; i < elementsToPrint.length; i++) {
-        const element = elementsToPrint[i];
-        
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          allowTaint: true,
-        });
+      const canvas = await html2canvas(el, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        height: scrollHeight,
+        windowHeight: scrollHeight,
+        width: scrollWidth,
+        windowWidth: scrollWidth,
+      });
 
-        const imgHeight = canvas.height * (contentWidth / canvas.width);
-        
-        // 如果当前页剩余空间不足以放下这个卡片，则换页
-        if (currentY + imgHeight > (pdf.internal.pageSize.getHeight() - margin)) {
-          pdf.addPage();
-          currentY = margin;
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const pageHeight = (imgWidth / a4Width) * a4Height;
+      const pageImages: string[] = [];
+      let position = 0;
+
+      while (position < imgHeight) {
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = imgWidth;
+        pageCanvas.height = Math.min(pageHeight, imgHeight - position);
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(canvas, 0, position, imgWidth, pageCanvas.height, 0, 0, imgWidth, pageCanvas.height);
+          if (position > 0) pdf.addPage();
+          pdf.addImage(
+            pageCanvas.toDataURL('image/jpeg', 1.0),
+            'JPEG', 0, 0,
+            a4Width,
+            (pageCanvas.height * a4Width) / imgWidth
+          );
+          // 保存每页图片用于预览
+          pageImages.push(pageCanvas.toDataURL('image/jpeg', 0.9));
         }
-
-        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, currentY, contentWidth, imgHeight);
-        currentY += imgHeight + 5; // 增加 5mm 的卡片间距
+        position += pageHeight;
       }
-      
-      pdf.save(`${filename}.pdf`);
+
+      const blob = pdf.output('blob');
+
+      return { blob, pageCount: pageImages.length, pageImages };
 
     } catch (error) {
-      console.error("导出 PDF 失败:", error);
+      console.error('导出 PDF 失败:', error);
       ElMessage.error('导出 PDF 失败，请稍后重试。');
+      return null;
     } finally {
       isExporting.value = false;
       loadingInstance.close();
     }
   };
 
-  return {
-    isExporting,
-    exportToPdf,
+  /** 直接下载 PDF（保留原有方法，内部复用 generatePdfBlob） */
+  const exportToPdf = async (preExportHook?: PreExportHook) => {
+    console.log('[useExport exportToPdf] 入口', {
+      hasElementRef: !!elementRef.value,
+      scrollHeight: elementRef.value?.scrollHeight ?? -1,
+      scrollWidth: elementRef.value?.scrollWidth ?? -1,
+      clientHeight: elementRef.value?.clientHeight ?? -1,
+      clientWidth: elementRef.value?.clientWidth ?? -1,
+    });
+    const data = await generatePdfBlob(preExportHook, (_text) => {
+      // no-op：loading 已由 generatePdfBlob 管理
+    });
+    if (!data) return;
+    const url = URL.createObjectURL(data.blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
+
+  return { isExporting, exportToPdf, generatePdfBlob };
 }

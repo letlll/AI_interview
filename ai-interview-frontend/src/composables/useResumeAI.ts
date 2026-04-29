@@ -257,13 +257,14 @@ export function buildOptimizedPrompt(
   resumeData: ResumeData,
   chatHistory: Message[],
   lastEditedField?: string,
-  internalMarkdown?: string
+  internalMarkdown?: string,
+  extraStyles?: string            // ← 新增
 ): string {
   const intent = detectIntent(userMessage, lastEditedField);
   const digest = digestResume(resumeData, intent.target);
   const memory = compressHistory(chatHistory, intent);
 
-  return assemblePrompt({ intent, digest, memory, userMessage, resumeData, internalMarkdown });
+  return assemblePrompt({ intent, digest, memory, userMessage, resumeData, internalMarkdown, extraStyles });
 }
 
 function buildFullResumeContent(resume: ResumeData, rawMarkdown: string | undefined, maxTokens: number): string {
@@ -291,8 +292,9 @@ function assemblePrompt(parts: {
   userMessage: string;
   resumeData: ResumeData;
   internalMarkdown?: string;
+  extraStyles?: string;
 }): string {
-  const { intent, digest, memory, userMessage, resumeData, internalMarkdown } = parts;
+  const { intent, digest, memory, userMessage, resumeData, internalMarkdown, extraStyles } = parts;
 
   const systemRole = getSystemRole(intent.type);
 
@@ -310,6 +312,10 @@ function assemblePrompt(parts: {
 内容：${digest.focusArea.content}
 ` : '';
 
+const currentStyles = extraStyles ? `\`\`\`css
+${extraStyles}
+\`\`\`` : '（暂无自定义样式）';     // ← 新增
+
   const recentChat = memory.recentMessages.length > 0 ? `
 ## 最近对话
 ${memory.recentMessages.map(m => `${m.role === 'user' ? '用户' : 'AI'}：${m.content}`).join('\n')}
@@ -325,7 +331,7 @@ ${memory.relevantMessages.map(m => `${m.role === 'user' ? '用户' : 'AI'}：${m
 ${memory.earlySummary}
 ` : '';
 
-  const outputFormat = `
+const outputFormat = `
 ## 输出格式
 
 返回以下 JSON，不要包含任何其他内容：
@@ -338,9 +344,8 @@ ${memory.earlySummary}
 \`\`\`
 
 - action：update（更新）、add（追加）、delete（删除）、replace（替换）
-- path：basicInfo.*、summary、content
-- content 直接写 Markdown 原文，不要 JSON.stringify()
-- 只返回增量修改，不要重写整份简历
+- path=content：简历主体，必须是 Markdown 格式，不能包含 CSS
+- path=extraStyles：用户自定义样式，必须是纯 CSS（选择器如 .resume-document { } ），不要写入 content
 `;
 
   return `
@@ -355,6 +360,20 @@ ${focusArea}
 ${recentChat}
 ${relevantHistory}
 ${earlySummary}
+
+## 当前自定义样式
+${currentStyles}                               
+
+## 简历可用的 Class 清单（修改样式时使用）
+- 容器：.resume-document
+- 区块包装：.section + .section--{type}（类型值：work / projects / education / summary / skill / skills / custom）
+- 姓名：.resume-name（一级标题）
+- 区块标题：.section-title（H1-H6）；.section-title--{type}（H2 按类型区分）；.h1 ~ .h6（按深度）
+- 列表容器：.item-list（默认）；.work-list / .project-list / .education-list / .skills-list / .summary-list（按类型）
+- 列表项：.work-item / .project-item / .education-item / .skill-item / .summary-item
+- 内联元素：.paragraph（段落）、.link（链接）
+- 主题预设：.theme-blue / .theme-dark / .theme-minimal / .theme-classic / .theme-modern（直接加在 .resume-document 上）
+- CSS 变量（在 extraStyles 中覆盖）：--accent / --border-work / --border-projects / --border-education / --border-custom / --text-primary / --text-secondary / --text-muted / --bg
 
 ## 用户意图
 类型：${intent.type}

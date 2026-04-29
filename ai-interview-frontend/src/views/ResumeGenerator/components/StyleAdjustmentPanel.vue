@@ -231,7 +231,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { InfoFilled } from '@element-plus/icons-vue';
 
 // ==================== Props / Emits ====================
@@ -402,6 +402,10 @@ function update(key: keyof typeof DEFAULTS, newVal: string) {
 // ==================== 高级代码编辑 ====================
 const codeValue = ref('');
 
+// activeTab watch 的 emit 在 mounted 阶段会误触发，加标志拦截
+const isPanelMounted = ref(false);
+onMounted(() => { isPanelMounted.value = true; });
+
 watch(
   () => props.extraStyles,
   (newCss) => {
@@ -415,11 +419,11 @@ watch(
 
 watch(activeTab, (tab) => {
   if (tab === 'quick') {
-    // 从代码模式切回，要用当前控件值重新生成
+    // 只有用户手动切换到 quick tab 时才同步，mounted 初始跳过
     emit('update:extraStyles', compileCss(values.value));
   } else {
-    // 切换到代码模式，同步代码编辑器
-    codeValue.value = props.extraStyles || compileCss(values.value);
+    // 切换到代码模式，优先用 props 中的实际值
+    codeValue.value = props.extraStyles || codeValue.value;
   }
 });
 

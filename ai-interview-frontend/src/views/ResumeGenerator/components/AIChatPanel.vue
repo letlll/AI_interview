@@ -41,7 +41,14 @@
             </span>
             <span class="message-time">{{ formatTime(message.timestamp) }}</span>
           </div>
-          <div class="message-text">{{ message.content }}</div>
+          <div class="message-text" :class="{ 'md-rendered': message.role === 'assistant' }">
+            <template v-if="message.role === 'assistant'">
+              <div class="chat-md-body" v-html="renderChatMarkdown(message.content)"></div>
+            </template>
+            <template v-else>
+              {{ message.content }}
+            </template>
+          </div>
         </div>
       </div>
 
@@ -101,6 +108,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue';
 import { ChatDotRound, User, Plus, Edit, MagicStick, DocumentCopy, Loading } from '@element-plus/icons-vue';
+import { renderChatMarkdown } from '@/composables/useChatMarkdown';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -381,8 +389,28 @@ onMounted(() => {
   background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
   line-height: 1.6;
-  white-space: pre-wrap;
+  white-space: normal;
   word-break: break-word;
+}
+
+.chat-md-body {
+  p { margin: 0 0 8px; &:last-child { margin-bottom: 0; } }
+  ul, ol { padding-left: 20px; margin: 0 0 8px; }
+  li { margin-bottom: 4px; line-height: 1.6; }
+  h1, h2, h3 { margin: 0 0 8px; font-weight: 600; }
+  h1 { font-size: 18px; }
+  h2 { font-size: 16px; }
+  h3 { font-size: 15px; }
+  h4, h5, h6 { display: none; }
+  pre { background: #1e1e1e; border-radius: 6px; padding: 10px 14px; overflow-x: auto; margin: 0 0 8px; font-size: 13px; }
+  pre code { background: none; padding: 0; }
+  code:not(pre code) { background: rgba(0,0,0,0.08); border-radius: 3px; padding: 2px 5px; font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; margin: 0 0 8px; font-size: 13px; }
+  th, td { border: 1px solid var(--el-border-color); padding: 6px 10px; }
+  th { background: var(--el-fill-color-light); font-weight: 600; }
+  blockquote { border-left: 3px solid var(--el-color-primary); margin: 0 0 8px; padding: 4px 12px; color: var(--el-text-color-secondary); font-size: 14px; }
+  hr { border: none; border-top: 1px solid var(--el-border-color); margin: 10px 0; }
+  a { color: var(--el-color-primary); }
 }
 
 .typing-indicator {

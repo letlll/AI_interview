@@ -70,31 +70,6 @@
             <el-icon><Edit /></el-icon>
             编辑
           </el-button>
-
-          <el-divider direction="vertical" />
-
-          <!-- 编辑模式切换 -->
-          <el-radio-group v-model="editMode" size="small" @change="switchEditMode">
-            <el-radio-button value="ai">AI 对话</el-radio-button>
-            <el-radio-button value="markdown">Markdown</el-radio-button>
-            <el-radio-button value="source">源码</el-radio-button>
-            <el-radio-button value="style">样式</el-radio-button>
-          </el-radio-group>
-
-          <el-divider direction="vertical" />
-
-          <!-- 预览切换按钮 -->
-          <el-button
-            @click="togglePreview"
-            :type="isPreviewCollapsed ? 'default' : 'primary'"
-            plain
-          >
-            <el-icon><View /></el-icon>
-            {{ isPreviewCollapsed ? '显示预览' : '隐藏预览' }}
-          </el-button>
-
-          <el-divider direction="vertical" />
-
           <!-- 保存和发布按钮 -->
           <el-button @click="handleSave" :disabled="!hasResumeData">
             <el-icon><DocumentCopy /></el-icon>
@@ -111,12 +86,81 @@
         </div>
       </div>
 
+      <!-- 导出 PDF 预览弹窗 -->
+      <el-dialog
+        v-model="pdfPreviewVisible"
+        title="PDF 预览"
+        width="680px"
+        :close-on-click-modal="false"
+        destroy-on-close
+      >
+        <div class="pdf-preview-container">
+          <div v-if="pdfPreviewLoading" class="pdf-preview-loading">
+            <el-icon class="is-loading" size="32"><Loading /></el-icon>
+            <p>{{ pdfPreviewLoadingText }}</p>
+          </div>
+
+          <template v-else-if="pdfPreviewPages.length > 0">
+            <div class="pdf-preview-info">
+              <span class="quality-badge quality-badge--high">
+                <el-icon><Select /></el-icon> Chromium 高质量导出
+              </span>
+              <span style="margin-left: 12px;">共 {{ pdfPreviewPages.length }} 页，确认后开始下载</span>
+            </div>
+            <div class="pdf-preview-pages">
+              <div
+                v-for="(img, index) in pdfPreviewPages"
+                :key="index"
+                class="pdf-preview-page"
+              >
+                <div class="pdf-preview-page-label">第 {{ index + 1 }} 页</div>
+                <div class="pdf-preview-page-body">
+                  <img :src="img" alt="简历预览" class="pdf-preview-img" />
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <div v-else class="pdf-preview-empty">
+            <el-empty description="生成预览失败" />
+          </div>
+        </div>
+
+        <template #footer>
+          <el-button @click="pdfPreviewVisible = false">取消</el-button>
+          <el-button
+            type="primary"
+            :disabled="pdfPreviewPages.length === 0"
+            :loading="pdfDownloading"
+            @click="confirmPdfDownload"
+          >
+            确认下载
+          </el-button>
+        </template>
+      </el-dialog>
+
       <!-- 中间和右侧内容区 -->
       <div class="content-grid" :class="{ 'preview-collapsed': isPreviewCollapsed }">
 
         <!-- AI 对话模式 -->
         <template v-if="editMode === 'ai'">
           <div class="chat-section">
+            <!-- 左侧面板模式切换菜单 -->
+            <div class="section-header">
+              <span class="section-title">{{ editModeLabel }}</span>
+              <el-dropdown trigger="click" @command="onLeftDropdownCommand">
+                <el-button text size="small" class="section-menu-btn">
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item v-for="item in leftModeOptions" :key="item.value" :command="item.value" :class="{ 'is-active': editMode === item.value }">
+                      <el-icon v-if="editMode === item.value"><Check /></el-icon>{{ item.label }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
             <AIChatPanel
               ref="chatPanelRef"
               @message-sent="handleUserMessage"
@@ -127,10 +171,25 @@
         <!-- Markdown 编辑模式 -->
         <template v-else-if="editMode === 'markdown'">
           <div class="markdown-section">
+            <div class="section-header">
+              <span class="section-title">{{ editModeLabel }}</span>
+              <el-dropdown trigger="click" @command="onLeftDropdownCommand">
+                <el-button text size="small" class="section-menu-btn">
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item v-for="item in leftModeOptions" :key="item.value" :command="item.value" :class="{ 'is-active': editMode === item.value }">
+                      <el-icon v-if="editMode === item.value"><Check /></el-icon>{{ item.label }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
             <div class="editor-header">
-              <span>Markdown 编辑</span>
+              <span>刷新预览</span>
               <el-button size="small" text @click="internalMarkdown = jsonToResumeMarkdown(resumeData)">
-                刷新预览
+                刷新
               </el-button>
             </div>
             <el-input
@@ -147,6 +206,21 @@
         <!-- 源码模式 -->
         <template v-else-if="editMode === 'source'">
           <div class="source-section">
+            <div class="section-header">
+              <span class="section-title">{{ editModeLabel }}</span>
+              <el-dropdown trigger="click" @command="onLeftDropdownCommand">
+                <el-button text size="small" class="section-menu-btn">
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item v-for="item in leftModeOptions" :key="item.value" :command="item.value" :class="{ 'is-active': editMode === item.value }">
+                      <el-icon v-if="editMode === item.value"><Check /></el-icon>{{ item.label }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
             <div class="editor-header">
               <span>JSON 源码</span>
               <el-button size="small" text @click="sourceCode = JSON.stringify(resumeData, null, 2)">
@@ -167,6 +241,21 @@
         <!-- 样式调整模式 -->
         <template v-else-if="editMode === 'style'">
           <div class="style-section">
+            <div class="section-header">
+              <span class="section-title">{{ editModeLabel }}</span>
+              <el-dropdown trigger="click" @command="onLeftDropdownCommand">
+                <el-button text size="small" class="section-menu-btn">
+                  <el-icon><MoreFilled /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item v-for="item in leftModeOptions" :key="item.value" :command="item.value" :class="{ 'is-active': editMode === item.value }">
+                      <el-icon v-if="editMode === item.value"><Check /></el-icon>{{ item.label }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
             <StyleAdjustmentPanel :extraStyles="extraStyles" @update:extraStyles="onExtraStylesUpdate" />
           </div>
         </template>
@@ -174,10 +263,25 @@
         <!-- 右侧：简历预览区 -->
         <div class="preview-section" v-show="!isPreviewCollapsed">
           <div class="preview-header">
-            <span>简历预览</span>
+            <el-dropdown trigger="click" @command="onRightDropdownCommand">
+              <span class="preview-title-btn">
+                {{ rightPanelModeLabel }}<el-icon class="el-icon--right"><CaretBottom /></el-icon>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="markdown" :class="{ 'is-active': rightPanelMode === 'markdown' }">
+                    <el-icon v-if="rightPanelMode === 'markdown'"><Check /></el-icon>Markdown 预览
+                  </el-dropdown-item>
+                  <el-dropdown-item command="print" :class="{ 'is-active': rightPanelMode === 'print' }">
+                    <el-icon v-if="rightPanelMode === 'print'"><Check /></el-icon>打印预览
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
           <div class="preview-content">
             <MarkdownRenderer
+              v-if="rightPanelMode === 'markdown'"
               :content="internalMarkdown"
               :theme-class="resumeThemeClass"
               :extra-styles="extraStyles"
@@ -185,6 +289,15 @@
               @content-change="handleContentChange"
               @extra-styles-append="v => extraStyles += '\n' + v"
               ref="markdownRendererRef"
+            />
+            <PdfPageView
+              v-else-if="rightPanelMode === 'print'"
+              ref="pdfPageViewRef"
+              :content="internalMarkdown"
+              :theme-class="resumeThemeClass"
+              :extra-styles="extraStyles"
+              :visible="true"
+              @pages-changed="onPagesChanged"
             />
           </div>
         </div>
@@ -204,21 +317,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted , nextTick } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { DocumentCopy, Download, DArrowLeft, DArrowRight, View, Plus, Edit, Promotion, Loading, EditPen } from '@element-plus/icons-vue';
+// In the script setup block, after line 330 (import useResumeAI):
+import { useVersionHistory } from '@/composables/useVersionHistory';
+import { DocumentCopy, Download, DArrowLeft, DArrowRight, Plus, Edit, Promotion, Loading, EditPen, MoreFilled, Check, CaretBottom, Select } from '@element-plus/icons-vue';
 import TemplateSidebar from './ResumeGenerator/components/TemplateSidebar.vue';
 import AIChatPanel from './ResumeGenerator/components/AIChatPanel.vue';
-import ResumePreviewPanel from './ResumeGenerator/components/ResumePreviewPanel.vue';
 import StyleAdjustmentPanel from './ResumeGenerator/components/StyleAdjustmentPanel.vue';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue';
-import { generateResumeApi, generateResumeFromChatApi, createAIConversationApi, getAIMessagesApi, sendAIMessageApi, type AIResumeResponse, type AIResumeInstruction } from '@/api/modules/resumeEditor';
+import PdfPageView from '@/components/common/PdfPageView.vue';
+import { createAIConversationApi, getAIMessagesApi, sendAIMessageApi, type AIResumeResponse } from '@/api/modules/resumeEditor';
 import { createResumeApi, getResumeListApi , updateResumeApi } from '@/api/modules/resume';
 import { useResumeAI, type ResumeData as AIResumeData, type Message, cleanInvalidKeys } from '@/composables/useResumeAI';
-import { useVersionHistory } from '@/composables/useVersionHistory';
 import { jsonToResumeMarkdown } from '@/utils/resumeMarkdown';
 import { set } from 'lodash-es';
-
+import { useExport } from '@/composables/useExport';
 const chatPanelRef = ref<InstanceType<typeof AIChatPanel>>();
 const selectedTemplate = ref('classic');
 // 极简版：content 就是 internalMarkdown（完整 Markdown 字符串）
@@ -236,7 +350,33 @@ const currentConversationId = ref<number | null>(null);
 const chatHistory = ref<Message[]>([]);
 const lastEditedField = ref<string>();
 const isPreviewCollapsed = ref(false); // 默认显示预览
-const editMode = ref<'ai' | 'markdown' | 'source'| 'style'>('ai'); // ai对话 / markdown编辑 / 源码模式
+const editMode = ref<'ai' | 'markdown' | 'source' | 'style'>('ai');
+// 右侧面板模式：'markdown' = Markdown 预览，'print' = 打印预览
+const rightPanelMode = ref<'markdown' | 'print'>('markdown');
+
+const leftModeOptions = [
+  { label: 'AI 对话', value: 'ai' },
+  { label: 'Markdown', value: 'markdown' },
+  { label: 'JSON 源码', value: 'source' },
+  { label: '样式调整', value: 'style' },
+];
+
+const editModeLabel = computed(() => leftModeOptions.find(o => o.value === editMode.value)?.label ?? '');
+
+const rightPanelModeLabel = computed(() =>
+  rightPanelMode.value === 'markdown' ? 'Markdown 预览' : '打印预览'
+);
+
+// 左侧面板下拉菜单命令处理
+const onLeftDropdownCommand = (cmd: string) => {
+  switchEditMode(cmd);
+};
+
+// 右侧面板下拉菜单命令处理
+const onRightDropdownCommand = (cmd: string) => {
+  rightPanelMode.value = cmd as 'markdown' | 'print';
+  console.log('[onRightDropdownCommand] 右侧预览模式切换为:', rightPanelMode.value);
+};
 const internalMarkdown = ref('');
 const sourceCode = ref('');
 const isAiLoading = ref(false); // AI 对话加载状态
@@ -244,6 +384,7 @@ const isAiLoading = ref(false); // AI 对话加载状态
 // 简历列表相关状态
 const resumeList = ref<any[]>([]);
 const currentResumeId = ref<number | null>(null);
+const exportTitle = computed(() => resumeList.value.find(r => r.id === currentResumeId.value)?.title || '未命名');
 
 // 当前选中的简历对象（用于判断状态）
 const currentResume = computed(() => {
@@ -268,6 +409,317 @@ const loadResumeList = async () => {
 
 const extraStyles = ref('');       // 用户自定义 CSS 字符串
 const markdownRendererRef = ref(); // MarkdownRenderer 实例
+const pdfPageViewRef = ref();       // 右侧 PdfPageView 实例（A4 分页预览）
+
+// PDF 预览相关状态
+const pdfPreviewVisible = ref(false);
+const pdfPreviewLoading = ref(false);
+const pdfPreviewLoadingText = ref('正在生成预览...');
+const pdfPreviewPages = ref<string[]>([]);
+const pdfPreviewPdfBase64 = ref<string>('');
+const pdfDownloading = ref(false);
+const exportFallbackMode = ref(false);
+const resumeThemeClass = ref('theme-blue');
+const handleThemeClassChange = (themeClass: string) => {
+  resumeThemeClass.value = themeClass;
+};
+
+/** 获取用于导出的渲染 HTML（兼容 Markdown 预览 / 打印预览） */
+const getExportInnerHtml = (): string => {
+  const unwrapMaybeRef = <T>(v: T | { value: T } | null | undefined): T | undefined => {
+    if (v && typeof v === 'object' && 'value' in v) return (v as { value: T }).value;
+    return v as T | undefined;
+  };
+
+  const markdownRoot = unwrapMaybeRef<HTMLElement | null>(markdownRendererRef.value?.markdownRoot) ?? undefined;
+  const printContentRoot = unwrapMaybeRef<HTMLElement | null>(pdfPageViewRef.value?.contentRef) ?? undefined;
+
+  if (rightPanelMode.value === 'markdown') {
+    if (markdownRoot?.innerHTML?.trim()) return markdownRoot.innerHTML;
+    if (printContentRoot?.innerHTML?.trim()) return printContentRoot.innerHTML;
+  } else {
+    if (printContentRoot?.innerHTML?.trim()) return printContentRoot.innerHTML;
+    if (markdownRoot?.innerHTML?.trim()) return markdownRoot.innerHTML;
+  }
+
+  console.warn('[getExportInnerHtml] 无可用渲染内容', {
+    rightPanelMode: rightPanelMode.value,
+    hasMarkdownRoot: !!markdownRoot,
+    hasPrintContentRoot: !!printContentRoot,
+  });
+  return '';
+};
+
+/**
+ * 将 innerHTML 包装为完整的 HTML 文档（包含样式、字体、主题）。
+ * 这是 Electron PDF 服务的核心缺失函数。
+ */
+const buildPdfHtmlDocument = (innerHtml: string, themeClass: string): string => {
+  const resumeDocHtml = innerHtml.includes('resume-document')
+    ? innerHtml
+    : `<div class="resume-document ${themeClass}">${innerHtml}</div>`;
+
+  const extraStylesBlock = extraStyles.value
+    ? `<style id="pdf-extra-styles">${extraStyles.value}</style>`
+    : '';
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 794px;
+      background: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.75;
+      font-size: 16px;
+      color: #333333;
+    }
+    .resume-document {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px;
+      background: #ffffff;
+    }
+    .section { margin-bottom: 32px; padding: 16px 0; }
+    .section:last-child { margin-bottom: 0; }
+    .section-title {
+      font-size: 16px; font-weight: 600;
+      border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin: 16px 0 10px;
+    }
+    .section-title.h1 { font-size: 32px; }
+    .section-title.h2 { font-size: 18px; }
+    .section-title.h3 { font-size: 16px; }
+    .resume-name { font-size: 28px; font-weight: 700; text-align: center; margin: 0 0 12px; }
+    .item-list, .skills-list, .summary-list, .work-list, .project-list, .education-list, .custom-list {
+      padding-left: 20px; margin: 0 0 10px; list-style: disc;
+    }
+    .skills-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    .skill-item { background: #f0f0f0; padding: 2px 10px; border-radius: 3px; font-size: 13px; }
+    .paragraph { margin: 0 0 8px; }
+    .table-wrapper { overflow-x: auto; margin-bottom: 10px; }
+    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table-cell { padding: 5px 8px; border: 1px solid #ddd; }
+    .table-row:nth-child(even) { background: #fafafa; }
+    .divider { border: none; border-top: 1px solid #e0e0e0; margin: 12px 0; }
+    .inline-code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+    .link { color: #2563eb; text-decoration: none; }
+    .bold { font-weight: 700; }
+    .italic { font-style: italic; }
+    .strikethrough { text-decoration: line-through; }
+    .image-figure { text-align: center; margin: 10px 0; }
+    .image { max-width: 100%; height: auto; }
+    .blockquote { border-left: 3px solid #e0e0e0; padding-left: 12px; margin: 0 0 8px; color: #666; font-size: 13px; }
+    .section, .subsection, .table-wrapper, table { break-inside: avoid; }
+    .work-item, .project-item, .education-item { margin-bottom: 12px; }
+    .item-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+    .item-title { font-weight: 600; }
+    .item-date { font-size: 13px; color: #666; }
+    .item-subtitle { font-size: 13px; color: #666; margin-bottom: 4px; }
+    .work-list, .project-list, .education-list { list-style: none; padding-left: 0; }
+    .work-item, .project-item, .education-item { padding-left: 0; }
+    /* theme-blue */
+    .theme-blue .resume-name { color: #1a56db; }
+    .theme-blue .section-title { color: #1a56db; border-color: #bfdbfe; }
+    .theme-blue .skill-item { background: #eff6ff; color: #1e40af; }
+    /* theme-dark */
+    .theme-dark { color: #f9fafb; background: #111827; }
+    .theme-dark .resume-name { color: #58a6ff; }
+    .theme-dark .section-title { color: #9ca3af; border-color: #374151; }
+    .theme-dark .skill-item { background: #1f2937; color: #d1d5db; }
+    /* theme-minimal */
+    .theme-minimal .resume-name { color: #000; }
+    .theme-minimal .section-title { color: #000; border-color: #000; }
+    /* theme-classic */
+    .theme-classic .resume-name { color: #1e3a5f; }
+    .theme-classic .section-title { color: #1e3a5f; border-color: #c4d4e4; }
+    .theme-classic .skill-item { background: #e8f0f8; color: #1e3a5f; }
+    /* theme-modern */
+    .theme-modern .resume-name { color: #6366f1; }
+    .theme-modern .section-title { color: #6366f1; border-color: #c7d2fe; }
+    .theme-modern .skill-item { background: #eef2ff; color: #4338ca; }
+    .code-block { background: #f6f8fa; border-radius: 4px; padding: 12px; overflow-x: auto; font-size: 13px; }
+    code { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; }
+  </style>
+  ${extraStylesBlock}
+</head>
+<body>
+  ${resumeDocHtml}
+</body>
+</html>`;
+};
+
+// 获取预览区域滚动容器
+const getPreviewScrollContainer = (): HTMLElement | null => {
+  const previewSection = document.querySelector('.preview-section');
+  return previewSection?.querySelector('.preview-content') as HTMLElement | null;
+};
+
+// PdfPageView 分页数变化回调
+const onPagesChanged = (count: number) => {
+  console.log(`[PdfPageView] 当前共 ${count} 页`);
+};
+
+// 打开预览弹窗
+const openPdfPreview = () => {
+  if (!resumeData.value) {
+    ElMessage.warning('暂无简历内容可导出');
+    return;
+  }
+  pdfPreviewVisible.value = true;
+  pdfPreviewLoading.value = true;
+  pdfPreviewLoadingText.value = '正在生成预览...';
+  pdfPreviewPages.value = [];
+  pdfPreviewPdfBase64.value = '';
+  exportFallbackMode.value = false;
+
+  // 下一帧执行，给弹窗 DOM 渲染时间
+  nextTick().then(() => {
+    fetchPreview();
+  });
+};
+
+const ELECTRON_PREVIEW_URL = 'http://localhost:9999/api/preview';
+
+/** 通过 Electron /api/preview 生成预览（单次请求，返回预览图 + PDF blob） */
+const fetchPreview = async () => {
+  const innerHtml = getExportInnerHtml();
+  if (!innerHtml) {
+    ElMessage.warning('无法获取渲染内容，请先切换到 Markdown 或打印预览模式');
+    pdfPreviewLoading.value = false;
+    return;
+  }
+
+  pdfPreviewLoadingText.value = '正在通过 Chromium 生成高质量预览...';
+
+  try {
+    const html = buildPdfHtmlDocument(innerHtml, resumeThemeClass.value);
+    const res = await fetch(ELECTRON_PREVIEW_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        html,
+        options: {
+          resumeName: exportTitle.value,
+          marginTop: 40,
+          marginBottom: 40,
+          marginLeft: 50,
+          marginRight: 50,
+          displayHeader: true,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      let errMsg = `HTTP ${res.status}`;
+      try { const e = await res.json(); if (e.error) errMsg = e.error; } catch {}
+      throw new Error(errMsg);
+    }
+
+    const result = await res.json();
+    pdfPreviewPages.value = result.pageImages ?? [];
+    pdfPreviewPdfBase64.value = result.pdfBase64 ?? '';
+    pdfPreviewLoadingText.value = `生成完成，共 ${result.pageCount ?? 0} 页`;
+
+  } catch (err: any) {
+    console.warn('[fetchPreview] Electron 预览失败，切换到 html2canvas fallback:', err);
+    exportFallbackMode.value = true;
+    pdfPreviewLoadingText.value = '正在通过浏览器生成预览...';
+    try {
+      const el = rightPanelMode.value === 'print'
+        ? (pdfPageViewRef.value as any)?.contentRef ?? null
+        : (markdownRendererRef.value as any)?.markdownRoot ?? null;
+      if (!el) throw new Error('预览组件未就绪');
+
+      const unwrapMaybeRef = <T>(v: T | { value: T } | null | undefined): T | undefined => {
+        if (v && typeof v === 'object' && 'value' in v) return (v as { value: T }).value;
+        return v as T | undefined;
+      };
+      const elUnwrapped = unwrapMaybeRef<HTMLElement | null>(el);
+      if (!elUnwrapped) throw new Error('预览组件元素未就绪');
+
+      const { generatePdfBlob } = useExport(ref(elUnwrapped!), exportTitle.value);
+      const data = await generatePdfBlob();
+      if (data?.pageImages) {
+        pdfPreviewPages.value = data.pageImages;
+        pdfPreviewPdfBase64.value = '';
+        pdfPreviewLoadingText.value = `生成完成，共 ${data.pageCount} 页`;
+      } else {
+        throw new Error('预览数据生成失败');
+      }
+    } catch (fallbackErr: any) {
+      console.error('[fetchPreview] fallback 失败:', fallbackErr);
+      ElMessage.error('预览生成失败：' + fallbackErr.message);
+      pdfPreviewPages.value = [];
+    } finally {
+      pdfPreviewLoading.value = false;
+    }
+  }
+
+// 确认下载（复用 /api/preview 返回的 PDF blob，或 fallback 模式直接调用 useExport）
+const confirmPdfDownload = async () => {
+  console.log('[confirmPdfDownload] 开始下载 PDF，fallback 模式:', exportFallbackMode.value);
+  pdfDownloading.value = true;
+
+  // fallback 模式：直接用 useExport 下载（Electron 不可用时）
+  if (exportFallbackMode.value && !pdfPreviewPdfBase64.value) {
+    try {
+      const el = rightPanelMode.value === 'print'
+        ? (pdfPageViewRef.value as any)?.contentRef ?? null
+        : (markdownRendererRef.value as any)?.markdownRoot ?? null;
+
+      const unwrapMaybeRef = <T>(v: T | { value: T } | null | undefined): T | undefined => {
+        if (v && typeof v === 'object' && 'value' in v) return (v as { value: T }).value;
+        return v as T | undefined;
+      };
+      const elUnwrapped = unwrapMaybeRef<HTMLElement | null>(el);
+      if (!elUnwrapped) { ElMessage.error('导出目标未就绪'); return; }
+
+      const { exportToPdf } = useExport(ref(elUnwrapped!), exportTitle.value);
+      exportToPdf();
+      pdfPreviewVisible.value = false;
+      ElMessage.success('PDF 下载完成');
+    } catch (err) {
+      console.error('[confirmPdfDownload] fallback 下载失败:', err);
+      ElMessage.error('PDF 下载失败');
+    } finally {
+      pdfDownloading.value = false;
+    }
+    return;
+  }
+
+  // Electron 路径：使用预览阶段生成的 PDF blob
+  if (!pdfPreviewPdfBase64.value) { ElMessage.warning('PDF 数据为空，请重新生成预览'); pdfDownloading.value = false; return; }
+
+  try {
+    const binaryString = atob(pdfPreviewPdfBase64.value);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `简历-${exportTitle.value}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    pdfPreviewVisible.value = false;
+    console.log('[confirmPdfDownload] PDF 下载完成');
+    ElMessage.success('PDF 下载完成');
+  } catch (err) {
+    console.error('[confirmPdfDownload] 下载失败:', err);
+    ElMessage.error('PDF 下载失败');
+  } finally {
+    pdfDownloading.value = false;
+  }
+};
+
+
 
 // 获取简历数据（合并 extraStyles）
 const getResumeDataToSave = () => ({
@@ -277,6 +729,7 @@ const getResumeDataToSave = () => ({
 
 // 接收 StyleAdjustmentPanel 的样式更新
 function onExtraStylesUpdate(v: string) {
+  console.log('[onExtraStylesUpdate] 样式更新，长度:', v.length);
   extraStyles.value = v;
 }
 
@@ -342,6 +795,8 @@ const handleRename = async () => {
   const target = resumeList.value.find(r => r.id === currentResumeId.value);
   const currentTitle = target?.title || '';
 
+  console.log('[handleRename] 当前简历:', currentResumeId.value, currentTitle);
+
   const { value: newTitle } = await ElMessageBox.prompt(
     '请输入新的简历标题：',
     '重命名简历',
@@ -353,6 +808,8 @@ const handleRename = async () => {
   ).catch(() => ({ value: null }));
 
   if (!newTitle || newTitle === currentTitle) return;
+
+  console.log('[handleRename] 新标题:', newTitle);
 
   await updateResumeApi(currentResumeId.value, {
     title: newTitle,
@@ -367,6 +824,8 @@ const handleRename = async () => {
 
 // 创建新简历
 const handleCreateNewResume = async () => {
+  console.log('[handleCreateNewResume] 开始创建新简历');
+
   try {
     // 弹出标题输入框
     const { value: userTitle } = await ElMessageBox.prompt(
@@ -388,6 +847,8 @@ const handleCreateNewResume = async () => {
       template_name: selectedTemplate.value,
     });
 
+    console.log('[handleCreateNewResume] 简历创建成功:', newResume.id, userTitle);
+
     // 创建新对话并绑定简历
     const newConv = await createAIConversationApi(newResume.id);
     currentConversationId.value = newConv.id;
@@ -395,6 +856,7 @@ const handleCreateNewResume = async () => {
     // 添加到列表并选中
     await loadResumeList();
     currentResumeId.value = newResume.id;
+    console.log('[handleCreateNewResume] 已选中新简历:', newResume.id);
 
     // 清空聊天历史
     chatHistory.value = [];
@@ -403,8 +865,9 @@ const handleCreateNewResume = async () => {
     }
 
     ElMessage.success('已创建新简历');
+    console.log('[handleCreateNewResume] 完成');
   } catch (error) {
-    console.error('创建简历失败:', error);
+    console.error('[handleCreateNewResume] 创建简历失败:', error);
     ElMessage.error('创建简历失败');
   }
 };
@@ -560,8 +1023,9 @@ const togglePreview = () => {
 };
 
 // 切换编辑模式
-const switchEditMode = (mode: 'ai' | 'markdown' | 'source' | 'style') => {
-  editMode.value = mode;
+const switchEditMode = (mode: string) => {
+  console.log('[switchEditMode] 切换模式:', mode);
+  editMode.value = mode as 'ai' | 'markdown' | 'source' | 'style';
   if (mode === 'source' && resumeData.value) {
     sourceCode.value = JSON.stringify(resumeData.value, null, 2);
   }
@@ -612,6 +1076,7 @@ function escapeRegExp(str: string): string {
 
 // 源码编辑变化（直接解析，content 字段存完整 markdown）
 const handleSourceCodeChange = () => {
+  console.log('[handleSourceCodeChange] 源码编辑变化');
   try {
     const parsed = JSON.parse(sourceCode.value);
     resumeData.value = parsed;
@@ -620,7 +1085,9 @@ const handleSourceCodeChange = () => {
       internalMarkdown.value = parsed.content;
     }
     ElMessage.success('已更新');
+    console.log('[handleSourceCodeChange] JSON 解析成功');
   } catch (e) {
+    console.error('[handleSourceCodeChange] JSON 格式错误:', e);
     ElMessage.error('JSON 格式错误');
   }
 };
@@ -648,7 +1115,8 @@ const handleUserMessage = async (message: string) => {
       resumeData.value,
       chatHistory.value,
       lastEditedField.value,
-      internalMarkdown.value
+      internalMarkdown.value,
+      extraStyles.value        // ← 新增
     );
 
     console.log('优化后的 Prompt:', optimizedPrompt);
@@ -688,7 +1156,10 @@ const handleUserMessage = async (message: string) => {
       const newData = applyInstructions(resumeData.value, response.instructions);
       resumeData.value = newData;
       if (newData.content) internalMarkdown.value = newData.content;
-
+      // 同步 extraStyles（AI 可能通过 instructions 修改了样式）
+      if (newData.extraStyles !== undefined) {
+        extraStyles.value = newData.extraStyles;
+      }
       // 保存版本
       const intent = detectIntent(message, lastEditedField.value);
       addVersion(resumeData.value, response.message, response.instructions, intent);
@@ -1009,22 +1480,14 @@ const handlePublish = async () => {
   }
 };
 
-// 导出简历
+// 导出简历（PDF）
+// 导出按钮打开预览弹窗
 const handleExport = () => {
-  if (!resumeData.value) {
-    ElMessage.warning('暂无简历内容可导出');
-    return;
-  }
-
-  // TODO: 实现 PDF 导出功能
-  ElMessage.info('PDF 导出功能开发中...');
+  openPdfPreview();
 };
 
-const resumeThemeClass = ref('theme-blue');   // 初始值
 
-const handleThemeClassChange = (themeClass: string) => {
-  resumeThemeClass.value = themeClass;
-};
+
 
 </script>
 
@@ -1116,10 +1579,37 @@ const handleThemeClassChange = (themeClass: string) => {
   }
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--el-border-color);
+  background: var(--el-fill-color-light);
+  flex-shrink: 0;
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .section-menu-btn {
+    padding: 4px;
+    font-size: 16px;
+    color: var(--el-text-color-secondary);
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
+  }
+}
+
 .chat-section,
 .markdown-section,
 .source-section,
 .style-section,
+.print-section,
 .preview-section {
   height: 100%;
   min-height: 0;
@@ -1129,6 +1619,12 @@ const handleThemeClassChange = (themeClass: string) => {
   &:last-child {
     border-right: none;
   }
+}
+
+// 打印预览区域：滚动由内层 .preview-content { overflow:auto } 统一处理
+// 不在此设 overflow，避免双层滚动条导致的分页视觉混淆
+.print-section {
+  overflow: hidden;
 }
 
 // Markdown、源码、样式编辑器样式
@@ -1192,11 +1688,28 @@ const handleThemeClassChange = (themeClass: string) => {
     color: var(--el-text-color-primary);
   }
 
+  .preview-title-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+
+    &:hover {
+      background: var(--el-fill-color-light);
+    }
+  }
+
   .preview-content {
     flex: 1;
     overflow: auto;
-    padding: 20px;
-    background: #fff;
+    padding: 0;           
+    background: #c8c8c8;
   }
 }
 
@@ -1290,5 +1803,79 @@ const handleThemeClassChange = (themeClass: string) => {
     gap: 12px;
     align-items: flex-start;
   }
+}
+
+/* PDF 预览弹窗：高分辨率截图需限制尺寸，避免 flex 子项按固有像素撑破弹窗 */
+.pdf-preview-container {
+  max-height: 70vh;
+  overflow-y: auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.pdf-preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  color: var(--el-text-color-secondary);
+}
+.pdf-preview-loading p {
+  margin-top: 12px;
+}
+.pdf-preview-info {
+  margin-bottom: 16px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.pdf-preview-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  max-width: 100%;
+}
+.pdf-preview-page {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+}
+.pdf-preview-page-label {
+  padding: 6px 12px;
+  background: var(--el-fill-color-light);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.pdf-preview-page-body {
+  min-width: 0;
+  max-height: min(72vh, 900px);
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12px;
+  background: var(--el-fill-color-lighter);
+  box-sizing: border-box;
+}
+.pdf-preview-img {
+  display: block;
+  max-width: 100%;
+  max-height: min(68vh, 880px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  /* 纸张外轮廓：阴影 + 白色背景 + 圆角 */
+  background: #ffffff;
+  border-radius: 4px;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 10px 20px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+.pdf-preview-empty {
+  padding: 40px 0;
 }
 </style>
