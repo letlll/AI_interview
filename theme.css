@@ -1,0 +1,41 @@
+/* 优化后：极简蓝色主题简历 */
+.resume-document.theme-blue { 
+  color: #333333; 
+  background: #ffffff; 
+}
+.resume-document.theme-blue h1,h2,h3,h4 { 
+  color: #000000; 
+  border-bottom-color: #0056b3; 
+}
+.resume-document.theme-blue h5,h6,p,li { color: #555555; }
+.resume-document.theme-blue .item-duration { color: #999999; }
+
+.resume-document.theme-blue .work-item,
+.resume-document.theme-blue .project-item,
+.resume-document.theme-blue .education-item { 
+  border-left-color: #0056b3; 
+}
+
+.resume-document.theme-blue .skill-item { 
+  background: #ffffff; 
+  color: #0056b3; 
+  border: 1px solid #0056b3; 
+}
+
+.resume-document.theme-blue .resume-name { 
+  color: #000000; 
+  border-bottom-color: #0056b3; 
+}
+
+/* 全模块样式统一 */
+.resume-document.theme-blue .section-title { 
+  color: #000000; 
+  border-bottom: 2px solid #0056b3; 
+  font-style: normal; 
+}
+
+.resume-document.theme-blue .link { color: #0056b3; }
+.resume-document.theme-blue .blockquote { 
+  border-left-color: #0056b3; 
+  background: #f9f9f9; 
+}

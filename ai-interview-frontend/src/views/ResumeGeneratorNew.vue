@@ -1664,30 +1664,47 @@ const handleDownloadPdf = () => {
 function getThemeCss(themeClass: string): string {
   const themes: Record<string, string> = {
     'theme-blue': `
-.resume-document.theme-blue { color: #1f1f1f; background: #ffffff; }
-.resume-document.theme-blue h1,
-.resume-document.theme-blue h2,
-.resume-document.theme-blue h3,
-.resume-document.theme-blue h4 { color: #1f1f1f; border-bottom-color: #409eff; }
-.resume-document.theme-blue h5 { color: #555555; }
-.resume-document.theme-blue h6 { color: #666666; }
-.resume-document.theme-blue p,
-.resume-document.theme-blue li { color: #666666; }
+/* 优化后：极简蓝色主题简历 */
+.resume-document.theme-blue { 
+  color: #333333; 
+  background: #ffffff; 
+}
+.resume-document.theme-blue h1,h2,h3,h4 { 
+  color: #000000; 
+  border-bottom-color: #0056b3; 
+}
+.resume-document.theme-blue h5,h6,p,li { color: #555555; }
 .resume-document.theme-blue .item-duration { color: #999999; }
+
 .resume-document.theme-blue .work-item,
 .resume-document.theme-blue .project-item,
-.resume-document.theme-blue .education-item { border-left-color: #409eff; }
-.resume-document.theme-blue .skill-item { background: #f0f2f5; color: #606266; border-color: #e4e7ed; }
-.resume-document.theme-blue .resume-name { color: #1f1f1f; border-bottom-color: #409eff; }
-.resume-document.theme-blue .section-title { color: #1f1f1f; border-bottom-color: #e8e8e8; }
-.resume-document.theme-blue .section-title--work { border-bottom-color: #b3e19d; }
-.resume-document.theme-blue .section-title--projects,
-.resume-document.theme-blue .section-title--project { border-bottom-color: #f4d03f; }
-.resume-document.theme-blue .section-title--education { border-bottom-color: #8cc5ff; }
-.resume-document.theme-blue .section-title--skills { border-bottom-color: #409eff; color: #666666; font-style: italic; border-bottom-style: dotted; }
-.resume-document.theme-blue .section-title--summary { border-bottom-color: #409eff; color: #666666; font-style: italic; border-bottom-style: dotted; }
-.resume-document.theme-blue .link { color: #409eff; }
-.resume-document.theme-blue .blockquote { border-left-color: #409eff; background: #f5f7fa; }
+.resume-document.theme-blue .education-item { 
+  border-left-color: #0056b3; 
+}
+
+.resume-document.theme-blue .skill-item { 
+  background: #ffffff; 
+  color: #0056b3; 
+  border: 1px solid #0056b3; 
+}
+
+.resume-document.theme-blue .resume-name { 
+  color: #000000; 
+  border-bottom-color: #0056b3; 
+}
+
+/* 全模块样式统一 */
+.resume-document.theme-blue .section-title { 
+  color: #000000; 
+  border-bottom: 2px solid #0056b3; 
+  font-style: normal; 
+}
+
+.resume-document.theme-blue .link { color: #0056b3; }
+.resume-document.theme-blue .blockquote { 
+  border-left-color: #0056b3; 
+  background: #f9f9f9; 
+}
 `,
     'theme-dark': `
 .resume-document.theme-dark { color: #e6edf3; background: #161b22; }
