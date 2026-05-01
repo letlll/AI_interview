@@ -69,41 +69,41 @@ const templates: Template[] = [
     id: 'classic',
     name: '经典模板',
     iconComponent: Document,
-    description: '适合传统行业',
-    color: '#409EFF',
-    themeClass: 'theme-blue'       // ← 新增，映射到 CSS 类
+    description: '通用正式/校招首选',
+    color: '#2563eb',       // 蓝色主题 主色
+    themeClass: 'theme-blue'
   },
   {
     id: 'modern',
     name: '现代模板',
     iconComponent: Notebook,
-    description: '适合互联网',
-    color: '#67C23A',
-    themeClass: 'theme-modern'     // ← 新增
+    description: '互联网/技术岗',
+    color: '#6b21a8',       // 紫色主题 主色
+    themeClass: 'theme-modern'
   },
   {
     id: 'minimal',
     name: '简约模板',
     iconComponent: Edit,
-    description: '适合设计师',
-    color: '#E6A23C',
-    themeClass: 'theme-minimal'    // ← 新增
+    description: '极简干净/设计师',
+    color: '#555555',       // 极简灰主题 主色
+    themeClass: 'theme-minimal'
   },
   {
     id: 'professional',
     name: '专业模板',
     iconComponent: Files,
-    description: '适合金融业',
-    color: '#909399',
-    themeClass: 'theme-classic'   // ← 新增
+    description: '金融/国企/传统行业',
+    color: '#1a1a1a',       // 经典黑白主题 主色
+    themeClass: 'theme-classic'
   },
   {
     id: 'creative',
     name: '创意模板',
     iconComponent: Brush,
-    description: '适合创意岗',
-    color: '#F56C6C',
-    themeClass: 'theme-modern'    // ← 新增（也可单独加 theme-creative）
+    description: '暗黑科技/创意岗',
+    color: '#f97316',       // 暗黑主题 主色
+    themeClass: 'theme-creative'
   }
 ];
 
