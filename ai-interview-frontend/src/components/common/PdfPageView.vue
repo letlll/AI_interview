@@ -450,6 +450,17 @@ onMounted(() => {
   renderContent();
   recalculate();
   setupResizeObserver();
+
+  // 防御：如果 content 为空（简历数据尚未加载），等待 500ms 后重试
+  if (!props.content?.trim()) {
+    setTimeout(() => {
+      if (props.content?.trim() && contentRef.value) {
+        console.log('[PdfPageView] 延迟渲染：检测到内容已加载，重新渲染');
+        renderContent();
+        recalculate();
+      }
+    }, 500);
+  }
 });
 
 onUnmounted(() => {
@@ -458,9 +469,20 @@ onUnmounted(() => {
 });
 
 watch(() => props.content, () => {
-  renderContent();
-  recalculate();
-});
+  // contentRef 可能在 immediate:true 时还未赋值，延迟到下一帧确保 ref 已设置
+  nextTick(() => {
+    if (contentRef.value) {
+      renderContent();
+      recalculate();
+    } else {
+      // 极端情况：contentRef 仍未就绪，等待 100ms 后重试
+      setTimeout(() => {
+        renderContent();
+        recalculate();
+      }, 100);
+    }
+  });
+}, { immediate: true });
 watch(() => props.themeClass, () => { renderContent(); recalculate(); });
 watch(() => props.extraStyles, () => { renderContent(); recalculate(); });
 

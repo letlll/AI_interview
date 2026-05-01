@@ -275,9 +275,22 @@
                   <el-dropdown-item command="print" :class="{ 'is-active': rightPanelMode === 'print' }">
                     <el-icon v-if="rightPanelMode === 'print'"><Check /></el-icon>打印预览
                   </el-dropdown-item>
+                  <el-dropdown-item command="electron" :class="{ 'is-active': rightPanelMode === 'electron' }">
+                    <el-icon v-if="rightPanelMode === 'electron'"><Check /></el-icon>精确预览
+                  </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+            <!-- 精确预览刷新按钮 -->
+            <el-button
+              v-if="rightPanelMode === 'electron'"
+              size="small"
+              :loading="electronPreviewLoading"
+              @click="handleRefreshElectronPreview"
+              style="margin-left: 8px;"
+            >
+              刷新
+            </el-button>
           </div>
           <div class="preview-content">
             <MarkdownRenderer
@@ -299,6 +312,57 @@
               :visible="true"
               @pages-changed="onPagesChanged"
             />
+            <!-- 精确预览：Electron API，Chromium 渲染 + 精确分页 + PDF 导出 -->
+            <div v-else-if="rightPanelMode === 'electron'" class="electron-preview-container">
+              <!-- 加载状态 -->
+              <div v-if="electronPreviewLoading" class="pdf-preview-loading">
+                <el-icon class="is-loading" size="32"><Loading /></el-icon>
+                <p>{{ electronPreviewLoadingText }}</p>
+              </div>
+
+              <!-- 错误状态 -->
+              <div v-else-if="electronPreviewError" class="pdf-preview-error">
+                <el-icon size="32" color="#f56c6c"><CircleCloseFilled /></el-icon>
+                <p>{{ electronPreviewError }}</p>
+                <el-button size="small" @click="handleRefreshElectronPreview">重试</el-button>
+              </div>
+
+              <!-- 精确预览结果 -->
+              <div v-else-if="electronPreviewResult" class="electron-preview-content">
+                <div class="pdf-preview-info">
+                  共 {{ electronPreviewResult.pageCount }} 页{{ electronPreviewMeta ? ' · ' + electronPreviewMeta : '' }}
+                </div>
+                <div class="pdf-preview-pages">
+                  <div
+                    v-for="(img, i) in electronPreviewResult.pageImages"
+                    :key="i"
+                    class="pdf-preview-page"
+                  >
+                    <div class="pdf-preview-page-label">第 {{ i + 1 }} / {{ electronPreviewResult.pageCount }} 页</div>
+                    <div class="pdf-preview-page-body">
+                      <img :src="img" :alt="`第 ${i + 1} 页`" class="pdf-preview-img" />
+                    </div>
+                  </div>
+                </div>
+                <!-- PDF 下载按钮 -->
+                <div class="electron-download-area" style="margin-top: 16px; text-align: center;">
+                  <el-button
+                    type="primary"
+                    size="default"
+                    @click="handleDownloadPdf"
+                  >
+                    <el-icon><Download /></el-icon>
+                    下载 PDF（带 header/footer）
+                  </el-button>
+                </div>
+              </div>
+
+              <!-- 空状态 -->
+              <div v-else class="pdf-preview-empty">
+                <el-icon size="48" color="#c0c4cc"><Document /></el-icon>
+                <p>点击右上角「刷新」按钮生成精确预览</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -321,13 +385,13 @@ import { ref, computed, watch, onMounted , nextTick } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 // In the script setup block, after line 330 (import useResumeAI):
 import { useVersionHistory } from '@/composables/useVersionHistory';
-import { DocumentCopy, Download, DArrowLeft, DArrowRight, Plus, Edit, Promotion, Loading, EditPen, MoreFilled, Check, CaretBottom, Select } from '@element-plus/icons-vue';
+import { DocumentCopy, Download, DArrowLeft, DArrowRight, Plus, Edit, Promotion, Loading, EditPen, MoreFilled, Check, CaretBottom, Select, CircleCloseFilled, Document } from '@element-plus/icons-vue';
 import TemplateSidebar from './ResumeGenerator/components/TemplateSidebar.vue';
 import AIChatPanel from './ResumeGenerator/components/AIChatPanel.vue';
 import StyleAdjustmentPanel from './ResumeGenerator/components/StyleAdjustmentPanel.vue';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue';
 import PdfPageView from '@/components/common/PdfPageView.vue';
-import { createAIConversationApi, getAIMessagesApi, sendAIMessageApi, type AIResumeResponse } from '@/api/modules/resumeEditor';
+import { createAIConversationApi, getAIMessagesApi, sendAIMessageApi, generateResumeFromChatApi, type AIResumeResponse } from '@/api/modules/resumeEditor';
 import { createResumeApi, getResumeListApi , updateResumeApi } from '@/api/modules/resume';
 import { useResumeAI, type ResumeData as AIResumeData, type Message, cleanInvalidKeys } from '@/composables/useResumeAI';
 import { jsonToResumeMarkdown } from '@/utils/resumeMarkdown';
@@ -351,8 +415,19 @@ const chatHistory = ref<Message[]>([]);
 const lastEditedField = ref<string>();
 const isPreviewCollapsed = ref(false); // 默认显示预览
 const editMode = ref<'ai' | 'markdown' | 'source' | 'style'>('ai');
-// 右侧面板模式：'markdown' = Markdown 预览，'print' = 打印预览
-const rightPanelMode = ref<'markdown' | 'print'>('markdown');
+// 右侧面板模式：'markdown' = Markdown 预览，'print' = 打印预览，'electron' = 精确预览
+const rightPanelMode = ref<'markdown' | 'print' | 'electron'>('markdown');
+
+// 精确预览相关状态
+const electronPreviewLoading = ref(false);
+const electronPreviewLoadingText = ref('正在生成精确预览...');
+const electronPreviewResult = ref<{
+  pageCount: number;
+  pageImages: string[];
+  pdfBase64: string;
+} | null>(null);
+const electronPreviewMeta = ref('');
+const electronPreviewError = ref('');
 
 const leftModeOptions = [
   { label: 'AI 对话', value: 'ai' },
@@ -364,7 +439,8 @@ const leftModeOptions = [
 const editModeLabel = computed(() => leftModeOptions.find(o => o.value === editMode.value)?.label ?? '');
 
 const rightPanelModeLabel = computed(() =>
-  rightPanelMode.value === 'markdown' ? 'Markdown 预览' : '打印预览'
+  rightPanelMode.value === 'markdown' ? 'Markdown 预览' :
+  rightPanelMode.value === 'print' ? '打印预览' : '精确预览'
 );
 
 // 左侧面板下拉菜单命令处理
@@ -374,7 +450,7 @@ const onLeftDropdownCommand = (cmd: string) => {
 
 // 右侧面板下拉菜单命令处理
 const onRightDropdownCommand = (cmd: string) => {
-  rightPanelMode.value = cmd as 'markdown' | 'print';
+  rightPanelMode.value = cmd as 'markdown' | 'print' | 'electron';
   console.log('[onRightDropdownCommand] 右侧预览模式切换为:', rightPanelMode.value);
 };
 const internalMarkdown = ref('');
@@ -434,18 +510,25 @@ const getExportInnerHtml = (): string => {
   const markdownRoot = unwrapMaybeRef<HTMLElement | null>(markdownRendererRef.value?.markdownRoot) ?? undefined;
   const printContentRoot = unwrapMaybeRef<HTMLElement | null>(pdfPageViewRef.value?.contentRef) ?? undefined;
 
-  if (rightPanelMode.value === 'markdown') {
-    if (markdownRoot?.innerHTML?.trim()) return markdownRoot.innerHTML;
-    if (printContentRoot?.innerHTML?.trim()) return printContentRoot.innerHTML;
-  } else {
-    if (printContentRoot?.innerHTML?.trim()) return printContentRoot.innerHTML;
-    if (markdownRoot?.innerHTML?.trim()) return markdownRoot.innerHTML;
+  // 优先取 MarkdownRenderer 的 HTML（它始终在屏幕上渲染，内容最可靠）
+  // 当 mode === 'markdown' 时必须用 MarkdownRenderer（printContentRoot 不在 DOM 中）
+  // 当 mode === 'print' 时也优先取 MarkdownRenderer（如果可用），否则取 PdfPageView 的 contentRef
+  if (markdownRoot?.innerHTML?.trim()) {
+    return markdownRoot.innerHTML;
+  }
+  // fallback 到 PdfPageView 的 contentRef（注意：这是内部隐藏源，内容是 marked 解析后的 HTML）
+  if (printContentRoot?.innerHTML?.trim()) {
+    return printContentRoot.innerHTML;
   }
 
+  const mdRootHtml = markdownRoot?.innerHTML?.trim() || '';
+  const printRootHtml = printContentRoot?.innerHTML?.trim() || '';
   console.warn('[getExportInnerHtml] 无可用渲染内容', {
     rightPanelMode: rightPanelMode.value,
     hasMarkdownRoot: !!markdownRoot,
+    markdownRootHtmlLen: mdRootHtml.length,
     hasPrintContentRoot: !!printContentRoot,
+    printRootHtmlLen: printRootHtml.length,
   });
   return '';
 };
@@ -457,99 +540,77 @@ const getExportInnerHtml = (): string => {
 const buildPdfHtmlDocument = (innerHtml: string, themeClass: string): string => {
   const resumeDocHtml = innerHtml.includes('resume-document')
     ? innerHtml
-    : `<div class="resume-document ${themeClass}">${innerHtml}</div>`;
+    : '<div class="resume-document ' + themeClass + '">' + innerHtml + '</div>';
 
   const extraStylesBlock = extraStyles.value
-    ? `<style id="pdf-extra-styles">${extraStyles.value}</style>`
+    ? '<style id="pdf-extra-styles">' + extraStyles.value + '</style>'
     : '';
 
-  return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      width: 794px;
-      background: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.75;
-      font-size: 16px;
-      color: #333333;
-    }
-    .resume-document {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 40px;
-      background: #ffffff;
-    }
-    .section { margin-bottom: 32px; padding: 16px 0; }
-    .section:last-child { margin-bottom: 0; }
-    .section-title {
-      font-size: 16px; font-weight: 600;
-      border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin: 16px 0 10px;
-    }
-    .section-title.h1 { font-size: 32px; }
-    .section-title.h2 { font-size: 18px; }
-    .section-title.h3 { font-size: 16px; }
-    .resume-name { font-size: 28px; font-weight: 700; text-align: center; margin: 0 0 12px; }
-    .item-list, .skills-list, .summary-list, .work-list, .project-list, .education-list, .custom-list {
-      padding-left: 20px; margin: 0 0 10px; list-style: disc;
-    }
-    .skills-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-    .skill-item { background: #f0f0f0; padding: 2px 10px; border-radius: 3px; font-size: 13px; }
-    .paragraph { margin: 0 0 8px; }
-    .table-wrapper { overflow-x: auto; margin-bottom: 10px; }
-    .table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .table-cell { padding: 5px 8px; border: 1px solid #ddd; }
-    .table-row:nth-child(even) { background: #fafafa; }
-    .divider { border: none; border-top: 1px solid #e0e0e0; margin: 12px 0; }
-    .inline-code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
-    .link { color: #2563eb; text-decoration: none; }
-    .bold { font-weight: 700; }
-    .italic { font-style: italic; }
-    .strikethrough { text-decoration: line-through; }
-    .image-figure { text-align: center; margin: 10px 0; }
-    .image { max-width: 100%; height: auto; }
-    .blockquote { border-left: 3px solid #e0e0e0; padding-left: 12px; margin: 0 0 8px; color: #666; font-size: 13px; }
-    .section, .subsection, .table-wrapper, table { break-inside: avoid; }
-    .work-item, .project-item, .education-item { margin-bottom: 12px; }
-    .item-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-    .item-title { font-weight: 600; }
-    .item-date { font-size: 13px; color: #666; }
-    .item-subtitle { font-size: 13px; color: #666; margin-bottom: 4px; }
-    .work-list, .project-list, .education-list { list-style: none; padding-left: 0; }
-    .work-item, .project-item, .education-item { padding-left: 0; }
-    /* theme-blue */
-    .theme-blue .resume-name { color: #1a56db; }
-    .theme-blue .section-title { color: #1a56db; border-color: #bfdbfe; }
-    .theme-blue .skill-item { background: #eff6ff; color: #1e40af; }
-    /* theme-dark */
-    .theme-dark { color: #f9fafb; background: #111827; }
-    .theme-dark .resume-name { color: #58a6ff; }
-    .theme-dark .section-title { color: #9ca3af; border-color: #374151; }
-    .theme-dark .skill-item { background: #1f2937; color: #d1d5db; }
-    /* theme-minimal */
-    .theme-minimal .resume-name { color: #000; }
-    .theme-minimal .section-title { color: #000; border-color: #000; }
-    /* theme-classic */
-    .theme-classic .resume-name { color: #1e3a5f; }
-    .theme-classic .section-title { color: #1e3a5f; border-color: #c4d4e4; }
-    .theme-classic .skill-item { background: #e8f0f8; color: #1e3a5f; }
-    /* theme-modern */
-    .theme-modern .resume-name { color: #6366f1; }
-    .theme-modern .section-title { color: #6366f1; border-color: #c7d2fe; }
-    .theme-modern .skill-item { background: #eef2ff; color: #4338ca; }
-    .code-block { background: #f6f8fa; border-radius: 4px; padding: 12px; overflow-x: auto; font-size: 13px; }
-    code { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; }
-  </style>
-  ${extraStylesBlock}
-</head>
-<body>
-  ${resumeDocHtml}
-</body>
-</html>`;
+  return '<!DOCTYPE html>\n' +
+    '<html lang="zh-CN">\n' +
+    '<head>\n' +
+    '  <meta charset="UTF-8">\n' +
+    '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+    '  <style>\n' +
+    '    * { box-sizing: border-box; margin: 0; padding: 0; }\n' +
+    '    body { width: 794px; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, sans-serif; line-height: 1.75; font-size: 16px; color: #333333; }\n' +
+    '    .resume-document { max-width: 800px; margin: 0 auto; padding: 40px; background: #ffffff; }\n' +
+    '    .section { margin-bottom: 32px; padding: 16px 0; }\n' +
+    '    .section:last-child { margin-bottom: 0; }\n' +
+    '    .section-title { font-size: 16px; font-weight: 600; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin: 16px 0 10px; }\n' +
+    '    .section-title.h1 { font-size: 32px; }\n' +
+    '    .section-title.h2 { font-size: 18px; }\n' +
+    '    .section-title.h3 { font-size: 16px; }\n' +
+    '    .resume-name { font-size: 28px; font-weight: 700; text-align: center; margin: 0 0 12px; }\n' +
+    '    .item-list, .skills-list, .summary-list, .work-list, .project-list, .education-list, .custom-list { padding-left: 20px; margin: 0 0 10px; list-style: disc; }\n' +
+    '    .skills-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }\n' +
+    '    .skill-item { background: #f0f0f0; padding: 2px 10px; border-radius: 3px; font-size: 13px; }\n' +
+    '    .paragraph { margin: 0 0 8px; }\n' +
+    '    .table-wrapper { overflow-x: auto; margin-bottom: 10px; }\n' +
+    '    .table { width: 100%; border-collapse: collapse; font-size: 13px; }\n' +
+    '    .table-cell { padding: 5px 8px; border: 1px solid #ddd; }\n' +
+    '    .table-row:nth-child(even) { background: #fafafa; }\n' +
+    '    .divider { border: none; border-top: 1px solid #e0e0e0; margin: 12px 0; }\n' +
+    '    .inline-code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; font-size: 13px; }\n' +
+    '    .link { color: #2563eb; text-decoration: none; }\n' +
+    '    .bold { font-weight: 700; }\n' +
+    '    .italic { font-style: italic; }\n' +
+    '    .strikethrough { text-decoration: line-through; }\n' +
+    '    .image-figure { text-align: center; margin: 10px 0; }\n' +
+    '    .image { max-width: 100%; height: auto; }\n' +
+    '    .blockquote { border-left: 3px solid #e0e0e0; padding-left: 12px; margin: 0 0 8px; color: #666; font-size: 13px; }\n' +
+    '    .section, .subsection, .table-wrapper, table { break-inside: avoid; }\n' +
+    '    .work-item, .project-item, .education-item { margin-bottom: 12px; }\n' +
+    '    .item-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }\n' +
+    '    .item-title { font-weight: 600; }\n' +
+    '    .item-date { font-size: 13px; color: #666; }\n' +
+    '    .item-subtitle { font-size: 13px; color: #666; margin-bottom: 4px; }\n' +
+    '    .work-list, .project-list, .education-list { list-style: none; padding-left: 0; }\n' +
+    '    .work-item, .project-item, .education-item { padding-left: 0; }\n' +
+    '    .theme-blue .resume-name { color: #1a56db; }\n' +
+    '    .theme-blue .section-title { color: #1a56db; border-color: #bfdbfe; }\n' +
+    '    .theme-blue .skill-item { background: #eff6ff; color: #1e40af; }\n' +
+    '    .theme-dark { color: #f9fafb; background: #111827; }\n' +
+    '    .theme-dark .resume-name { color: #58a6ff; }\n' +
+    '    .theme-dark .section-title { color: #9ca3af; border-color: #374151; }\n' +
+    '    .theme-dark .skill-item { background: #1f2937; color: #d1d5db; }\n' +
+    '    .theme-minimal .resume-name { color: #000; }\n' +
+    '    .theme-minimal .section-title { color: #000; border-color: #000; }\n' +
+    '    .theme-classic .resume-name { color: #1e3a5f; }\n' +
+    '    .theme-classic .section-title { color: #1e3a5f; border-color: #c4d4e4; }\n' +
+    '    .theme-classic .skill-item { background: #e8f0f8; color: #1e3a5f; }\n' +
+    '    .theme-modern .resume-name { color: #6366f1; }\n' +
+    '    .theme-modern .section-title { color: #6366f1; border-color: #c7d2fe; }\n' +
+    '    .theme-modern .skill-item { background: #eef2ff; color: #4338ca; }\n' +
+    '    .code-block { background: #f6f8fa; border-radius: 4px; padding: 12px; overflow-x: auto; font-size: 13px; }\n' +
+    '    code { font-family: \'Consolas\', \'Monaco\', \'Courier New\', monospace; }\n' +
+    '  </style>\n' +
+    '  ' + extraStylesBlock + '\n' +
+    '</head>\n' +
+    '<body>\n' +
+    '  ' + resumeDocHtml + '\n' +
+    '</body>\n' +
+    '</html>';
 };
 
 // 获取预览区域滚动容器
@@ -576,6 +637,20 @@ const openPdfPreview = () => {
   pdfPreviewPdfBase64.value = '';
   exportFallbackMode.value = false;
 
+  // 等待 PdfPageView 的 contentRef 就绪后再获取内容（最多等待 2 秒）
+  const waitForContentReady = (retries = 20) => {
+    const innerHtml = getExportInnerHtml();
+    if (innerHtml?.trim()) {
+      fetchPreview();
+    } else if (retries > 0) {
+      setTimeout(() => waitForContentReady(retries - 1), 100);
+    } else {
+      ElMessage.warning('未能获取到渲染内容，请稍后重试');
+      pdfPreviewLoading.value = false;
+    }
+  };
+
+
   // 下一帧执行，给弹窗 DOM 渲染时间
   nextTick().then(() => {
     fetchPreview();
@@ -586,12 +661,12 @@ const ELECTRON_PREVIEW_URL = 'http://localhost:9999/api/preview';
 
 /** 通过 Electron /api/preview 生成预览（单次请求，返回预览图 + PDF blob） */
 const fetchPreview = async () => {
-  const innerHtml = getExportInnerHtml();
-  if (!innerHtml) {
-    ElMessage.warning('无法获取渲染内容，请先切换到 Markdown 或打印预览模式');
-    pdfPreviewLoading.value = false;
-    return;
-  }
+const innerHtml = getExportInnerHtml();
+if (!innerHtml?.trim()) {
+  ElMessage.warning('无法获取渲染内容，请先切换到 Markdown 或打印预览模式，等待内容加载完成后重试');
+  pdfPreviewLoading.value = false;
+  return;
+}
 
   pdfPreviewLoadingText.value = '正在通过 Chromium 生成高质量预览...';
 
@@ -658,7 +733,7 @@ const fetchPreview = async () => {
       pdfPreviewLoading.value = false;
     }
   }
-
+};
 // 确认下载（复用 /api/preview 返回的 PDF blob，或 fallback 模式直接调用 useExport）
 const confirmPdfDownload = async () => {
   console.log('[confirmPdfDownload] 开始下载 PDF，fallback 模式:', exportFallbackMode.value);
@@ -1003,6 +1078,18 @@ watch(internalMarkdown, (md) => {
   }
 });
 
+// 内容大范围变化（如 AI 生成完成）时，自动刷新精确预览
+let electronDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+watch(internalMarkdown, (val, oldVal) => {
+  // 只有当变化超过 500 字符时才触发（避免每次 keystroke 都调用）
+  if (Math.abs((val || '').length - (oldVal || '').length) > 500) {
+    if (electronDebounceTimer) clearTimeout(electronDebounceTimer);
+    electronDebounceTimer = setTimeout(() => {
+      handleRefreshElectronPreview();
+    }, 3000);
+  }
+});
+
 // chatHistory 变化时，同步到 AIChatPanel（仅在非交互状态下，如页面加载时）
 watch(chatHistory, (newHistory) => {
   if (chatPanelRef.value && !isAiLoading.value) {
@@ -1271,24 +1358,18 @@ const generateResumeFromChat = async (
           {
             action: 'update',
             path: 'content',
-            value: `## 工作经历
-
-- **字节跳动** | 2021.06 - 至今
-  - 负责公司核心产品的前端开发工作，使用 Vue3 + TypeScript 技术栈
-  - 参与系统架构设计，制定前端开发规范和最佳实践
-  - 优化页面性能，首屏加载时间从 3.2s 降低到 1.5s
-
-## 项目经验
-
-- **企业管理系统前端重构** | 2023.03 - 2023.08
-  - 主导前端架构升级，从 Vue2 迁移到 Vue3
-  - 引入 TypeScript 和 Pinia 状态管理，复用率提升 60%
-
-## 教育背景
-
-- **某某大学** | 2017.09 - 2021.06
-  - 计算机科学与技术 | 本科`
-            ,
+            value: '## 工作经历\n\n' +
+            '- **字节跳动** | 2021.06 - 至今\n' +
+            '  - 负责公司核心产品的前端开发工作，使用 Vue3 + TypeScript 技术栈\n' +
+            '  - 参与系统架构设计，制定前端开发规范和最佳实践\n' +
+            '  - 优化页面性能，首屏加载时间从 3.2s 降低到 1.5s\n\n' +
+            '## 项目经验\n\n' +
+            '- **企业管理系统前端重构** | 2023.03 - 2023.08\n' +
+            '  - 主导前端架构升级，从 Vue2 迁移到 Vue3\n' +
+            '  - 引入 TypeScript 和 Pinia 状态管理，复用率提升 60%\n\n' +
+            '## 教育背景\n\n' +
+            '- **某某大学** | 2017.09 - 2021.06\n' +
+            '  - 计算机科学与技术 | 本科',
             reason: '添加简历主体内容'
           }
         ],
@@ -1480,14 +1561,145 @@ const handlePublish = async () => {
   }
 };
 
+// ============================================================
+// 精确预览（Electron API）
+// ============================================================
+
+/**
+ * 调用 Electron API 生成精确预览
+ * 流程：Markdown → HTML → /api/preview → base64 图片 + PDF
+ */
+const handleRefreshElectronPreview = async () => {
+  if (electronPreviewLoading.value) return;
+
+  electronPreviewLoading.value = true;
+  electronPreviewResult.value = null;
+  electronPreviewError.value = '';
+  electronPreviewLoadingText.value = '正在准备内容...';
+
+  try {
+    // Step 1: 将 Markdown 转为 HTML
+    const htmlContent = markdownToHtml(internalMarkdown.value, resumeThemeClass.value, extraStyles.value);
+    electronPreviewLoadingText.value = '正在调用 Electron API...';
+
+    // Step 2: 调用 Electron 预览 API
+    const startTime = Date.now();
+    const res = await fetch('http://localhost:9999/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        html: htmlContent,
+        options: {
+          resumeName: currentResume.value?.title || '简历',
+          marginTop: 40,
+          marginBottom: 40,
+          marginLeft: 50,
+          marginRight: 50,
+          displayHeaderFooter: true,
+        },
+      }),
+    });
+
+    const elapsedMs = Date.now() - startTime;
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: '未知错误' }));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    const result = await res.json();
+
+    electronPreviewResult.value = {
+      pageCount: result.pageCount,
+      pageImages: result.pageImages,
+      pdfBase64: result.pdfBase64,
+    };
+
+    electronPreviewMeta.value = `API 耗时 ${elapsedMs}ms`;
+
+    // 自动切换到精确预览 Tab
+    if (rightPanelMode.value !== 'electron') {
+      rightPanelMode.value = 'electron';
+    }
+  } catch (err: any) {
+    electronPreviewError.value = err.message || '生成精确预览失败，请确认 Electron 服务已启动（npm run electron:dev）';
+    console.error('[Electron 精确预览] 失败:', err);
+  } finally {
+    electronPreviewLoading.value = false;
+  }
+};
+
+/**
+ * 下载精确预览的 PDF
+ */
+const handleDownloadPdf = () => {
+  const result = electronPreviewResult.value;
+  if (!result?.pdfBase64) {
+    ElMessage.warning('尚无 PDF 可下载，请先生成精确预览');
+    return;
+  }
+
+  try {
+    const binary = atob(result.pdfBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentResume.value?.title || '简历'}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success('PDF 下载已开始');
+  } catch (err) {
+    console.error('[下载 PDF] 失败:', err);
+    ElMessage.error('PDF 下载失败');
+  }
+};
+
+/**
+ * Markdown → HTML 转换（用于 Electron API 调用）
+ */
+function markdownToHtml(markdown: string, themeClass: string, extraStyles: string): string {
+  const themeClassAttr = themeClass || 'theme-blue';
+  const baseStyles = [
+    '.resume-document { width: 794px; min-height: 1123px; padding: 40px; margin: 0 auto; background: #fff; box-sizing: border-box; font-size: 14px; line-height: 1.6; color: #333; }',
+    '.resume-document.theme-blue .resume-name { color: #1a56db; }',
+    '.resume-document.theme-blue .section-title { color: #1a56db; border-bottom: 1px solid #bfdbfe; }',
+    '.resume-document.theme-blue .skill-item { background: #eff6ff; color: #1e40af; }',
+    '.resume-document.theme-dark { background: #111827; color: #f9fafb; }',
+    '.resume-document.theme-dark .section-title { color: #9ca3af; border-bottom: 1px solid #374151; }',
+    '.resume-document.theme-minimal .resume-name { color: #000; }',
+    '.resume-document.theme-minimal .section-title { color: #000; border-bottom: 1px solid #000; }',
+    '.resume-document.theme-classic .resume-name { color: #1e3a5f; }',
+    '.resume-document.theme-classic .section-title { color: #1e3a5f; border-bottom: 1px solid #c4d4e4; }',
+    '.resume-document.theme-modern .resume-name { color: #6366f1; }',
+    '.resume-document.theme-modern .section-title { color: #6366f1; border-bottom: 1px solid #c7d2fe; }',
+  ].join('\n');
+
+  return '<!DOCTYPE html>\n' +
+    '<html>\n' +
+    '<head>\n' +
+    '<meta charset="UTF-8">\n' +
+    '<style>\n' +
+    baseStyles + '\n' +
+    extraStyles + '\n' +
+    '</style>\n' +
+    '</head>\n' +
+    '<body>\n' +
+    '<div class="resume-document ' + themeClassAttr + '">\n' +
+    markdown + '\n' +
+    '</div>\n' +
+    '</body>\n' +
+    '</html>';
+}
+
+// ============================================================
 // 导出简历（PDF）
-// 导出按钮打开预览弹窗
+// ============================================================
 const handleExport = () => {
   openPdfPreview();
 };
-
-
-
 
 </script>
 
@@ -1877,5 +2089,42 @@ const handleExport = () => {
 }
 .pdf-preview-empty {
   padding: 40px 0;
+}
+
+/* 精确预览容器 */
+.electron-preview-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f5f7fa;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.electron-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 860px;
+}
+
+.pdf-preview-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 12px;
+  color: var(--el-text-color-secondary);
+  width: 100%;
+}
+
+.pdf-preview-error p {
+  color: #f56c6c;
+  margin: 0;
 }
 </style>
