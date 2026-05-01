@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="resume-generator-new">
     <!-- 左侧模板选择栏 -->
     <TemplateSidebar
@@ -393,7 +393,10 @@ import { useResumeAI, type ResumeData as AIResumeData, type Message, cleanInvali
 import { jsonToResumeMarkdown } from '@/utils/resumeMarkdown';
 import { set } from 'lodash-es';
 import { useExport } from '@/composables/useExport';
-import { marked } from 'marked';
+import { Marked } from 'marked';                        // ← 新增：Marked 类
+import { markedHighlight } from 'marked-highlight';     // ← 新增：代码高亮插件
+import hljs from 'highlight.js';                         // ← 新增：highlight.js
+import resumeMarkdownRaw from '@/assets/styles/resume-markdown.css?raw'; // ← 新增：CSS 原文
 const chatPanelRef = ref<InstanceType<typeof AIChatPanel>>();
 const selectedTemplate = ref('classic');
 // 极简版：content 就是 internalMarkdown（完整 Markdown 字符串）
@@ -1561,7 +1564,6 @@ const handlePublish = async () => {
 // ============================================================
 // 精确预览（Electron API）
 // ============================================================
-
 /**
  * 调用 Electron API 生成精确预览
  * 流程：Markdown → HTML → /api/preview → base64 图片 + PDF
@@ -1655,79 +1657,336 @@ const handleDownloadPdf = () => {
 };
 
 /**
+ * 返回所选主题的完整 CSS 块
+ * 策略：不用 CSS 变量，直接输出 .theme-xxx 选择器的 color/border 属性
+ * 这样避免 CSS 变量级联顺序问题，也确保 Electron print 兼容性
+ */
+function getThemeCss(themeClass: string): string {
+  const themes: Record<string, string> = {
+    'theme-blue': `
+.resume-document.theme-blue { color: #1f1f1f; background: #ffffff; }
+.resume-document.theme-blue h1,
+.resume-document.theme-blue h2,
+.resume-document.theme-blue h3,
+.resume-document.theme-blue h4 { color: #1f1f1f; border-bottom-color: #409eff; }
+.resume-document.theme-blue h5 { color: #555555; }
+.resume-document.theme-blue h6 { color: #666666; }
+.resume-document.theme-blue p,
+.resume-document.theme-blue li { color: #666666; }
+.resume-document.theme-blue .item-duration { color: #999999; }
+.resume-document.theme-blue .work-item,
+.resume-document.theme-blue .project-item,
+.resume-document.theme-blue .education-item { border-left-color: #409eff; }
+.resume-document.theme-blue .skill-item { background: #f0f2f5; color: #606266; border-color: #e4e7ed; }
+.resume-document.theme-blue .resume-name { color: #1f1f1f; border-bottom-color: #409eff; }
+.resume-document.theme-blue .section-title { color: #1f1f1f; border-bottom-color: #e8e8e8; }
+.resume-document.theme-blue .section-title--work { border-bottom-color: #b3e19d; }
+.resume-document.theme-blue .section-title--projects,
+.resume-document.theme-blue .section-title--project { border-bottom-color: #f4d03f; }
+.resume-document.theme-blue .section-title--education { border-bottom-color: #8cc5ff; }
+.resume-document.theme-blue .section-title--skills { border-bottom-color: #409eff; color: #666666; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-blue .section-title--summary { border-bottom-color: #409eff; color: #666666; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-blue .link { color: #409eff; }
+.resume-document.theme-blue .blockquote { border-left-color: #409eff; background: #f5f7fa; }
+`,
+    'theme-dark': `
+.resume-document.theme-dark { color: #e6edf3; background: #161b22; }
+.resume-document.theme-dark h1,
+.resume-document.theme-dark h2,
+.resume-document.theme-dark h3,
+.resume-document.theme-dark h4 { color: #e6edf3; border-bottom-color: #58a6ff; }
+.resume-document.theme-dark h5 { color: #8b949e; }
+.resume-document.theme-dark h6 { color: #6e7681; }
+.resume-document.theme-dark p,
+.resume-document.theme-dark li { color: #8b949e; }
+.resume-document.theme-dark .item-duration { color: #6e7681; }
+.resume-document.theme-dark .work-item,
+.resume-document.theme-dark .project-item,
+.resume-document.theme-dark .education-item { border-left-color: #58a6ff; }
+.resume-document.theme-dark .skill-item { background: #21262d; color: #e6edf3; border-color: #30363d; }
+.resume-document.theme-dark .resume-name { color: #e6edf3; border-bottom-color: #58a6ff; }
+.resume-document.theme-dark .section-title { color: #e6edf3; border-bottom-color: #30363d; }
+.resume-document.theme-dark .section-title--work { border-bottom-color: #3fb950; }
+.resume-document.theme-dark .section-title--projects,
+.resume-document.theme-dark .section-title--project { border-bottom-color: #d29922; }
+.resume-document.theme-dark .section-title--education { border-bottom-color: #79c0ff; }
+.resume-document.theme-dark .section-title--skills { border-bottom-color: #58a6ff; color: #8b949e; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-dark .section-title--summary { border-bottom-color: #58a6ff; color: #8b949e; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-dark .link { color: #58a6ff; }
+.resume-document.theme-dark .blockquote { border-left-color: #58a6ff; background: #21262d; }
+`,
+    'theme-minimal': `
+.resume-document.theme-minimal { color: #1a1a1a; background: #ffffff; }
+.resume-document.theme-minimal h1,
+.resume-document.theme-minimal h2,
+.resume-document.theme-minimal h3,
+.resume-document.theme-minimal h4 { color: #1a1a1a; border-bottom-color: #333333; }
+.resume-document.theme-minimal h5 { color: #555555; }
+.resume-document.theme-minimal h6 { color: #888888; }
+.resume-document.theme-minimal p,
+.resume-document.theme-minimal li { color: #555555; }
+.resume-document.theme-minimal .item-duration { color: #888888; }
+.resume-document.theme-minimal .work-item,
+.resume-document.theme-minimal .project-item,
+.resume-document.theme-minimal .education-item { border-left-color: #333333; }
+.resume-document.theme-minimal .skill-item { background: #f5f5f5; color: #555555; border-color: #e0e0e0; }
+.resume-document.theme-minimal .resume-name { color: #1a1a1a; border-bottom-color: #333333; }
+.resume-document.theme-minimal .section-title { color: #1a1a1a; border-bottom-color: #e0e0e0; }
+.resume-document.theme-minimal .section-title--work { border-bottom-color: #999999; }
+.resume-document.theme-minimal .section-title--projects,
+.resume-document.theme-minimal .section-title--project { border-bottom-color: #bbbbbb; }
+.resume-document.theme-minimal .section-title--education { border-bottom-color: #aaaaaa; }
+.resume-document.theme-minimal .section-title--skills { border-bottom-color: #333333; color: #555555; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-minimal .section-title--summary { border-bottom-color: #333333; color: #555555; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-minimal .link { color: #333333; }
+.resume-document.theme-minimal .blockquote { border-left-color: #333333; background: #f8f8f8; }
+`,
+    'theme-classic': `
+.resume-document.theme-classic { color: #000000; background: #ffffff; }
+.resume-document.theme-classic h1,
+.resume-document.theme-classic h2,
+.resume-document.theme-classic h3,
+.resume-document.theme-classic h4 { color: #000000; border-bottom-color: #000000; }
+.resume-document.theme-classic h5 { color: #333333; }
+.resume-document.theme-classic h6 { color: #666666; }
+.resume-document.theme-classic p,
+.resume-document.theme-classic li { color: #333333; }
+.resume-document.theme-classic .item-duration { color: #666666; }
+.resume-document.theme-classic .work-item,
+.resume-document.theme-classic .project-item,
+.resume-document.theme-classic .education-item { border-left-color: #000000; }
+.resume-document.theme-classic .skill-item { background: #f0f0f0; color: #333333; border-color: #000000; }
+.resume-document.theme-classic .resume-name { color: #000000; border-bottom-color: #000000; }
+.resume-document.theme-classic .section-title { color: #000000; border-bottom-color: #000000; }
+.resume-document.theme-classic .section-title--work { border-bottom-color: #000000; }
+.resume-document.theme-classic .section-title--projects,
+.resume-document.theme-classic .section-title--project { border-bottom-color: #333333; }
+.resume-document.theme-classic .section-title--education { border-bottom-color: #666666; }
+.resume-document.theme-classic .section-title--skills { border-bottom-color: #1a1a1a; color: #333333; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-classic .section-title--summary { border-bottom-color: #1a1a1a; color: #333333; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-classic .link { color: #000000; }
+.resume-document.theme-classic .blockquote { border-left-color: #000000; background: #f5f5f5; }
+`,
+    'theme-modern': `
+.resume-document.theme-modern { color: #1f1f1f; background: #ffffff; }
+.resume-document.theme-modern h1,
+.resume-document.theme-modern h2,
+.resume-document.theme-modern h3,
+.resume-document.theme-modern h4 { color: #1f1f1f; border-bottom-color: #7c3aed; }
+.resume-document.theme-modern h5 { color: #6b7280; }
+.resume-document.theme-modern h6 { color: #9ca3af; }
+.resume-document.theme-modern p,
+.resume-document.theme-modern li { color: #6b7280; }
+.resume-document.theme-modern .item-duration { color: #9ca3af; }
+.resume-document.theme-modern .work-item,
+.resume-document.theme-modern .project-item,
+.resume-document.theme-modern .education-item { border-left-color: #7c3aed; }
+.resume-document.theme-modern .skill-item { background: #f3e8ff; color: #7c3aed; border-color: #ede9fe; }
+.resume-document.theme-modern .resume-name { color: #1f1f1f; border-bottom-color: #7c3aed; }
+.resume-document.theme-modern .section-title { color: #1f1f1f; border-bottom-color: #ede9fe; }
+.resume-document.theme-modern .section-title--work { border-bottom-color: #7c3aed; }
+.resume-document.theme-modern .section-title--projects,
+.resume-document.theme-modern .section-title--project { border-bottom-color: #a78bfa; }
+.resume-document.theme-modern .section-title--education { border-bottom-color: #c4b5fd; }
+.resume-document.theme-modern .section-title--skills { border-bottom-color: #7c3aed; color: #6b7280; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-modern .section-title--summary { border-bottom-color: #7c3aed; color: #6b7280; font-style: italic; border-bottom-style: dotted; }
+.resume-document.theme-modern .link { color: #7c3aed; }
+.resume-document.theme-modern .blockquote { border-left-color: #7c3aed; background: #f5f3ff; }
+`,
+  };
+  return themes[themeClass] || themes['theme-blue'];
+}
+
+/**
+ * 根据标题文本关键词自动识别 section type
+ * @param text 标题纯文本（已去除 HTML 标签）
+ * @returns section type 字符串（如 'projects', 'education', 'work', 'skills', 'summary'），无匹配返回空字符串
+ */
+function autoDetectSectionType(text: string): string {
+  if (!text) return '';
+  const lower = text.toLowerCase();
+  // 教育相关
+  if (lower.includes('教育') || lower.includes('学校') || lower.includes('学历')) return 'education';
+  // 技能/个人能力相关
+  if (lower.includes('技能') || lower.includes('技术') || lower.includes('能力') || lower.includes('证书')) return 'skills';
+  // 自我评价/简介相关
+  if (lower.includes('评价') || lower.includes('简介') || lower.includes('关于') || lower.includes('自我介绍') || lower.includes('求职')) return 'summary';
+  // 工作经历相关
+  if (lower.includes('工作') || lower.includes('实习') || lower.includes('社会实践')) return 'work';
+  // 项目经历相关（包括：智能医疗、电子竞赛、系统名称等）
+  if (lower.includes('项目') || lower.includes('设计') || lower.includes('系统') || lower.includes('竞赛') || lower.includes('大赛') || lower.includes('作品') || lower.includes('平台')) return 'projects';
+  return '';
+}
+
+/**
  * Markdown → HTML 转换（用于 Electron API 调用）
- * 输出格式与 Test/sample.js / sample-3pages.js 完全一致：
- * - body 作为 A4 内容容器（width: 794px, padding: 40px），无额外 wrapper
- * - 全局 reset 屏蔽 extraStyles 中的 box-shadow / border-radius / margin 冲突
  */
 function markdownToHtml(markdown: string, themeClass: string, extraStyles: string): string {
-  // 主题色表（与 buildPdfHtmlDocument 保持一致）
-  const themeStyles = [
-    '.resume-document.theme-blue .resume-name { color: #1a56db; }',
-    '.resume-document.theme-blue .section-title { color: #1a56db; border-bottom: 1px solid #bfdbfe; }',
-    '.resume-document.theme-blue .skill-item { background: #eff6ff; color: #1e40af; }',
-    '.resume-document.theme-dark { background: #111827; color: #f9fafb; }',
-    '.resume-document.theme-dark .resume-name { color: #58a6ff; }',
-    '.resume-document.theme-dark .section-title { color: #9ca3af; border-bottom: 1px solid #374151; }',
-    '.resume-document.theme-dark .skill-item { background: #1f2937; color: #d1d5db; }',
-    '.resume-document.theme-minimal .resume-name { color: #000000; }',
-    '.resume-document.theme-minimal .section-title { color: #000000; border-bottom: 1px solid #000000; }',
-    '.resume-document.theme-classic .resume-name { color: #1e3a5f; }',
-    '.resume-document.theme-classic .section-title { color: #1e3a5f; border-bottom: 1px solid #c4d4e4; }',
-    '.resume-document.theme-classic .skill-item { background: #e8f0f8; color: #1e3a5f; }',
-    '.resume-document.theme-modern .resume-name { color: #6366f1; }',
-    '.resume-document.theme-modern .section-title { color: #6366f1; border-bottom: 1px solid #c7d2fe; }',
-    '.resume-document.theme-modern .skill-item { background: #eef2ff; color: #4338ca; }',
-  ].join('\n');
+  // 1. 构建与 PdfPageView 完全相同的 marked 实例
+  let sectionType = '';
+  const md = new Marked();
+  md.use(markedHighlight({
+    langPrefix: 'hljs language-',
+    highlight(code: string, lang: string) {
+      const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+      return hljs.highlight(code, { language }).value;
+    },
+  }));
+  md.use({
+    renderer: {
+      heading(token: any): string {
+        const depth = token.depth;
+        const inner = this.parser.parseInline(token.tokens);
+        if (depth === 1) return `<h1 class="resume-name">${inner}</h1>\n`;
+        // 自动识别 section type：根据标题文本关键词判断
+        if (depth >= 2) {
+          const text = inner.replace(/<[^>]+>/g, '').trim();
+          const slug = autoDetectSectionType(text);
+          sectionType = slug; // 同步 sectionType，后续内容（列表等）也用这个 type
+          const classes = ['section-title', slug ? `section-title--${slug}` : '', `h${depth}`].filter(Boolean).join(' ');
+          return `<h${depth} class="${classes}" data-section-type="${slug}">${inner}</h${depth}>\n`;
+        }
+        const slug = sectionType ? `section-title--${sectionType}` : '';
+        const classes = ['section-title', slug, `h${depth}`].filter(Boolean).join(' ');
+        return `<h${depth} class="${classes}" data-section-type="${sectionType}">${inner}</h${depth}>\n`;
+      },
+      list(token: any): string {
+        let body = '';
+        for (const item of token.items) body += this.listitem(item);
+        let listClass = 'item-list';
+        if (sectionType === 'skills' || sectionType === 'skill') listClass = 'skills-list';
+        else if (sectionType === 'summary') listClass = 'summary-list';
+        else if (sectionType) listClass = `${sectionType}-list`;
+        const tag = token.ordered ? 'ol' : 'ul';
+        const start = token.ordered && token.start !== 1 && token.start !== '' ? ` start="${token.start}"` : '';
+        return `<${tag} class="${listClass}"${start}>\n${body}</${tag}>\n`;
+      },
+      listitem(token: any): string {
+        const inner = this.parser.parse(token.tokens, !!token.loose);
+        let itemClass = 'item';
+        if (sectionType === 'skills' || sectionType === 'skill') itemClass = 'skill-item';
+        else if (sectionType === 'summary') itemClass = 'summary-item';
+        else if (sectionType === 'work') itemClass = 'work-item';
+        else if (sectionType === 'projects' || sectionType === 'project') itemClass = 'project-item';
+        else if (sectionType === 'education') itemClass = 'education-item';
+        return `<li class="${itemClass}">${inner}</li>\n`;
+      },
+      paragraph(token: any): string {
+        return `<p class="paragraph">${this.parser.parseInline(token.tokens)}</p>\n`;
+      },
+      link(token: any): string {
+        const inner = this.parser.parseInline(token.tokens);
+        const titleAttr = token.title ? ` title="${token.title}"` : '';
+        return `<a class="link" href="${token.href}"${titleAttr}>${inner}</a>`;
+      },
+      image(token: any): string {
+        let alt = token.text;
+        if (token.tokens?.length) alt = this.parser.parseInline(token.tokens);
+        const titleAttr = token.title ? ` title="${token.title}"` : '';
+        return `<figure class="image-figure"><img class="image" src="${token.href}" alt="${alt}"${titleAttr} />${alt ? `<figcaption class="image-caption">${alt}</figcaption>` : ''}</figure>`;
+      },
+      blockquote(token: any): string {
+        return `<blockquote class="blockquote">\n${this.parser.parse(token.tokens)}</blockquote>\n`;
+      },
+      code(token: any): string {
+        const langClass = token.lang ? ` language-${token.lang}` : '';
+        return `<pre class="code-block"><code class="code${langClass}">${token.text}</code></pre>\n`;
+      },
+      codespan(token: any): string {
+        return `<code class="inline-code">${token.text}</code>`;
+      },
+      strong(token: any): string {
+        return `<strong class="bold">${this.parser.parseInline(token.tokens)}</strong>`;
+      },
+      em(token: any): string {
+        return `<em class="italic">${this.parser.parseInline(token.tokens)}</em>`;
+      },
+      del(token: any): string {
+        return `<del class="strikethrough">${this.parser.parseInline(token.tokens)}</del>`;
+      },
+      hr(): string {
+        return `<hr class="divider" />\n`;
+      },
+      table(this: any, token: any): string {
+        let headerRow = '';
+        for (const cell of token.header) headerRow += this.tablecell(cell);
+        const thead = this.tablerow({ text: headerRow });
+        let body = '';
+        for (const row of token.rows) {
+          let rowHtml = '';
+          for (const cell of row) rowHtml += this.tablecell(cell);
+          body += this.tablerow({ text: rowHtml });
+        }
+        const tbody = body ? `<tbody class="table-body">${body}</tbody>` : '';
+        return `<div class="table-wrapper"><table class="table"><thead class="table-head">${thead}</thead>${tbody}</table></div>\n`;
+      },
+      tablerow(this: any, row: { text: string }): string {
+        return `<tr class="table-row">${row.text}</tr>\n`;
+      },
+      tablecell(this: any, cell: any): string {
+        const content = this.parser.parseInline(cell.tokens);
+        const tag = cell.header ? 'th' : 'td';
+        const alignClass = cell.align ? ` text-${cell.align}` : '';
+        return `<${tag} class="table-cell${alignClass}">${content}</${tag}>\n`;
+      },
+    },
+  });
 
-  // Markdown → HTML
-  const htmlContent = marked.parse(markdown) as string;
+  // 2. 预处理：提取 section type 标记
+  sectionType = '';
+  const lines = markdown.split('\n');
+  const processed: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const metaMatch = trimmed.match(/^<!--\s*(?:section:|type:)([\w-]+)(?::([\s\S]*?))?\s*-->\s*$/);
+    if (metaMatch) { sectionType = metaMatch[1]; continue; }
+    processed.push(line);
+  }
 
-  return `<!DOCTYPE html>
+  // 3. 解析 Markdown → HTML
+  const htmlContent = md.parse(processed.join('\n')) as string;
+
+  // 4. 组装完整 HTML 文档，内联 resume-markdown.css + 主题变量 + extraStyles
+return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
-/* 全局 reset：屏蔽 extraStyles 中的显示属性，防止 PDF 中出现阴影/圆角/冲突边距 */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* 全局 reset：屏蔽 resumeMarkdownRaw 中的冲突属性 */
+body { background: #ffffff; }
+.resume-document {
+  background: var(--bg, #ffffff);
+  color: var(--text-primary, #1f1f1f);
+  max-width: unset !important;
+  min-height: unset !important;
   box-shadow: none !important;
-  border-radius: 0 !important;
-  border: none !important;
+  border-radius: unset !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
-body {
-  /* A4 内容区宽度，与 Test/sample.js 完全一致 */
-  width: 794px;
-  margin: 0;
-  padding: 40px;
-  background: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #333333;
-}
-h1 { text-align: center; color: #1a56db; font-size: 26px; margin: 0 0 6px; }
-.contact { text-align: center; color: #666; font-size: 13px; margin-bottom: 16px; }
-h2 { color: #1a56db; border-bottom: 1px solid #bfdbfe; padding-bottom: 4px; margin: 16px 0 8px; font-size: 15px; }
-ul { padding-left: 18px; margin: 0; }
-li { margin-bottom: 4px; }
-.item-header { display: flex; justify-content: space-between; margin-bottom: 2px; }
-.item-title { font-weight: 600; }
-.item-date { color: #888; font-size: 12px; }
-.item-sub { color: #666; font-size: 12px; margin-bottom: 4px; }
-.section { margin-bottom: 14px; }
-.summary { color: #444; font-size: 13px; margin-bottom: 16px; }
-.skills-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.skill-item { background: #eff6ff; color: #1e40af; padding: 2px 8px; border-radius: 3px; font-size: 12px; }
-${themeStyles}
-/* 用户 extraStyles（!important reset 已屏蔽冲突属性，自定义字体/颜色等仍然生效） */
+.resume-document h3,
+.resume-document h4,
+.resume-document h5,
+.resume-document h6 { color: var(--text-primary, #1f1f1f); }
+.resume-document p,
+.resume-document li { color: var(--text-secondary, #666666); }
+.resume-document .item { border-left-color: var(--accent, #409eff); }
+
+
+/* 1. resume-markdown.css（提供完整样式结构） */
+${resumeMarkdownRaw}
+
+/* 2. 主题颜色（直接使用十六进制色值，在 resumeMarkdownRaw 之后确保覆盖） */
+${getThemeCss(themeClass)}
+
+/* 3. extraStyles（用户自定义，放在最后） */
 ${extraStyles}
 </style>
 </head>
 <body>
+<div class="resume-document ${themeClass || 'theme-blue'}">
 ${htmlContent}
+</div>
 </body>
 </html>`;
 }

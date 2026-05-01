@@ -22,7 +22,7 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 40px;
-  background: #ffffff;
+  background: inherit; 
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   min-height: 1000px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -69,7 +69,7 @@
 .section-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1f1f1f;
+  color: inherit;
   margin: 0 0 16px 0;
   padding: 4px 8px;
   border-bottom: 2px solid #e8e8e8;
@@ -162,25 +162,25 @@
   font-size: 16px;
   font-weight: 600;
   margin: 12px 0 8px;
-  color: #1f1f1f;
+  color: inherit;
 }
 .h4 {
   font-size: 15px;
   font-weight: 600;
   margin: 10px 0 6px;
-  color: #1f1f1f;
+  color: inherit;
 }
 .h5 {
   font-size: 14px;
   font-weight: 600;
   margin: 8px 0 4px;
-  color: #555555;
+  color: inherit;
 }
 .h6 {
   font-size: 13px;
   font-weight: 600;
   margin: 6px 0 4px;
-  color: #666666;
+  color: inherit;
 }
 
 /* ============================================
@@ -315,13 +315,13 @@
 .education-item__title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f1f1f;
+  color: inherit;
 }
 
 .item-company,
 .work-item__company,
 .project-item__company {
-  color: #666666;
+  color: inherit;
   font-size: 14px;
   margin-bottom: 4px;
 }
@@ -330,7 +330,7 @@
 .work-item__duration,
 .project-item__duration,
 .education-item__duration {
-  color: #999999;
+  color: inherit;
   font-size: 13px;
   flex-shrink: 0;
 }
@@ -338,7 +338,7 @@
 .item-role,
 .work-item__role,
 .project-item__role {
-  color: #888888;
+  color: inherit;
   font-size: 13px;
   margin-bottom: 4px;
   font-style: italic;
@@ -347,13 +347,13 @@
 .item-location,
 .work-item__location,
 .project-item__location {
-  color: #999999;
+  color: inherit;
   font-size: 13px;
 }
 
 .item-degree,
 .education-item__degree {
-  color: #666666;
+  color: inherit;
   font-size: 14px;
 }
 
@@ -378,7 +378,7 @@
 .item-description li,
 .work-item__description li,
 .project-item__description li {
-  color: #666666;
+  color: inherit;
   line-height: 1.8;
   margin-bottom: 4px;
 }
@@ -388,7 +388,7 @@
    ============================================ */
 .summary-text,
 .summary-item {
-  color: #666666;
+  color: inherit;
   line-height: 1.9;
   white-space: pre-wrap;
   padding: 8px 0;
@@ -398,7 +398,7 @@
    10. 通用文本元素
    ============================================ */
 .paragraph {
-  color: #666666;
+  color: inherit;
   line-height: 1.8;
   margin-bottom: 12px;
 }
