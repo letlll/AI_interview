@@ -78,11 +78,16 @@
           <el-button type="primary" @click="handlePublish" :disabled="!hasResumeData">
             <el-icon><Promotion /></el-icon>
             发布
-          </el-button>
-          <el-button @click="handleExport" :disabled="!hasResumeData">
-            <el-icon><Download /></el-icon>
-            导出 PDF
-          </el-button>
+          </el-button>·
+                  <el-button
+                    type="primary"
+                    size="default"
+                    @click="handleDownloadPdf"
+                  >
+                    <el-icon><Download /></el-icon>
+                    下载 PDF
+                  </el-button>
+
         </div>
       </div>
 
@@ -345,16 +350,7 @@
                   </div>
                 </div>
                 <!-- PDF 下载按钮 -->
-                <div class="electron-download-area" style="margin-top: 16px; text-align: center;">
-                  <el-button
-                    type="primary"
-                    size="default"
-                    @click="handleDownloadPdf"
-                  >
-                    <el-icon><Download /></el-icon>
-                    下载 PDF（带 header/footer）
-                  </el-button>
-                </div>
+
               </div>
 
               <!-- 空状态 -->
