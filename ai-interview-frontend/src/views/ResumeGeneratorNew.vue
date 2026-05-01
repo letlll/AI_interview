@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="resume-generator-new">
     <!-- 左侧模板选择栏 -->
     <TemplateSidebar
@@ -1660,25 +1660,31 @@ const handleDownloadPdf = () => {
 
 /**
  * Markdown → HTML 转换（用于 Electron API 调用）
+ * 输出格式与 Test/sample.js / sample-3pages.js 完全一致：
+ * - body 作为 A4 内容容器（width: 794px, padding: 40px），无额外 wrapper
+ * - 全局 reset 屏蔽 extraStyles 中的 box-shadow / border-radius / margin 冲突
  */
 function markdownToHtml(markdown: string, themeClass: string, extraStyles: string): string {
-  const themeClassAttr = themeClass || 'theme-blue';
-  const baseStyles = [
-    '.resume-document { width: 794px; min-height: 1123px; padding: 40px; margin: 0 auto; background: #fff; box-sizing: border-box; font-size: 14px; line-height: 1.6; color: #333; }',
+  // 主题色表（与 buildPdfHtmlDocument 保持一致）
+  const themeStyles = [
     '.resume-document.theme-blue .resume-name { color: #1a56db; }',
     '.resume-document.theme-blue .section-title { color: #1a56db; border-bottom: 1px solid #bfdbfe; }',
     '.resume-document.theme-blue .skill-item { background: #eff6ff; color: #1e40af; }',
     '.resume-document.theme-dark { background: #111827; color: #f9fafb; }',
+    '.resume-document.theme-dark .resume-name { color: #58a6ff; }',
     '.resume-document.theme-dark .section-title { color: #9ca3af; border-bottom: 1px solid #374151; }',
-    '.resume-document.theme-minimal .resume-name { color: #000; }',
-    '.resume-document.theme-minimal .section-title { color: #000; border-bottom: 1px solid #000; }',
+    '.resume-document.theme-dark .skill-item { background: #1f2937; color: #d1d5db; }',
+    '.resume-document.theme-minimal .resume-name { color: #000000; }',
+    '.resume-document.theme-minimal .section-title { color: #000000; border-bottom: 1px solid #000000; }',
     '.resume-document.theme-classic .resume-name { color: #1e3a5f; }',
     '.resume-document.theme-classic .section-title { color: #1e3a5f; border-bottom: 1px solid #c4d4e4; }',
+    '.resume-document.theme-classic .skill-item { background: #e8f0f8; color: #1e3a5f; }',
     '.resume-document.theme-modern .resume-name { color: #6366f1; }',
     '.resume-document.theme-modern .section-title { color: #6366f1; border-bottom: 1px solid #c7d2fe; }',
+    '.resume-document.theme-modern .skill-item { background: #eef2ff; color: #4338ca; }',
   ].join('\n');
 
-  // 关键修复：用 marked.parse() 将 Markdown 转为 HTML
+  // Markdown → HTML
   const htmlContent = marked.parse(markdown) as string;
 
   return `<!DOCTYPE html>
@@ -1686,14 +1692,46 @@ function markdownToHtml(markdown: string, themeClass: string, extraStyles: strin
 <head>
 <meta charset="UTF-8">
 <style>
-${baseStyles}
+/* 全局 reset：屏蔽 extraStyles 中的显示属性，防止 PDF 中出现阴影/圆角/冲突边距 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+body {
+  /* A4 内容区宽度，与 Test/sample.js 完全一致 */
+  width: 794px;
+  margin: 0;
+  padding: 40px;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333333;
+}
+h1 { text-align: center; color: #1a56db; font-size: 26px; margin: 0 0 6px; }
+.contact { text-align: center; color: #666; font-size: 13px; margin-bottom: 16px; }
+h2 { color: #1a56db; border-bottom: 1px solid #bfdbfe; padding-bottom: 4px; margin: 16px 0 8px; font-size: 15px; }
+ul { padding-left: 18px; margin: 0; }
+li { margin-bottom: 4px; }
+.item-header { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.item-title { font-weight: 600; }
+.item-date { color: #888; font-size: 12px; }
+.item-sub { color: #666; font-size: 12px; margin-bottom: 4px; }
+.section { margin-bottom: 14px; }
+.summary { color: #444; font-size: 13px; margin-bottom: 16px; }
+.skills-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.skill-item { background: #eff6ff; color: #1e40af; padding: 2px 8px; border-radius: 3px; font-size: 12px; }
+${themeStyles}
+/* 用户 extraStyles（!important reset 已屏蔽冲突属性，自定义字体/颜色等仍然生效） */
 ${extraStyles}
 </style>
 </head>
 <body>
-<div class="resume-document ${themeClassAttr}">
 ${htmlContent}
-</div>
 </body>
 </html>`;
 }
