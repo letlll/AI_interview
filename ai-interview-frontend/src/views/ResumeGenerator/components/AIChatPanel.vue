@@ -281,6 +281,13 @@ defineExpose({
     displayStartIndex.value = Math.max(0, msgs.length - INITIAL_ROUNDS * 2);
     userScrolledUp.value = false;
     nextTick(() => scrollToBottom());
+  },
+  refresh: () => {
+    allMessages.value = [];
+    displayStartIndex.value = 0;
+    userScrolledUp.value = false;
+    isLoading.value = false;
+    nextTick(() => scrollToBottom());
   }
 });
 

@@ -150,13 +150,12 @@
         <!-- AI 对话模式 -->
         <template v-if="editMode === 'ai'">
           <div class="chat-section">
-            <!-- 左侧面板模式切换菜单 -->
-            <div class="section-header">
-              <span class="section-title">{{ editModeLabel }}</span>
+            <!-- 左侧面板模式切换菜单（已改为和右侧完全相同的样式） -->
+            <div class="section-header preview-header">
               <el-dropdown trigger="click" @command="onLeftDropdownCommand">
-                <el-button text size="small" class="section-menu-btn">
-                  <el-icon><MoreFilled /></el-icon>
-                </el-button>
+                <span class="preview-title-btn">
+                  {{ editModeLabel }}<el-icon class="el-icon--right"><CaretBottom /></el-icon>
+                </span>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-for="item in leftModeOptions" :key="item.value" :command="item.value" :class="{ 'is-active': editMode === item.value }">
@@ -165,6 +164,9 @@
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
+              <el-button size="small" @click="handleRefreshChat" style="margin-left: 8px;">
+                刷新
+              </el-button>
             </div>
             <AIChatPanel
               ref="chatPanelRef"
@@ -176,12 +178,12 @@
         <!-- Markdown 编辑模式 -->
         <template v-else-if="editMode === 'markdown'">
           <div class="markdown-section">
-            <div class="section-header">
-              <span class="section-title">{{ editModeLabel }}</span>
+            <!-- 把刷新按钮合并到header里，和下拉菜单同一行，去掉额外的editor-header -->
+            <div class="section-header preview-header">
               <el-dropdown trigger="click" @command="onLeftDropdownCommand">
-                <el-button text size="small" class="section-menu-btn">
-                  <el-icon><MoreFilled /></el-icon>
-                </el-button>
+                <span class="preview-title-btn">
+                  {{ editModeLabel }}<el-icon class="el-icon--right"><CaretBottom /></el-icon>
+                </span>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-for="item in leftModeOptions" :key="item.value" :command="item.value" :class="{ 'is-active': editMode === item.value }">
@@ -190,10 +192,8 @@
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-            </div>
-            <div class="editor-header">
-              <span>刷新预览</span>
-              <el-button size="small" text @click="internalMarkdown = jsonToResumeMarkdown(resumeData)">
+              <!-- 刷新按钮放到header右侧，和右侧的刷新按钮位置完全对应 -->
+              <el-button size="small" @click="internalMarkdown = jsonToResumeMarkdown(resumeData)" style="margin-left: 8px;">
                 刷新
               </el-button>
             </div>
@@ -211,12 +211,12 @@
         <!-- 源码模式 -->
         <template v-else-if="editMode === 'source'">
           <div class="source-section">
-            <div class="section-header">
-              <span class="section-title">{{ editModeLabel }}</span>
+            <!-- 同样合并刷新按钮到header里，去掉editor-header -->
+            <div class="section-header preview-header">
               <el-dropdown trigger="click" @command="onLeftDropdownCommand">
-                <el-button text size="small" class="section-menu-btn">
-                  <el-icon><MoreFilled /></el-icon>
-                </el-button>
+                <span class="preview-title-btn">
+                  {{ editModeLabel }}<el-icon class="el-icon--right"><CaretBottom /></el-icon>
+                </span>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-for="item in leftModeOptions" :key="item.value" :command="item.value" :class="{ 'is-active': editMode === item.value }">
@@ -225,9 +225,6 @@
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
-            </div>
-            <div class="editor-header">
-              <span>JSON 源码</span>
               <el-button size="small" text @click="sourceCode = JSON.stringify(resumeData, null, 2)">
                 刷新
               </el-button>
@@ -246,12 +243,11 @@
         <!-- 样式调整模式 -->
         <template v-else-if="editMode === 'style'">
           <div class="style-section">
-            <div class="section-header">
-              <span class="section-title">{{ editModeLabel }}</span>
+            <div class="section-header preview-header">
               <el-dropdown trigger="click" @command="onLeftDropdownCommand">
-                <el-button text size="small" class="section-menu-btn">
-                  <el-icon><MoreFilled /></el-icon>
-                </el-button>
+                <span class="preview-title-btn">
+                  {{ editModeLabel }}<el-icon class="el-icon--right"><CaretBottom /></el-icon>
+                </span>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-for="item in leftModeOptions" :key="item.value" :command="item.value" :class="{ 'is-active': editMode === item.value }">
@@ -1845,11 +1841,11 @@ ${htmlContent}
 </html>`;
 }
 
-// ============================================================
-// 导出简历（PDF）
-// ============================================================
-const handleExport = () => {
-  openPdfPreview();
+// ResumeGeneratorNew.vue 第 1844 行
+const handleRefreshChat = async () => {
+  if (currentConversationId.value) {
+    await loadMessages(currentConversationId.value);
+  }
 };
 
 </script>
@@ -1942,71 +1938,70 @@ const handleExport = () => {
   }
 }
 
+// 统一所有 Header 样式（核心修改：确保高度一致）
+.preview-header,
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--el-border-color);
-  background: var(--el-fill-color-light);
+  background: var(--el-bg-color);
   flex-shrink: 0;
+}
 
-  .section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
+// 统一预览标题按钮样式
+.preview-title-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--el-fill-color-light);
   }
+}
 
-  .section-menu-btn {
-    padding: 4px;
-    font-size: 16px;
-    color: var(--el-text-color-secondary);
-
-    &:hover {
-      color: var(--el-color-primary);
-    }
-  }
+// 编辑器Header样式（和其他Header统一）
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color);
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  flex-shrink: 0;
 }
 
 .chat-section,
 .markdown-section,
 .source-section,
 .style-section,
-.print-section,
 .preview-section {
   height: 100%;
   min-height: 0;
   overflow: hidden;
   border-right: 1px solid var(--el-border-color);
+  display: flex;
+  flex-direction: column;
 
   &:last-child {
     border-right: none;
   }
 }
 
-// 打印预览区域：滚动由内层 .preview-content { overflow:auto } 统一处理
-// 不在此设 overflow，避免双层滚动条导致的分页视觉混淆
-.print-section {
-  overflow: hidden;
-}
-
 // Markdown、源码、样式编辑器样式
 .markdown-section,
 .source-section,
 .style-section {
-  display: flex;
-  flex-direction: column;
   background: var(--el-bg-color);
-
-  .editor-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--el-border-color);
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-  }
 
   .markdown-editor,
   .source-editor {
@@ -2022,51 +2017,23 @@ const handleExport = () => {
       padding: 16px;
       border: none;
       border-radius: 0;
-      background: #1e1e1e;
-      color: #d4d4d4;
     }
   }
 }
 
-.source-editor {
-  :deep(.el-textarea__inner) {
-    background: #f5f5f5;
-    color: #333;
-  }
+.markdown-editor :deep(.el-textarea__inner) {
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.source-editor :deep(.el-textarea__inner) {
+  background: #f5f5f5;
+  color: #333;
 }
 
 // 预览区样式
 .preview-section {
-  display: flex;
-  flex-direction: column;
   background: var(--el-bg-color);
-
-  .preview-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--el-border-color);
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-  }
-
-  .preview-title-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: background 0.2s;
-
-    &:hover {
-      background: var(--el-fill-color-light);
-    }
-  }
 
   .preview-content {
     flex: 1;
