@@ -85,9 +85,6 @@ function injectPageCss(html, marginTop, marginBottom, marginLeft, marginRight) {
   size: A4;
   margin: ${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px;
 }
-@page :first {
-  margin-top: 0;  /* 补偿 .resume-document padding-top: 40px */
-}
 /* 避免标题被分割到两页 */
 h1, h2, h3, h4, h5, h6 {
   page-break-after: avoid;
