@@ -630,8 +630,8 @@ function postProcessSections(root: HTMLElement) {
   }
 }
 
-onMounted(renderAll);
-watch(() => props.content, renderAll);
+onMounted(() => { renderAll(); });
+watch(() => props.content, () => { renderAll(); });
 watch(() => props.themeClass, () => {
   const doc = markdownRoot.value?.querySelector('.resume-document');
   if (!doc) return;

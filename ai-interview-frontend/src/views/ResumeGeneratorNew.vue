@@ -397,6 +397,7 @@ import { useResumeAI, type ResumeData as AIResumeData, type Message, cleanInvali
 import { jsonToResumeMarkdown } from '@/utils/resumeMarkdown';
 import { set } from 'lodash-es';
 import { useExport } from '@/composables/useExport';
+import { marked } from 'marked';
 const chatPanelRef = ref<InstanceType<typeof AIChatPanel>>();
 const selectedTemplate = ref('classic');
 // 极简版：content 就是 internalMarkdown（完整 Markdown 字符串）
@@ -1677,21 +1678,24 @@ function markdownToHtml(markdown: string, themeClass: string, extraStyles: strin
     '.resume-document.theme-modern .section-title { color: #6366f1; border-bottom: 1px solid #c7d2fe; }',
   ].join('\n');
 
-  return '<!DOCTYPE html>\n' +
-    '<html>\n' +
-    '<head>\n' +
-    '<meta charset="UTF-8">\n' +
-    '<style>\n' +
-    baseStyles + '\n' +
-    extraStyles + '\n' +
-    '</style>\n' +
-    '</head>\n' +
-    '<body>\n' +
-    '<div class="resume-document ' + themeClassAttr + '">\n' +
-    markdown + '\n' +
-    '</div>\n' +
-    '</body>\n' +
-    '</html>';
+  // 关键修复：用 marked.parse() 将 Markdown 转为 HTML
+  const htmlContent = marked.parse(markdown) as string;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+${baseStyles}
+${extraStyles}
+</style>
+</head>
+<body>
+<div class="resume-document ${themeClassAttr}">
+${htmlContent}
+</div>
+</body>
+</html>`;
 }
 
 // ============================================================
