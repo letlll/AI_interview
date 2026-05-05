@@ -312,6 +312,34 @@ function htmlToMarkdown(html: string): string {
       case 'style':
       case 'script':
         return '';
+      case 'table': {
+        // marked renders tables as <table>...</table> HTML blocks.
+        // Convert back to markdown table syntax for clean round-trip.
+        const thead = el.querySelector('thead');
+        const tbody = el.querySelector('tbody');
+        const headerCells = thead
+          ? Array.from(thead.querySelectorAll('th, td')).map(th => (th as HTMLElement).textContent?.trim() || '')
+          : Array.from(el.querySelectorAll('tr')).find(tr => tr.querySelector('th'))
+            ? Array.from(el.querySelector('tr')!.querySelectorAll('th, td')).map(td => (td as HTMLElement).textContent?.trim() || '')
+            : [];
+        const rows: string[] = [];
+        if (headerCells.length > 0) {
+          rows.push('| ' + headerCells.join(' | ') + ' |');
+          rows.push('| ' + headerCells.map(() => '---').join(' | ') + ' |');
+        }
+        const bodyRows = tbody ? tbody.querySelectorAll('tr') : el.querySelectorAll('tbody tr, tr:not(:has(th))');
+        bodyRows.forEach(tr => {
+          const cells = Array.from(tr.querySelectorAll('td')).map(td => (td as HTMLElement).textContent?.trim() || '');
+          if (cells.length > 0) rows.push('| ' + cells.join(' | ') + ' |');
+        });
+        return rows.join('\n') + '\n';
+      }
+      case 'tbody': {
+        return Array.from(el.children).map(tr => {
+          const cells = Array.from(tr.children).map(td => (td as HTMLElement).textContent?.trim() || '');
+          return '| ' + cells.join(' | ') + ' |';
+        }).join('\n') + '\n';
+      }
       case 'div':
       case 'span':
       case 'section':
@@ -334,9 +362,14 @@ function htmlToMarkdown(html: string): string {
       return el.outerHTML + '\n';
     }
 
-    // 1. 基本信息卡片：完整保留 HTML，marked 原样输出，AI 编辑时可识别结构
+    // 1. 基本信息卡片：提取内部 table 的 outerHTML，让 marked 原样渲染表格结构
     if (el.classList.contains('resume-basic-info') || el.id === 'resume-basic-info') {
-      return el.outerHTML + '\n';
+      const table = el.querySelector('table');
+      if (table) {
+        return table.outerHTML + '\n';
+      }
+      // Fallback: strip contenteditable/data-* attributes
+      return el.innerHTML.replace(/ (contenteditable|data-listener-attached)="[^"]*"/g, '') + '\n';
     }
 
     // 2. 单行 key-value 块：div.info-row / div.row / div.line
