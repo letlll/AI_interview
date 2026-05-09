@@ -48,9 +48,8 @@
  */
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Marked } from 'marked';
-import { markedHighlight } from 'marked-highlight';
-import hljs from 'highlight.js';
+
+import { renderMarkdownContent, postProcessSectionsDOM } from '@/composables/useResumeRenderer';
 
 const props = defineProps<{
   content?: string;
@@ -59,15 +58,11 @@ const props = defineProps<{
   visible?: boolean;
 }>();
 
-
-
 const emit = defineEmits<{ (e: 'pages-changed', count: number): void }>();
 
 // ============================================================
 // 常量
 // ============================================================
-const A4_WIDTH_PT = 595.28;
-const A4_HEIGHT_PT = 841.89;
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
 // 页间垂直间距（px），预览层显示灰缝，不参与 translateY 偏移量计算
@@ -77,205 +72,8 @@ const PAGE_GAP_PX = 10;
 const PAGE_LAYOUT_HEIGHT_PX = A4_HEIGHT_PX + PAGE_GAP_PX; // 1126
 
 // ============================================================
-// Marked 实例（与 MarkdownRenderer 保持一致）
+// marked instance + renderer + preprocess + postProcess moved to @/composables/useResumeRenderer
 // ============================================================
-let currentSectionType = '';
-
-const markedInstance = new Marked();
-markedInstance.use(markedHighlight({
-  langPrefix: 'hljs language-',
-  highlight(code: string, lang: string) {
-    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-    return hljs.highlight(code, { language }).value;
-  }
-}));
-
-
-
-
-
-markedInstance.use({
-  renderer: {
-    heading(this: any, token: any): string {
-      const depth = token.depth;
-      const inner = this.parser.parseInline(token.tokens);
-      if (depth === 1) return `<h1 class="resume-name">${inner}</h1>\n`;
-      const slug = currentSectionType ? `section-title--${currentSectionType}` : '';
-      const classes = ['section-title', slug, `h${depth}`].filter(Boolean).join(' ');
-      return `<h${depth} class="${classes}" data-section-type="${currentSectionType}">${inner}</h${depth}>\n`;
-    },
-    list(this: any, token: any): string {
-      let body = '';
-      for (const item of token.items) body += this.listitem(item);
-      let listClass = 'item-list';
-      if (currentSectionType === 'skills' || currentSectionType === 'skill') listClass = 'skills-list';
-      else if (currentSectionType === 'summary') listClass = 'summary-list';
-      else if (currentSectionType) listClass = `${currentSectionType}-list`;
-      const tag = token.ordered ? 'ol' : 'ul';
-      const start = token.ordered && token.start !== 1 && token.start !== '' ? ` start="${token.start}"` : '';
-      return `<${tag} class="${listClass}"${start}>\n${body}</${tag}>\n`;
-    },
-    listitem(this: any, token: any): string {
-      const inner = this.parser.parse(token.tokens, !!token.loose);
-      let itemClass = 'item';
-      if (currentSectionType === 'skills' || currentSectionType === 'skill') itemClass = 'skill-item';
-      else if (currentSectionType === 'summary') itemClass = 'summary-item';
-      else if (currentSectionType === 'work') itemClass = 'work-item';
-      else if (currentSectionType === 'projects' || currentSectionType === 'project') itemClass = 'project-item';
-      else if (currentSectionType === 'education') itemClass = 'education-item';
-      return `<li class="${itemClass}">${inner}</li>\n`;
-    },
-    paragraph(this: any, token: any): string {
-      return `<p class="paragraph">${this.parser.parseInline(token.tokens)}</p>\n`;
-    },
-    link(this: any, token: any): string {
-      const inner = this.parser.parseInline(token.tokens);
-      const titleAttr = token.title ? ` title="${token.title}"` : '';
-      return `<a class="link" href="${token.href}"${titleAttr} target="_blank">${inner}</a>`;
-    },
-    image(this: any, token: any): string {
-      let alt = token.text;
-      if (token.tokens?.length) alt = this.parser.parseInline(token.tokens, this.parser.textFallback);
-      const titleAttr = token.title ? ` title="${token.title}"` : '';
-      return `<figure class="image-figure"><img class="image" src="${token.href}" alt="${alt}"${titleAttr} />${alt ? `<figcaption class="image-caption">${alt}</figcaption>` : ''}</figure>`;
-    },
-    blockquote(this: any, token: any): string {
-      return `<blockquote class="blockquote">\n${this.parser.parse(token.tokens)}</blockquote>\n`;
-    },
-    code(this: any, token: any): string {
-      const langClass = token.lang ? ` language-${token.lang}` : '';
-      return `<pre class="code-block"><code class="code${langClass}">${token.text}</code></pre>\n`;
-    },
-    codespan(this: any, token: any): string {
-      return `<code class="inline-code">${token.text}</code>`;
-    },
-    strong(this: any, token: any): string {
-      return `<strong class="bold">${this.parser.parseInline(token.tokens)}</strong>`;
-    },
-    em(this: any, token: any): string {
-      return `<em class="italic">${this.parser.parseInline(token.tokens)}</em>`;
-    },
-    del(this: any, token: any): string {
-      return `<del class="strikethrough">${this.parser.parseInline(token.tokens)}</del>`;
-    },
-    hr(): string {
-      return `<hr class="divider" />\n`;
-    },
-    table(this: any, token: any): string {
-      let headerRow = '';
-      for (const cell of token.header) headerRow += this.tablecell(cell);
-      const thead = this.tablerow({ text: headerRow });
-      let body = '';
-      for (const row of token.rows) {
-        let rowHtml = '';
-        for (const cell of row) rowHtml += this.tablecell(cell);
-        body += this.tablerow({ text: rowHtml });
-      }
-      const tbody = body ? `<tbody class="table-body">${body}</tbody>` : '';
-      return `<div class="table-wrapper"><table class="table"><thead class="table-head">${thead}</thead>${tbody}</table></div>\n`;
-    },
-    tablerow(this: any, row: { text: string }): string {
-      return `<tr class="table-row">${row.text}</tr>\n`;
-    },
-    tablecell(this: any, cell: any): string {
-      const content = this.parser.parseInline(cell.tokens);
-      const tag = cell.header ? 'th' : 'td';
-      const alignClass = cell.align ? ` text-${cell.align}` : '';
-      return `<${tag} class="table-cell${alignClass}">${content}</${tag}>\n`;
-    },
-  }
-});
-
-// ============================================================
-// Markdown 预处理 & 后处理
-// ============================================================
-function preprocessMarkdown(content: string): string {
-  currentSectionType = '';
-  const lines = content.split('\n');
-  const output: string[] = [];
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const metaMatch = trimmed.match(/^<!--\s*(?:section:|type:)([\w-]+)(?::([\s\S]*?))?\s*-->\s*$/);
-    if (metaMatch) { currentSectionType = metaMatch[1]; continue; }
-    output.push(line);
-  }
-  return output.join('\n');
-}
-
-function postProcessSections(root: HTMLElement): void {
-  const doc = root.querySelector('.resume-document');
-  if (!doc) return;
-  const children = Array.from(doc.children);
-  const stack: HTMLElement[] = [];
-
-  children.forEach(child => {
-    const el = child as HTMLElement;
-    const headingMatch = el.tagName.match(/^H([1-6])$/);
-
-    if (!headingMatch) {
-      if (stack.length > 0) {
-        stack[stack.length - 1].appendChild(el);
-      } else {
-        doc.appendChild(el);
-      }
-      return;
-    }
-
-    const level = parseInt(headingMatch[1]);
-
-    while (stack.length > 0) {
-      const top = stack[stack.length - 1];
-      const topLevel = parseInt(top.dataset.headingLevel || '0');
-      if (topLevel >= level) {
-        const parent = top.parentElement;
-        if (parent && parent !== doc) {
-          while (top.firstChild) {
-            parent.insertBefore(top.firstChild, top);
-          }
-          parent.removeChild(top);
-        }
-        stack.pop();
-      } else {
-        break;
-      }
-    }
-
-    const sectionType =
-      level === 2 ? (el.dataset.sectionType || 'custom') : 'subsection';
-
-    const section = document.createElement('section');
-    section.className =
-      level === 2
-        ? `section section--${sectionType}`
-        : 'subsection';
-    section.dataset.headingLevel = String(level);
-
-    el.classList.add('section-title');
-    if (level === 2) {
-      el.classList.add(`section-title--${sectionType}`);
-    } else {
-      el.classList.add('subsection-title');
-    }
-
-    section.appendChild(el);
-
-    if (stack.length === 0) {
-      doc.appendChild(section);
-    } else {
-      stack[stack.length - 1].appendChild(section);
-    }
-
-    stack.push(section);
-  });
-
-  while (stack.length > 1) {
-    const top = stack.pop()!;
-    const parent = stack[stack.length - 1];
-    while (top.firstChild) {
-      parent.appendChild(top.firstChild);
-    }
-  }
-}
 
 // ============================================================
 // 模板 ref
@@ -314,20 +112,13 @@ const renderContent = () => {
     return;
   }
 
-  const cleanedMd = preprocessMarkdown(props.content);
-  const html = markedInstance.parse(cleanedMd) as string;
-  el.innerHTML = `<div class="resume-document">${html}</div>`;
-  postProcessSections(el);
-
-  const doc = el.querySelector('.resume-document');
-  if (doc) {
-    doc.classList.remove('theme-blue', 'theme-dark', 'theme-minimal', 'theme-classic', 'theme-modern');
-    doc.classList.add(props.themeClass || 'theme-blue');
-  }
-
-  let styleEl = el.querySelector('#pdf-extra-styles') as HTMLStyleElement | null;
-  if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'pdf-extra-styles'; el.appendChild(styleEl); }
-  styleEl.textContent = props.extraStyles ?? '';
+  // 使用 composable，extraStyles 已内联到 .resume-document 内部
+  el.innerHTML = renderMarkdownContent({
+    content: props.content,
+    themeClass: props.themeClass || 'theme-blue',
+    extraStyles: props.extraStyles || '',
+  });
+  postProcessSectionsDOM(el);
 };
 
 // ============================================================

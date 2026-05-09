@@ -1,6 +1,6 @@
 ---
 name: AInterview平台中期汇报书写方案
-overview: 为 AInterview 求职赋能平台（即 iFaceOff / iFaceOff - AI 模拟面试平台）定制中期汇报表六大模块的完整书写方案，基于你提供的项目资料（前后端分离架构、Django+Vue3、Docker部署、DeepSeek API）和你确认的实际开发进度（前后端框架搭建完成、核心功能部分实现、遇到较多问题）进行精准适配。
+overview: 为 AInterview 求职赋能平台（即 AInterview / AInterview - AI 模拟面试平台）定制中期汇报表六大模块的完整书写方案，基于你提供的项目资料（前后端分离架构、Django+Vue3、Docker部署、DeepSeek API）和你确认的实际开发进度（前后端框架搭建完成、核心功能部分实现、遇到较多问题）进行精准适配。
 todos:
   - id: info-basic
     content: 确认基本信息栏填写格式
@@ -32,7 +32,7 @@ isProject: false
 
 基于你提供的信息，项目实际状态为：
 
-- **项目定位**：iFaceOff AI 模拟面试与简历赋能平台（与 AInterview 求职赋能平台为同一项目）
+- **项目定位**：AInterview AI 模拟面试与简历赋能平台（与 AInterview 求职赋能平台为同一项目）
 - **技术栈**：Django REST Framework（后端）+ Vue3（前端）+ MySQL + DeepSeek API + face-api.js
 - **当前进度**：前后端框架搭建完成，核心功能部分实现，遇到了较多技术问题
 - **预计完成**：已完成大部分开发，2-4 周内可全部完成
@@ -46,7 +46,7 @@ isProject: false
 
 | 字段   | 参考填写                                         |
 | ---- | -------------------------------------------- |
-| 项目名称 | AInterview 求职赋能平台（iFaceOff - AI 模拟面试与简历赋能平台） |
+| 项目名称 | AInterview 求职赋能平台（AInterview - AI 模拟面试与简历赋能平台） |
 | 题目   | 基于 AI 技术的模拟面试与简历生成系统的设计与实现                   |
 | 学生姓名 | （按实际填写）                                      |
 | 学号   | （按实际填写）                                      |

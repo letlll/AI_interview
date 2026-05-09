@@ -14,6 +14,7 @@
       </div>
       <div class="header-actions">
         <el-button @click="openJdDialog" :icon="Cpu" type="success" plain>AI 分析</el-button>
+        <el-button @click="continueWithAI" :icon="Cpu" type="warning" plain>AI 继续编辑</el-button>
         <el-select 
           v-model="selectedTemplateId" 
           placeholder="选择模板" 
@@ -125,6 +126,10 @@ const goBack = () => {
 
 const openJdDialog = () => {
   jdDialogVisible.value = true;
+};
+
+const continueWithAI = () => {
+  router.push({ name: 'ResumeGenerator', query: { resumeId: String(resumeId) } });
 };
 
 const handleAnalysis = async () => {

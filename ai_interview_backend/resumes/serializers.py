@@ -61,6 +61,9 @@ class ResumeDetailSerializer(serializers.ModelSerializer):
     work_experiences = WorkExperienceSerializer(many=True, required=False)
     project_experiences = ProjectExperienceSerializer(many=True, required=False)
 
+    # 新增：直接从 content_json.content 返回 markdown 原文，供前端渲染管道使用
+    resume_markdown = serializers.SerializerMethodField()
+
     class Meta:
         model = Resume
         # 【修复#2】确保 fields 列表中的所有字段都在模型中定义，或者在序列化器中显式定义
@@ -68,6 +71,7 @@ class ResumeDetailSerializer(serializers.ModelSerializer):
             'id', 'title', 'status', 'parsed_content', 'file_url',
             'template_name',  # <-- 【核心新增】
             'content_json',  # 新增的JSON字段
+            'resume_markdown',  # 新增：markdown 原文
 
             # 模型中存在的、需要被序列化的简单字段
             'full_name', 'phone', 'email', 'job_title',
@@ -77,6 +81,14 @@ class ResumeDetailSerializer(serializers.ModelSerializer):
             'skills', 'educations', 'work_experiences', 'project_experiences'
         ]
         read_only_fields = ('file_url',)  # file_url 是只读属性
+
+    def get_resume_markdown(self, obj):
+        cj = obj.content_json
+        if isinstance(cj, dict):
+            return cj.get('content', '')
+        if isinstance(cj, str):
+            return cj
+        return ''
 
     def update(self, instance, validated_data):
         # 【提醒】这个复杂的 update 方法是为了兼容旧的结构化数据编辑，暂时保留。

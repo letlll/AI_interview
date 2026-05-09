@@ -12,11 +12,7 @@
       <div class="top-toolbar">
         <h1 class="page-title">AI 简历生成器</h1>
         <div class="toolbar-actions">
-          <!-- 简历编辑状态指示器 -->
-          <el-tag v-if="isTemporary" type="warning" size="small">
-            <el-icon class="is-loading"><Loading /></el-icon>
-            编辑中（未保存）
-          </el-tag>
+
 
           <el-divider direction="vertical" />
 
@@ -71,6 +67,11 @@
             编辑
           </el-button>
           <!-- 保存和发布按钮 -->
+                     <!-- 简历编辑状态指示器 -->
+          <el-tag v-if="isTemporary" type="default" size="small">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            编辑中
+          </el-tag>
           <el-button @click="handleSave" :disabled="!hasResumeData">
             <el-icon><DocumentCopy /></el-icon>
             保存
@@ -272,9 +273,6 @@
                 <el-dropdown-menu>
                   <el-dropdown-item command="markdown" :class="{ 'is-active': rightPanelMode === 'markdown' }">
                     <el-icon v-if="rightPanelMode === 'markdown'"><Check /></el-icon>Markdown 预览
-                  </el-dropdown-item>
-                  <el-dropdown-item command="print" :class="{ 'is-active': rightPanelMode === 'print' }">
-                    <el-icon v-if="rightPanelMode === 'print'"><Check /></el-icon>打印预览
                   </el-dropdown-item>
                   <el-dropdown-item command="electron" :class="{ 'is-active': rightPanelMode === 'electron' }">
                     <el-icon v-if="rightPanelMode === 'electron'"><Check /></el-icon>精确预览
@@ -849,6 +847,12 @@ const handleResumeChange = async (resumeId: number) => {
     // 恢复 extraStyles
     if (cleanedContent.extraStyles !== undefined) {
       extraStyles.value = cleanedContent.extraStyles || '';
+    }
+
+    // 有内容时标记为未保存状态
+    if (cleanedContent && Object.keys(cleanedContent).length > 0) {
+      isTemporary.value = true;
+      tempId.value = `temp_${resumeId}_${Date.now()}`;
     }
 
     // 加载消息历史
@@ -1467,6 +1471,8 @@ const handleSave = async () => {
       if (target) {
         target.content_json = getResumeDataToSave();
       }
+      isTemporary.value = false;
+      tempId.value = null;
       ElMessage.success('已更新');
     } else {
       // 无简历 → 新建草稿（先让用户输入标题）
@@ -1497,6 +1503,8 @@ const handleSave = async () => {
       await loadResumeList();
       currentResumeId.value = newResume.id;
 
+      isTemporary.value = false;
+      tempId.value = null;
       ElMessage.success('已保存为草稿');
     }
   } catch (error) {
@@ -1534,7 +1542,8 @@ const handlePublish = async () => {
         target.status = 'published';
         target.content_json = resumeData.value;
       }
-
+      isTemporary.value = false;
+      tempId.value = null;
       ElMessage.success('简历已发布！');
     } else {
       const newResume = await createResumeApi({
@@ -1550,6 +1559,8 @@ const handlePublish = async () => {
       await loadResumeList();
       currentResumeId.value = newResume.id;
 
+      isTemporary.value = false;
+      tempId.value = null;
       ElMessage.success('简历已创建并发布！');
     }
   } catch (error) {
