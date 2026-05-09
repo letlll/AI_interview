@@ -31,7 +31,7 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="scope">
-            <el-button v-if="isOnlineResume(scope.row.status)" link type="primary" @click="handleEdit(scope.row.id)">编辑</el-button>
+            <el-button @click="handleContinueWithAI(scope.row.id)" :icon="Cpu" type="warning" plain>AI 编辑</el-button>
             <el-button link type="primary" @click="handlePreview(scope.row)">预览</el-button>
             <el-popconfirm title="确定要删除这份简历吗？" @confirm="handleDelete(scope.row.id)">
               <template #reference>
@@ -81,7 +81,7 @@ import { useRouter } from 'vue-router';
 import { getResumeListApi, createResumeApi, deleteResumeApi, type ResumeItem } from '@/api/modules/resume';
 import { ElMessage, ElPopconfirm, ElMessageBox } from 'element-plus';
 import type { UploadInstance, UploadProps, UploadRawFile, UploadFile } from 'element-plus';
-import { ArrowDown, UploadFilled } from '@element-plus/icons-vue';
+import { ArrowDown, UploadFilled, Cpu } from '@element-plus/icons-vue';
 import { genFileId } from 'element-plus';
 import { formatDateTime } from '@/utils/format';
 
@@ -125,6 +125,9 @@ const handleDelete = async (id: number) => {
 
 const isOnlineResume = (status: string): boolean => status === 'draft' || status === 'published';
 const handleEdit = (id: number) => router.push({ name: 'ResumeEditor', params: { id } });
+const handleContinueWithAI = (id: number) => {
+  router.push({ name: 'ResumeGenerator', query: { resumeId: id } });
+};
 const handlePreview = (row: ResumeItem) => {
 
   if ((row.status === 'parsed' || row.status === 'failed') && row.file_url) {
