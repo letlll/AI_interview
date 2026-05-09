@@ -59,9 +59,5 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.auth-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; gap: 20px; color: #606266; }
-.third-party-login { margin-top: 20px; }
-.icon-group { display: flex; justify-content: center; margin-top: 10px; }
-.third-party-icon { width: 32px; height: 32px; cursor: pointer; transition: opacity 0.2s; }
-.third-party-icon:hover { opacity: 0.8; }
+
 </style>
