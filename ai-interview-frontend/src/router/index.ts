@@ -62,44 +62,6 @@ const routes: Array<RouteRecordRaw> = [
         name: 'ResumeGenerator',
          component: () => import('@/views/ResumeGeneratorNew.vue') 
         },
-         { 
-            path: 'blog', 
-            name: 'BlogHome', 
-            component: () => import('@/views/blog/BlogHome.vue') 
-        },
-         { 
-        path: 'blog/:id', 
-        name: 'PostDetail', 
-        component: () => import('@/views/blog/PostDetail.vue'),
-        props: true
-    },
-    {
-        path: 'blog/edit/:id?',
-        name: 'PostEditor',
-        component: () => import('@/views/blog/PostEditor.vue'),
-        props: true
-    },
-      // 新增：按分类筛选的路由
-      {
-        path: 'blog/category/:categorySlug',
-        name: 'BlogCategory',
-        component: () => import('@/views/blog/BlogHome.vue'),
-        props: true // <-- 关键：将 URL 参数 (categorySlug)作为 props 传递给组件
-      },
-      // 新增：按标签筛选的路由
-      {
-        path: 'blog/tag/:tagSlug',
-        name: 'BlogTag',
-        component: () => import('@/views/blog/BlogHome.vue'),
-        props: true // <-- 关键：将 URL 参数 (tagSlug) 作为 props 传递给组件
-      },
-      // 【核心新增】
-      {
-        path: 'my-posts',
-        name: 'MyPosts',
-        component: () => import('@/views/blog/MyPosts.vue'),
-        meta: { requiresAuth: true }
-      },
        // 【核心新增】聊天页面路由
       {
         path: 'chat',
