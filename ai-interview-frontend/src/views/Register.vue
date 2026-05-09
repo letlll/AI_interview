@@ -3,7 +3,7 @@
     <el-card class="auth-card">
       <template #header>
         <div class="card-header">
-          <h2>IFaceOff - 注册</h2>
+          <h2>AInterview</h2>
         </div>
       </template>
 

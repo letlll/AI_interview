@@ -32,7 +32,7 @@ def test_email():
     try:
         print("正在发送测试邮件...")
         send_mail(
-            subject='【IFaceOff】测试邮件',
+            subject='【AInterview】测试邮件',
             message='这是一封测试邮件，用于验证邮件发送功能是否正常。',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[settings.EMAIL_HOST_USER],  # 发送给自己

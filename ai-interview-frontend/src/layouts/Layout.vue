@@ -28,12 +28,11 @@ onMounted(() => {
   <el-container class="app-layout">
     <el-header class="app-header">
       <div class="logo-area">
-        <RouterLink to="/dashboard" class="logo-link">IFaceOff</RouterLink>
+        <RouterLink to="/dashboard" class="logo-link">AInterview</RouterLink>
       </div>
       
       <el-menu :default-active="route.path" class="main-nav" mode="horizontal" router>
         <el-menu-item index="/dashboard">仪表盘</el-menu-item>
-        <el-menu-item index="/dashboard/blog">博客社区</el-menu-item>
         <!-- 【核心新增】聊天/私信入口 -->
         <el-menu-item index="/dashboard/chat">
           <el-icon><ChatLineRound /></el-icon>
@@ -75,9 +74,6 @@ onMounted(() => {
             <el-dropdown-menu>
               <el-dropdown-item>
                 <router-link to="/dashboard/profile" class="dropdown-link">个人中心</router-link>
-              </el-dropdown-item>
-              <el-dropdown-item>
-                <router-link to="/dashboard/my-posts" class="dropdown-link">我的文章</router-link>
               </el-dropdown-item>
               <el-dropdown-item>
                 <router-link to="/dashboard/settings" class="dropdown-link">AI 设置</router-link>

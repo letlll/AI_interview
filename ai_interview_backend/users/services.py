@@ -28,8 +28,8 @@ def send_verification_code(email: str) -> bool:
     print(f"[DEBUG] 存储验证码 - 验证存储: {stored_code}")
 
     # 【核心修正】
-    subject = '【IFaceOff】您的注册验证码'
-    message = f'您好！\n\n您的注册验证码是：{code}\n\n该验证码5分钟内有效，请勿泄露给他人。\n\n感谢您使用 IFaceOff 智能面试平台！'
+    subject = '【AInterview】您的注册验证码'
+    message = f'您好！\n\n您的注册验证码是：{code}\n\n该验证码5分钟内有效，请勿泄露给他人。\n\n感谢您使用 AInterview 智能面试平台！'
 
     try:
         send_mail(

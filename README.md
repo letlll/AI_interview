@@ -1,6 +1,6 @@
-# iFaceOff - AI 模拟面试平台
+# AInterview - AI 模拟面试平台
 
-**iFaceOff** 是一个面向求职者的、AI 驱动的全栈式求职赋能平台。它通过深度整合人工智能技术与现代 Web 技术，旨在为用户提供从简历优化、模拟面试、能力评估到求职经验分享的一站式解决方案。
+**AInterview** 是一个面向求职者的、AI 驱动的全栈式求职赋能平台。它通过深度整合人工智能技术与现代 Web 技术，旨在为用户提供从简历优化、模拟面试、能力评估到求职经验分享的一站式解决方案。
 
 [![Vue 3](https://img.shields.io/badge/Vue.js-3-42b883)](https://vuejs.org/)
 [![Django](https://img.shields.io/badge/Django-5-092e20)](https://www.djangoproject.com/)
@@ -11,7 +11,7 @@
 
 ### ✨ 核心功能模块详解
 
-iFaceOff 打通了求职准备的全流程，提供了一系列高度智能化的工具。
+AInterview 打通了求职准备的全流程，提供了一系列高度智能化的工具。
 
 #### 1. 🤖 AI 模拟面试
 提供高度拟真的、可随时进行的 AI 模拟面试，集成了**浏览器端情绪识别**和**语音转文字**技术，帮助用户克服紧张情绪，提升面试技巧。支持中断后继续面试。
@@ -106,7 +106,7 @@ cd AI_interview
 
 1.  登录 GitHub，进入 **Settings** > **Developer settings** > **OAuth Apps**。
 2.  点击 **New OAuth App** 并填写：
-    *   **Application name**: `iFaceOff` (或自定义)
+    *   **Application name**: `AInterview` (或自定义)
     *   **Homepage URL**: `http://localhost` (如果是线上部署，请填写您的域名)
     *   **Authorization callback URL**: `http://localhost/oauth/callback` (如果是线上部署，请填写 `https://your_domain.com/oauth/callback`)
 3.  创建应用后，您会得到一个 **Client ID**。

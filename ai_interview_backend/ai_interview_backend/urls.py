@@ -13,9 +13,9 @@ from interviews.views import GenerateResumeView
 from interviews.resume_chat_view import GenerateResumeChatView
 from resumes.views_upload import FileUploadView
 
-admin.site.site_header = "IFaceOff 管理后台"
-admin.site.site_title = "IFaceOff Admin Portal"
-admin.site.index_title = "欢迎来到 IFaceOff 管理后台"
+admin.site.site_header = "AInterview 管理后台"
+admin.site.site_title = "AInterview Admin Portal"
+admin.site.index_title = "欢迎来到 AInterview 管理后台"
 
 urlpatterns = [
     path('admin/', admin.site.urls),
