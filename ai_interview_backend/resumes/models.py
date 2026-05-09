@@ -1,10 +1,9 @@
 from django.db import models
 from users.models import User
+import os
 
 
 # class Resume(models.Model):
-#     class Status(models.TextChoices):
-#         DRAFT = 'draft', '草稿'  # 新增：在线编辑状态
 #         PUBLISHED = 'published', '已发布'  # 新增：完成编辑
 #         PARSED = 'parsed', '（文件）已解析'
 #         FAILED = 'failed', '（文件）解析失败'
@@ -67,7 +66,13 @@ class Resume(models.Model):
     title = models.CharField(max_length=200, verbose_name='简历标题')
 
     # --- 文件上传相关字段 (保留) ---
-    file = models.FileField(upload_to='resumes/', null=True, blank=True, verbose_name='上传的简历文件')
+    def resume_file_path(instance, filename):
+        ext = os.path.splitext(filename)[1]
+        folder_id = instance.id if instance.id else 'temp'
+        safe_title = instance.title.replace('/', '_').replace('\\', '_') if instance.title else 'untitled'
+        return f'resumes/{folder_id}/{safe_title}{ext}'
+
+    file = models.FileField(upload_to=resume_file_path, null=True, blank=True, verbose_name='上传的简历文件')
     parsed_content = models.TextField(blank=True, verbose_name='解析后的文本内容')
 
     # --- 【核心新增】用于存储 resume-design 的 JSON 数据 ---

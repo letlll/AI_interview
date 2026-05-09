@@ -1,5 +1,6 @@
 # resumes/views.py
 from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Resume, Education, WorkExperience, ProjectExperience, Skill
 from .serializers import (
@@ -76,6 +77,18 @@ class ResumeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # 这个函数会自动保存所有 serializer 中定义的字段，并注入 user
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['patch'], url_path='file')
+    def update_file(self, request, pk=None):
+        resume = self.get_object()
+        file_obj = request.FILES.get('file')
+        if not file_obj:
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        if resume.file:
+            resume.file.delete(save=False)
+        resume.file.save(file_obj.name, file_obj, save=True)
+        serializer = ResumeDetailSerializer(resume)
+        return Response(serializer.data)
 
 
 # --- 子模型的 ViewSet (保持不变) ---
