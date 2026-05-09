@@ -97,3 +97,16 @@ export const deleteResumeApi = (id: number) => {
     method: 'delete',
   });
 };
+
+// 上传简历 PDF 文件
+export const updateResumeFileApi = (id: number, file: File): Promise<any> => {
+  const formData = new FormData();
+  const filename = file.name.endsWith('.pdf') ? file.name : `${file.name}.pdf`;
+  formData.append('file', file, filename);
+  return request({
+    url: `/resumes/${id}/file/`,
+    method: 'patch',
+    data: formData,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
