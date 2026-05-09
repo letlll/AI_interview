@@ -382,7 +382,7 @@ import StyleAdjustmentPanel from './ResumeGenerator/components/StyleAdjustmentPa
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue';
 import PdfPageView from '@/components/common/PdfPageView.vue';
 import { createAIConversationApi, getAIMessagesApi, sendAIMessageApi, generateResumeFromChatApi, type AIResumeResponse } from '@/api/modules/resumeEditor';
-import { createResumeApi, getResumeListApi , updateResumeApi } from '@/api/modules/resume';
+import { createResumeApi, getResumeListApi , updateResumeApi, updateResumeFileApi } from '@/api/modules/resume';
 import { useResumeAI, type ResumeData as AIResumeData, type Message, cleanInvalidKeys } from '@/composables/useResumeAI';
 import { jsonToResumeMarkdown } from '@/utils/resumeMarkdown';
 import { set } from 'lodash-es';
@@ -1651,13 +1651,24 @@ const handleDownloadPdf = () => {
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     const blob = new Blob([bytes], { type: 'application/pdf' });
+    const filename = `${currentResume.value?.title || '简历'}.pdf`;
+
+    // 下载 PDF
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${currentResume.value?.title || '简历'}.pdf`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
     ElMessage.success('PDF 下载已开始');
+
+    // 同时保存到后端（不阻塞下载流程）
+    if (currentResumeId.value) {
+      const pdfFile = new File([blob], filename, { type: 'application/pdf' });
+      updateResumeFileApi(currentResumeId.value, pdfFile).catch((err) => {
+        console.warn('[保存 PDF 到后端] 失败:', err);
+      });
+    }
   } catch (err) {
     console.error('[下载 PDF] 失败:', err);
     ElMessage.error('PDF 下载失败');
