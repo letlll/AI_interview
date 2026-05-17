@@ -122,6 +122,7 @@ export const RESUME_CSS = String.raw`/**
   font-size: var(--font-size-base, 14px);
   background: var(--bg, #ffffff);
   color: var(--text-primary, #1f1f1f);
+  transition: box-shadow 0.3s ease, border-radius 0.3s ease, background-color 0.3s ease, color 0.3s ease, padding 0.3s ease;
 }
 
 /* ============================================

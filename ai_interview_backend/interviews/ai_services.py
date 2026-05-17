@@ -104,6 +104,35 @@ CSS 变量清单（在 `.resume-document {}` 内覆盖）：
 | `.work-list` `.project-list` `.education-list` `.skills-list` `.summary-list` | 列表容器 | padding-left, list-style |
 | `.item-header` `.item-title` `.item-company` `.item-duration` `.item-body` | 条目内部 | font-size, color |
 
+#### CSS 设计令牌（可选参考）
+
+以下 CSS 变量定义在 `.resume-document` 上，可通过覆盖变量来批量调整风格。AI 默认仍返回具体属性值，仅在用户明确要求"换主题风格"或"整体调间距"时才使用变量。
+
+| 令牌 | 作用 | 默认值 |
+|------|------|--------|
+| `--spacing-doc-padding` | 文档内边距 | 40px |
+| `--spacing-section-gap` | 区块间距 | 24px |
+| `--spacing-item-gap` | 列表项间距 | 4px |
+| `--font-size-base` | 正文字号 | 14px |
+| `--font-size-name` | 姓名字号 | 22px |
+| `--font-size-h2` | 区块标题字号 | 15px |
+| `--line-height` | 正文行高 | 1.5 |
+| `--radius-doc` | 文档圆角 | 8px |
+| `--radius-sm` | 小元素圆角 | 3px |
+| `--skill-radius` | 技能标签圆角 | 3px |
+| `--skill-bg` | 技能标签背景 | #f5f5f5 |
+| `--border-section-width` | 区块标题底线粗细 | 0（无） |
+| `--shadow-doc` | 文档阴影 | 较弱阴影 |
+| `--list-marker` | 列表符号 | disc |
+
+使用令牌的 extraStyles 示例：
+```css
+.resume-document {
+  --spacing-doc-padding: 50px;
+  --font-size-base: 15px;
+}
+```
+
 #### style mode 修改规则
 
 1. **保留现有规则** — 用户未提到的选择器/属性全部原样保留，不删不改
