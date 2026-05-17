@@ -11,6 +11,152 @@ load_dotenv()
 SYSTEM_DEFAULT_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEFAULT_MODEL_SLUG = "deepseek-chat"
 
+# ============================================================
+# 简历对话 System Prompt — 分类器 + 行为路由（Claude Code 模式）
+# 参考：claude-code-main/src/utils/permissions/yolo-classifier-prompts/
+# ============================================================
+RESUME_CHAT_SYSTEM_PROMPT = """## 角色定义
+
+你是简历撰写专家，同时也是意图分类器。你的工作分为两步：
+Step 1 — 分析用户输入，输出 `classification`（9 个维度）
+Step 2 — 根据分类结果，按 mode/sub_skill 的行为约束生成 `instructions` 和 `message`
+
+## 分类流程
+
+按以下步骤依次处理，命中第一个匹配规则即停止：
+
+1. **理解用户意图**: 用户想做什么？修改内容、调整样式、还是纯提问？
+2. **路由到 Mode**: 根据意图匹配下方 Mode 定义，确定行为策略
+3. **检查子技能**: 是否触发 sub_skill（grill_me / to_prd / diagnose）？如有则叠加行为修饰
+4. **生成输出**: 按 mode 行为约束生成 instructions + message
+
+## 分类维度 (classification)
+
+返回以下 9 个维度：
+
+- `intent` (str): content_edit | style_adjust | question | section_target
+- `action` (str): create | update | add | delete | optimize | none
+- `scope` (str): global | section | field
+- `section_hint` (str|null): work | projects | education | skills | summary | custom | null
+- `output_type` (str): instructions | full_resume | section_markdown | extra_styles | chat_reply
+- `complexity` (str): simple | compound | restructure
+- `needs_clarification` (bool): true 时反问用户，不执行修改
+- `language` (str): zh | en | mixed
+- `mode` (str): generate | optimize | style | review | section | chat
+- `sub_skill` (str): grill_me | to_prd | diagnose | none
+
+## Mode 行为策略
+
+### generate（生成模式）
+- 创建新简历或新 section 的完整 Markdown
+- output_type = full_resume | section_markdown
+- action = create
+- 复杂度 restructure 时允许重写整份简历
+
+### optimize（优化模式）
+- 润色现有内容，增量修改，不重写全文
+- output_type = instructions
+- action = update | optimize
+- 每次只返回增量 JSON patch
+
+### style（样式模式）
+- 用户要求调字体/颜色/间距/布局
+- output_type = extra_styles
+- 返回 CSS 片段注入 extraStyles
+- 不改 resumeData.content
+
+### review（审阅模式）
+- 用户要求评价/诊断现有简历
+- output_type = chat_reply
+- action = none
+- 返回评价文本 + 可选修改建议，不直接改内容
+- sub_skill=diagnose 时叠加：先分析再建议，不直接修改
+
+### section（区块操作）
+- 用户指定操作某个区块（## 工作经历 / ## 项目经验 等）
+- 自动识别 section_hint 并在 content 中注入 <!-- section:xxx --> 标记
+- scope = section
+- 只在目标 section 内操作，不动其他区块
+
+### chat（自由对话）
+- 纯问答，无需生成 instructions
+- output_type = chat_reply
+- action = none
+
+## 子技能行为修饰
+
+### grill_me
+- 逐项确认模式：一次只提一个问题，等待用户确认后再继续
+- message 以提问结尾，instructions 为空（等待确认后再执行）
+- 覆盖 mode 的默认行为
+
+### to_prd
+- 输出 PRD 文档结构：Problem Statement / Solution / User Stories / Implementation Decisions / Testing Decisions / Out of Scope
+- output_type = chat_reply（返回文档文本）
+- 不执行修改
+
+### diagnose
+- 诊断问题：先分析根因，输出诊断结论
+- 只建议不修改（instructions 为空）
+- 与 review mode 兼容
+
+### none
+- 无子技能修饰，按 mode 默认行为执行
+
+## Section 类型识别规则
+
+当用户提到以下内容时，自动设置 section_hint：
+
+| 关键词 | section_hint |
+|--------|-------------|
+| 教育、学校、学历 | education |
+| 技能、技术、能力、证书 | skills |
+| 个人、简介、评价、求职、自我介绍 | summary |
+| 工作、实习、经历 | work |
+| 项目、竞赛、大赛、作品 | projects |
+
+## 输出格式
+
+返回以下 JSON（不要包含其他内容）：
+
+{
+  "classification": {
+    "intent": "content_edit",
+    "action": "update",
+    "scope": "section",
+    "section_hint": "work",
+    "output_type": "instructions",
+    "complexity": "simple",
+    "needs_clarification": false,
+    "language": "zh",
+    "mode": "optimize",
+    "sub_skill": "none"
+  },
+  "instructions": [
+    {
+      "action": "update|add|delete|replace",
+      "path": "content",
+      "value": "Markdown内容（增量部分）",
+      "reason": "修改理由"
+    }
+  ],
+  "message": "给用户的反馈消息（中文）"
+}
+
+## 关键规则
+
+- 整个简历是 content 字段，一个 Markdown 字符串
+- 增量修改只返回变化部分，不重写整份简历（除非 mode=generate + complexity=restructure）
+- content 直接写 Markdown 原文，不要 JSON.stringify()
+- needs_clarification=true 时，instructions 为空数组，message 是反问
+- 所有 message 使用中文（除非 classification.language=en）
+- 英文/数字内容使用 Times New Roman，中文使用宋体
+"""
+
+# 简历记忆缓存（按 user_id + resume_id 键控）
+# 缓存简历 schema 摘要 + 上次分类结果，减少重复传输
+_resume_memory_cache: dict = {}
+
 
 def _get_user_ai_config(user: User) -> tuple[str | None, AIModel | None]:
     """
@@ -579,6 +725,45 @@ def generate_resume_by_ai(name: str, position: str, experience_years: str, keywo
         return {"error": f"AI 生成失败: {e}"}
 
 
+def _get_memory_cache_key(resume: dict) -> str:
+    """基于简历内容生成记忆缓存键（取 content 前 200 字 hash）"""
+    content = resume.get('content', '') if resume else ''
+    # 提取姓名 + 前几个 ## 标题作为稳定键
+    import re
+    name_m = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
+    sections_m = re.findall(r'^##\s+(.+)$', content, re.MULTILINE)
+    name = name_m.group(1).strip() if name_m else 'unknown'
+    sections_key = '|'.join(sections_m[:4]) if sections_m else 'empty'
+    return f"{name}::{sections_key}"
+
+
+def _get_memory_context(resume: dict) -> str:
+    """从缓存中读取上次分类结果作为记忆上下文"""
+    if not resume:
+        return "（无记忆）"
+    key = _get_memory_cache_key(resume)
+    cached = _resume_memory_cache.get(key)
+    if not cached:
+        return "（首次对话，无记忆）"
+    return (
+        f"上次 mode: {cached.get('mode', 'N/A')}\n"
+        f"上次 section: {cached.get('section_hint', 'N/A')}\n"
+        f"上次 intent: {cached.get('intent', 'N/A')}"
+    )
+
+
+def _update_memory_cache(resume: dict, classification: dict):
+    """更新简历记忆缓存"""
+    if not resume or not classification:
+        return
+    key = _get_memory_cache_key(resume)
+    _resume_memory_cache[key] = {
+        "mode": classification.get("mode"),
+        "section_hint": classification.get("section_hint"),
+        "intent": classification.get("intent"),
+    }
+
+
 def generate_resume_chat_response(
     user_message: str,
     current_resume: dict,
@@ -617,24 +802,9 @@ def generate_resume_chat_response(
             "instructions": [],
             "message": "抱歉，AI 服务配置有误，请联系管理员。"
         }
-    
-    # 构建系统提示词（不变，所有路径共用）
-    system_prompt = (
-        "你是一个专业的简历撰写专家，擅长创建结构清晰、内容专业的简历。\n"
-        "你只需要对简历进行增量更新，不要重写整个简历。\n\n"
-        "输出格式：返回以下 JSON，不要包含其他内容。\n"
-        "{\n"
-        '  "instructions": [\n'
-        '    { "action": "update|add|delete|replace", "path": "content", "value": "Markdown内容", "reason": "修改理由" }\n'
-        '  ],\n'
-        '  "message": "给用户的反馈消息"\n'
-        "}\n\n"
-        "关键规则：\n"
-        "1. 整个简历就是 content，一个 Markdown 字符串（包含姓名、各区块等全部内容）\n"
-        "2. action：add（追加到 content 末尾）、update/replace（覆盖 content）、delete（清空 content）\n"
-        "3. content 直接写 Markdown 原文，不要 JSON.stringify()\n"
-        "4. 只返回增量修改，不要重写整份简历\n"
-    )
+
+    # 使用 Claude Code 模式的分类器 system prompt
+    system_prompt = RESUME_CHAT_SYSTEM_PROMPT
 
     # 优先使用前端传来的完整 prompt；否则后端自建
     if optimized_prompt:
@@ -645,15 +815,15 @@ def generate_resume_chat_response(
     else:
         resume_summary = _build_resume_summary(current_resume)
         compressed_history = _compress_chat_history(chat_history)
-        intent = _detect_user_intent(user_message, last_edited_field)
+        memory_context = _get_memory_context(current_resume)
         resume_content = current_resume.get('content', '') if current_resume else ''
         user_prompt = (
             f"## 当前简历完整内容\n{resume_content or '（简历为空）'}\n\n"
             f"## 简历摘要\n{resume_summary}\n\n"
+            f"## 记忆上下文\n{memory_context}\n\n"
             f"## 最近对话\n{compressed_history}\n\n"
-            f"## 用户意图\n{intent}\n\n"
             f"## 用户请求\n{user_message}\n\n"
-            "请根据以上信息，返回 JSON 格式的增量更新指令。"
+            "请按分类流程：Step 1 输出 classification，Step 2 根据 mode 生成 instructions 和 message。"
         )
         messages = [
             {"role": "system", "content": system_prompt},
@@ -661,15 +831,13 @@ def generate_resume_chat_response(
         ]
 
     try:
-        response_text = _call_openai_api(api_key, model, messages, 2048, 0.7)
+        response_data = _call_openai_api(api_key, model, messages, 4096, 0.7)
 
-        if isinstance(response_text, str):
+        if isinstance(response_data, str):
             try:
-                response_data = json.loads(response_text)
+                response_data = json.loads(response_data)
             except json.JSONDecodeError:
-                return {"instructions": [], "message": response_text}
-        else:
-            response_data = response_text
+                return {"instructions": [], "message": response_data}
 
         if not isinstance(response_data, dict):
             response_data = {"instructions": [], "message": str(response_data)}
@@ -677,6 +845,11 @@ def generate_resume_chat_response(
             response_data["instructions"] = []
         if "message" not in response_data:
             response_data["message"] = "处理完成"
+
+        # 缓存分类结果到记忆
+        classification = response_data.get("classification")
+        if classification:
+            _update_memory_cache(current_resume, classification)
 
         return response_data
 
@@ -746,25 +919,3 @@ def _compress_chat_history(history: list) -> str:
     return "\n".join(compressed)
 
 
-def _detect_user_intent(message: str, last_edited_field: str | None) -> str:
-    """检测用户意图"""
-    message_lower = message.lower()
-    
-    if any(keyword in message_lower for keyword in ['生成', '创建', '帮我写']):
-        return "类型：create（创建新内容）\n目标：全局"
-    elif any(keyword in message_lower for keyword in ['优化', '改进', '润色']):
-        if last_edited_field:
-            return f"类型：optimize（优化）\n目标：{last_edited_field}"
-        return "类型：optimize（优化）\n目标：全局"
-    elif any(keyword in message_lower for keyword in ['添加', '增加', '加上']):
-        if '工作' in message_lower or '经历' in message_lower:
-            return "类型：add（添加）\n目标：workExperience"
-        elif '项目' in message_lower:
-            return "类型：add（添加）\n目标：projects"
-        elif '教育' in message_lower or '学历' in message_lower:
-            return "类型：add（添加）\n目标：education"
-        return "类型：add（添加）\n目标：未知"
-    elif any(keyword in message_lower for keyword in ['删除', '去掉', '移除']):
-        return "类型：delete（删除）\n目标：待确定"
-    else:
-        return "类型：query（咨询）\n目标：全局"
