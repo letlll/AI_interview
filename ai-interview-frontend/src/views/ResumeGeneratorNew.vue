@@ -333,8 +333,7 @@ import { usePdfRenderer } from '@/composables/usePdfRenderer';
 import { Marked } from 'marked';                        // ← 新增：Marked 类
 import { markedHighlight } from 'marked-highlight';     // ← 新增：代码高亮插件
 import hljs from 'highlight.js';                         // ← 新增：highlight.js
-import resumeMarkdownRaw from '@/assets/styles/resume-markdown.css?raw'; // ← 新增：CSS 原文
-import { getThemeCss } from '@/utils/resumeThemeCss';
+import { RESUME_CSS } from '@/styles/resumeMarkdownCss';
 const chatPanelRef = ref<InstanceType<typeof AIChatPanel>>();
 const selectedTemplate = ref('classic');
 // 极简版：content 就是 internalMarkdown（完整 Markdown 字符串）
@@ -1489,13 +1488,13 @@ function markdownToHtml(markdown: string, themeClass: string, extraStyles: strin
   // 3. 解析 Markdown → HTML
   const htmlContent = md.parse(processed.join('\n')) as string;
 
-  // 4. 组装完整 HTML 文档，内联 resume-markdown.css + 主题变量 + extraStyles
+  // 4. 组装完整 HTML 文档，内联 RESUME_CSS（与 Markdown 预览同源）
 return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
-/* 全局 reset：屏蔽 resumeMarkdownRaw 中的冲突属性 */
+/* 全局 reset */
 body { background: #ffffff; }
 .resume-document {
   background: var(--bg, #ffffff);
@@ -1509,13 +1508,10 @@ body { background: #ffffff; }
 }
 
 
-/* 1. resume-markdown.css（提供完整样式结构） */
-${resumeMarkdownRaw}
+/* resume CSS（变量主题，与 Markdown 预览同源） */
+${RESUME_CSS}
 
-/* 2. 主题颜色（直接使用十六进制色值，在 resumeMarkdownRaw 之后确保覆盖） */
-${getThemeCss(themeClass)}
-
-/* 3. extraStyles（用户自定义，放在最后） */
+/* extraStyles（用户自定义，放在最后） */
 ${extraStyles}
 </style>
 </head>

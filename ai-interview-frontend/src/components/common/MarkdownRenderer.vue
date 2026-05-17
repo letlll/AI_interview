@@ -6,11 +6,19 @@
 import { ref, onMounted, watch, nextTick } from 'vue';
 import mermaid from 'mermaid';
 import katex from 'katex';
-import { renderMarkdownContent, postProcessSectionsDOM } from '@/composables/useResumeRenderer';
+import { renderMarkdownContent, postProcessSectionsDOM, RESUME_CSS } from '@/composables/useResumeRenderer';
 
 import 'highlight.js/styles/atom-one-dark.css';
 import 'katex/dist/katex.min.css';
-import '@/assets/styles/resume-markdown.css';
+
+// 全局注入 RESUME_CSS，确保与 PDF 渲染使用相同 CSS（仅注入一次）
+const RESUME_STYLE_ID = 'resume-css-global';
+if (!document.getElementById(RESUME_STYLE_ID)) {
+  const style = document.createElement('style');
+  style.id = RESUME_STYLE_ID;
+  style.textContent = RESUME_CSS;
+  document.head.appendChild(style);
+}
 
 const props = defineProps<{
   content: string;

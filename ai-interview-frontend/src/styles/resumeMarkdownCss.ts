@@ -2,9 +2,8 @@
  * Resume CSS as a JS string constant.
  * This file is the SINGLE SOURCE OF TRUTH for resume CSS used in all rendering paths.
  *
- * When src/assets/styles/resume-markdown.css is updated:
- *   → copy its full content into RESUME_CSS below
- *   → no other files need changing
+ * Both Markdown preview (MarkdownRenderer.vue) and PDF Electron (markdownToHtml)
+ * use RESUME_CSS, ensuring visual consistency.
  *
  * Usage:
  *   import { RESUME_CSS } from '@/styles/resumeMarkdownCss';
