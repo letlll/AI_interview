@@ -5,26 +5,18 @@
  * Both Markdown preview (MarkdownRenderer.vue) and PDF Electron (markdownToHtml)
  * use RESUME_CSS, ensuring visual consistency.
  *
+ * 知网 GB/T 7713 论文规范 — 专业正式商务风格
+ *
  * Usage:
  *   import { RESUME_CSS } from '@/styles/resumeMarkdownCss';
  *   // RESUME_CSS is a plain string, safe to inject into HTML <style> tags
  */
 
 export const RESUME_CSS = String.raw`/**
- * 简历 Markdown 渲染样式
- * 使用方式：import '@/assets/styles/resume-markdown.css';
+ * 简历 Markdown 渲染样式 — 知网 GB/T 7713 论文规范
  *
- * 结构约定：
- *   - .resume-document       → 最外层容器
- *   - .section              → 每个 ## 区块的外层容器
- *   - .section--work 等      → 按类型区分的 section
- *   - .section-title        → 可编辑的标题（配合 contenteditable）
- *   - .section-title--work 等 → 按类型区分的标题样式
- *   - .xxx-list             → 各类型列表
- *   - .xxx-item             → 各类型列表项
- *   - .xxx-header           → 列表项头部（公司/项目名 + 时间）
- *   - .xxx-body             → 列表项正文
- *   - .item-xxx             → 通用的列表项子元素
+ * 字体系统：黑体（标题）/ 微软雅黑（正文）/ Times New Roman（英文数字）
+ * 五级层级：# → ## → ### | 日期 → #### → - **key**：value
  */
 
 /* ============================================
@@ -36,192 +28,145 @@ export const RESUME_CSS = String.raw`/**
   padding: 40px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   min-height: 1000px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.75;
-  font-size: 16px;
+  font-family: 'Microsoft YaHei', '微软雅黑', 'Times New Roman', serif;
+  line-height: 1.5;
+  font-size: 14px;
   background: var(--bg, #ffffff);
-  color: var(--text-primary, #1f1f1f);
+  color: #333333;
 }
 
 /* ============================================
-   2. Section 通用容器
+   2. 字体系统
    ============================================ */
-.section {
-  margin-bottom: 32px;
-  padding: 16px 0;
-  border-bottom: 1px solid transparent;
-  transition: background-color 0.2s ease;
-  position: relative;
+.resume-document h1,
+.resume-document h2,
+.resume-document h3,
+.resume-document h4,
+.resume-document h5,
+.resume-document h6 {
+  font-family: 'SimHei', '黑体', 'Microsoft YaHei', sans-serif;
 }
 
-.section:last-child {
-  margin-bottom: 0;
+/* ============================================
+   3. 论文题 — # 姓名（简历标题）
+   ============================================ */
+.resume-name {
+  font-family: 'SimHei', '黑体', 'Microsoft YaHei', sans-serif !important;
+  font-size: 22px;
+  font-weight: 700;
+  color: #333333;
+  text-align: center;
+  margin: 0 0 16px 0;
+  padding-bottom: 0;
   border-bottom: none;
 }
 
-/* 按类型区分的 section */
-.section--summary,
-.section--skill,
-.section--skills { border-bottom-color: var(--accent, #409eff); }
-
-.section--work { border-bottom-color: var(--border-work, #b3e19d); }
-
-.section--projects,
-.section--project { border-bottom-color: var(--border-projects, #f4d03f); }
-
-.section--education { border-bottom-color: var(--border-education, #8cc5ff); }
-
-.section--custom { border-bottom-color: var(--border-custom, #e8e8e8); }
-
 /* ============================================
-   3. 标题样式
+   4. 一级标题 — ## 模块名（章节标题）
+   知网规范：黑体 15px 加粗，段前 24px 段后 12px
    ============================================ */
-
-/* 通用标题 */
 .section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: inherit;
-  margin: 0 0 16px 0;
-  padding: 4px 8px;
-  border-bottom: 2px solid #e8e8e8;
+  font-family: 'SimHei', '黑体', 'Microsoft YaHei', sans-serif !important;
+  font-size: 15px;
+  font-weight: 700;
+  color: #333333;
+  margin: 24px 0 12px 0;
+  padding: 0;
+  border-bottom: none;
   outline: none;
   line-height: 1.4;
   display: block;
   min-height: 1.4em;
 }
 
-/* 按类型区分的标题样式 */
-.section-title--summary,
-.section-title--skill,
-.section-title--skills {
-  font-style: italic;
-  color: #666666;
-  border-bottom-style: dotted;
-  border-bottom-color: var(--accent, #409eff);
+/* ============================================
+   5. 二级标题 — ### 项目名 | 日期（项目标题）
+   知网规范：黑体 14px 加粗，段前 18px 段后 8px
+   右侧日期：Times New Roman 12px 灰色 右对齐
+   ============================================ */
+.subsection-title {
+  font-family: 'SimHei', '黑体', 'Microsoft YaHei', sans-serif !important;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333333;
+  margin: 18px 0 8px 0;
+  padding: 0;
+  border-bottom: none;
+  outline: none;
+  line-height: 1.4;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  min-height: 1.4em;
 }
 
-.section-title--work { border-bottom-color: #b3e19d; }
-.section-title--projects,
-.section-title--project { border-bottom-color: #f4d03f; }
-.section-title--education { border-bottom-color: #8cc5ff; }
+.project-title-text {
+  font-family: 'SimHei', '黑体', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333333;
+}
 
-/* 子 section（H3 及以下标题的容器） */
+.project-title-date {
+  font-family: 'Times New Roman', serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #999999;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   6. 三级标题 — #### 子标题
+   知网规范：黑体 13px 加粗，段前 12px 段后 6px
+   ============================================ */
+.resume-document h4 {
+  font-family: 'SimHei', '黑体', 'Microsoft YaHei', sans-serif !important;
+  font-size: 13px;
+  font-weight: 700;
+  color: #333333;
+  margin: 12px 0 6px 0;
+  padding: 0;
+  border-bottom: none;
+}
+
+/* ============================================
+   7. 正文 — - **key**：value
+   微软雅黑 + TNR，14px，行高 1.5，list-style disc 缩进 1.5em
+   ============================================ */
+.resume-document p,
+.resume-document li {
+  font-family: 'Microsoft YaHei', '微软雅黑', 'Times New Roman', serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #333333;
+  line-height: 1.5;
+}
+
+/* ============================================
+   8. Section 容器
+   ============================================ */
+.section {
+  margin-bottom: 24px;
+  padding: 0;
+  border-bottom: none;
+  position: relative;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
 .subsection {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .subsection:last-child {
   margin-bottom: 0;
 }
 
-/* 子标题样式（H3-H6） */
-.subsection-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f1f1f;
-  margin: 12px 0 8px;
-  padding: 4px 8px;
-  border-bottom: 1px dashed #e0e0e0;
-  outline: none;
-  line-height: 1.4;
-  display: block;
-  min-height: 1.4em;
-}
-
-.subsection-title[contenteditable="true"]:hover {
-  background-color: #f5f7fa;
-  border-bottom-color: var(--accent, #409eff);
-  color: var(--accent, #409eff);
-}
-
-.subsection-title[contenteditable="true"]:focus {
-  background-color: #ecf5ff;
-  border: 1px solid var(--accent, #409eff);
-  border-bottom: 1px solid var(--accent, #409eff);
-  border-radius: 4px;
-  padding: 4px 10px;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.15);
-}
-
-/* 可编辑状态 */
-.section-title[contenteditable="true"] {
-  cursor: text;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.section-title[contenteditable="true"]:hover {
-  background-color: #f5f7fa;
-  border-bottom-color: var(--accent, #409eff);
-  color: var(--accent, #409eff);
-}
-
-.section-title[contenteditable="true"]:focus {
-  background-color: #ecf5ff;
-  border: 2px solid var(--accent, #409eff);
-  border-bottom: 2px solid var(--accent, #409eff);
-  border-radius: 6px;
-  padding: 4px 10px;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
-}
-
-/* h3-h6 子标题 */
-/* h3-h6 子标题（按层级递减字号） */
-.h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 12px 0 8px;
-  color: inherit;
-}
-.h4 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 10px 0 6px;
-  color: inherit;
-}
-.h5 {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 8px 0 4px;
-  color: inherit;
-}
-.h6 {
-  font-size: 13px;
-  font-weight: 600;
-  margin: 6px 0 4px;
-  color: inherit;
-}
-
 /* ============================================
-   4. 姓名（一级标题）
-   ============================================ */
-.resume-name {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1f1f1f;
-  text-align: center;
-  margin: 0 0 16px 0;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--accent, #409eff);
-}
-
-.resume-name[contenteditable="true"]:hover {
-  background-color: #f5f7fa;
-  border-radius: 4px;
-}
-
-.resume-name[contenteditable="true"]:focus {
-  background-color: #ecf5ff;
-  border: 2px solid var(--accent, #409eff);
-  border-radius: 6px;
-  outline: none;
-}
-
-/* ============================================
-   5. 基本信息行
+   9. 基本信息行
    ============================================ */
 .basic-info-block {
   display: flex;
@@ -232,6 +177,7 @@ export const RESUME_CSS = String.raw`/**
   color: #666666;
   margin-bottom: 24px;
   text-align: center;
+  font-family: 'Times New Roman', 'Microsoft YaHei', '微软雅黑', serif;
 }
 
 .basic-info-item {
@@ -240,20 +186,8 @@ export const RESUME_CSS = String.raw`/**
   gap: 4px;
 }
 
-.basic-info-item span {
-  cursor: text;
-  padding: 2px 4px;
-  border-radius: 3px;
-  transition: background-color 0.2s;
-}
-
-.basic-info-item span:hover {
-  background-color: #f5f7fa;
-  color: var(--accent, #409eff);
-}
-
 /* ============================================
-   6. 列表通用样式
+   10. 列表通用样式
    ============================================ */
 .skills-list,
 .summary-list,
@@ -264,48 +198,46 @@ export const RESUME_CSS = String.raw`/**
 .item-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 0;
-  list-style: none;
+  gap: 8px;
+  padding: 0 0 0 1.5em;
+  list-style: disc;
   margin: 0;
 }
 
 /* ============================================
-   7. 技能标签
+   11. 技能标签
    ============================================ */
 .skills-list {
   display: flex;
   flex-wrap: wrap;
+  flex-direction: row;
   gap: 8px;
+  padding: 0;
+  list-style: none;
 }
 
 .skill-item {
-  background-color: #f0f2f5;
-  color: #606266;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-  padding: 4px 12px;
-  font-size: 14px;
+  background-color: #f5f5f5;
+  color: #666666;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 2px 10px;
+  font-size: 13px;
   line-height: 1.5;
+  list-style: none;
 }
 
 /* ============================================
-   8. 工作经历 / 项目经验 / 教育背景
+   12. 工作经历 / 项目经验 / 教育背景 列表项
+   无 border-left 竖杠，用 ::before 圆点替代
    ============================================ */
 .work-item,
 .project-item,
 .education-item,
 .item {
-  padding: 12px 0 12px 16px;
-  border-left: 3px solid #e4e7ed;
-  transition: border-color 0.2s;
-}
-
-.work-item:hover,
-.project-item:hover,
-.education-item:hover,
-.item:hover {
-  border-left-color: var(--accent, #409eff);
+  padding: 0;
+  border-left: none;
+  list-style: disc;
 }
 
 /* --- 列表项头部 --- */
@@ -316,7 +248,7 @@ export const RESUME_CSS = String.raw`/**
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -325,48 +257,49 @@ export const RESUME_CSS = String.raw`/**
 .work-item__title,
 .project-item__title,
 .education-item__title {
-  font-size: 16px;
-  font-weight: 600;
-  color: inherit;
+  font-family: 'SimHei', '黑体', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333333;
 }
 
 .item-company,
 .work-item__company,
 .project-item__company {
-  color: inherit;
   font-size: 14px;
-  margin-bottom: 4px;
+  color: #666666;
+  margin-bottom: 2px;
 }
 
 .item-duration,
 .work-item__duration,
 .project-item__duration,
 .education-item__duration {
-  color: inherit;
-  font-size: 13px;
+  font-family: 'Times New Roman', serif;
+  font-size: 12px;
+  color: #999999;
   flex-shrink: 0;
 }
 
 .item-role,
 .work-item__role,
 .project-item__role {
-  color: inherit;
   font-size: 13px;
-  margin-bottom: 4px;
-  font-style: italic;
+  color: #666666;
+  margin-bottom: 2px;
 }
 
 .item-location,
 .work-item__location,
 .project-item__location {
-  color: inherit;
   font-size: 13px;
+  color: #999999;
 }
 
 .item-degree,
 .education-item__degree {
-  color: inherit;
   font-size: 14px;
+  color: #333333;
 }
 
 /* --- 列表项正文 --- */
@@ -374,7 +307,7 @@ export const RESUME_CSS = String.raw`/**
 .work-item__body,
 .project-item__body,
 .education-item__body {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 /* --- 描述列表 --- */
@@ -382,159 +315,223 @@ export const RESUME_CSS = String.raw`/**
 .work-item__description,
 .project-item__description,
 .item-list {
-  margin: 8px 0 0 0;
-  padding-left: 20px;
+  margin: 4px 0 0 0;
+  padding-left: 1.5em;
   list-style: disc;
 }
 
 .item-description li,
 .work-item__description li,
 .project-item__description li {
-  color: inherit;
-  line-height: 1.8;
-  margin-bottom: 4px;
+  color: #333333;
+  line-height: 1.5;
+  margin-bottom: 2px;
 }
 
 /* ============================================
-   9. 自我评价 / 摘要
+   13. 自我评价 / 摘要
    ============================================ */
 .summary-text,
 .summary-item {
-  color: inherit;
-  line-height: 1.9;
+  color: #333333;
+  line-height: 1.5;
   white-space: pre-wrap;
-  padding: 8px 0;
+  padding: 4px 0;
 }
 
 /* ============================================
-   10. 通用文本元素
+   14. 通用文本元素
    ============================================ */
 .paragraph {
-  color: inherit;
-  line-height: 1.8;
-  margin-bottom: 12px;
+  color: #333333;
+  line-height: 1.5;
+  margin-bottom: 8px;
 }
 
 .bold { font-weight: 700; }
 .italic { font-style: italic; }
-.strikethrough { text-decoration: line-through; color: #999; }
+.strikethrough { text-decoration: line-through; color: #999999; }
 
 /* 链接 */
 .link {
-  color: var(--accent, #409eff);
+  color: #333333;
   text-decoration: none;
-  transition: color 0.2s;
 }
 .link:hover {
-  color: var(--accent-light, #66b1ff);
   text-decoration: underline;
 }
 
 /* 引用块 */
 .blockquote {
-  border-left: 4px solid var(--accent, #409eff);
-  padding: 12px 16px;
-  margin: 16px 0;
-  background-color: #f5f7fa;
+  border-left: 3px solid #cccccc;
+  padding: 8px 16px;
+  margin: 12px 0;
+  background-color: #fafafa;
   color: #666666;
-  font-style: italic;
+  font-style: normal;
 }
 
 /* 水平分隔线 */
 .divider {
   border: none;
-  border-top: 1px dashed #e8e8e8;
-  margin: 24px 0;
+  border-top: 1px solid #e0e0e0;
+  margin: 16px 0;
 }
 
 /* ============================================
-   11. 代码
+   15. 代码
    ============================================ */
 .code-block {
-  background-color: #282c34;
-  border-radius: 6px;
-  padding: 16px;
-  margin: 16px 0;
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  padding: 12px;
+  margin: 12px 0;
   overflow-x: auto;
 }
 
 .code-block .code {
-  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #abb2bf;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #333333;
   white-space: pre;
 }
 
 .inline-code {
-  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 0.9em;
-  background-color: rgba(27, 31, 35, 0.05);
-  color: #e06c75;
-  padding: 2px 6px;
-  border-radius: 3px;
-  border: 1px solid #e8e8e8;
+  background-color: #f5f5f5;
+  color: #333333;
+  padding: 1px 4px;
+  border: 1px solid #e0e0e0;
+  border-radius: 2px;
 }
 
 /* ============================================
-   12. 表格
+   16. 表格 — 知网三线表
+   顶线 1.5px / 表头下线 0.75px / 底线 1.5px
+   无竖线，无背景色
    ============================================ */
 .table-wrapper {
   overflow-x: auto;
-  margin: 16px 0;
+  margin: 12px 0;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  border-top: 1.5px solid #333333;
+  border-bottom: 1.5px solid #333333;
+  border-left: none;
+  border-right: none;
+  font-size: 13px;
 }
 
-.table-head {
-  background-color: #f5f7fa;
-  font-weight: 600;
+.table thead th {
+  border-bottom: 0.75px solid #666666;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 700;
+  color: #333333;
+  background: none;
+}
+
+.table tbody td {
+  padding: 6px 8px;
+  border: none;
+  color: #333333;
 }
 
 .table-row {
-  border-bottom: 1px solid #e8e8e8;
+  border: none;
+  background: none;
 }
 
 .table-row:hover {
-  background-color: #fafafa;
+  background: none;
 }
 
 .table-cell {
-  padding: 10px 12px;
+  padding: 6px 8px;
   text-align: left;
-  border: 1px solid #e8e8e8;
+  border: none;
 }
 
 .table-cell--center { text-align: center; }
 .table-cell--right { text-align: right; }
 
+.table-head {
+  background: none;
+  font-weight: 700;
+}
+
 /* ============================================
-   13. 图片
+   17. 图片
    ============================================ */
 .image-figure {
-  margin: 16px 0;
+  margin: 12px 0;
   text-align: center;
 }
 
 .image {
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 .image-caption {
-  font-size: 13px;
-  color: #999;
-  margin-top: 8px;
-  font-style: italic;
+  font-size: 12px;
+  color: #999999;
+  margin-top: 6px;
 }
 
 /* ============================================
-   14. 编辑状态指示
+   18. 可编辑状态
+   ============================================ */
+.section-title[contenteditable="true"] {
+  cursor: text;
+  border-radius: 2px;
+  transition: background-color 0.15s;
+}
+
+.section-title[contenteditable="true"]:hover {
+  background-color: #f5f5f5;
+}
+
+.section-title[contenteditable="true"]:focus {
+  background-color: #f0f0f0;
+  outline: 1px solid #cccccc;
+  outline-offset: 2px;
+}
+
+.subsection-title[contenteditable="true"]:hover {
+  background-color: #f5f5f5;
+}
+
+.subsection-title[contenteditable="true"]:focus {
+  background-color: #f0f0f0;
+  outline: 1px solid #cccccc;
+  outline-offset: 2px;
+}
+
+.resume-name[contenteditable="true"]:hover {
+  background-color: #f5f5f5;
+  border-radius: 2px;
+}
+
+.resume-name[contenteditable="true"]:focus {
+  background-color: #f0f0f0;
+  outline: 1px solid #cccccc;
+  outline-offset: 2px;
+  border: none;
+}
+
+/* ============================================
+   19. 编辑状态指示
    ============================================ */
 .is-editing::before {
   content: '编辑中';
@@ -544,7 +541,7 @@ export const RESUME_CSS = String.raw`/**
   font-size: 11px;
   font-weight: 500;
   color: #ffffff;
-  background: var(--accent, #409eff);
+  background: #666666;
   padding: 1px 6px;
   border-radius: 3px;
   line-height: 1.6;
@@ -553,7 +550,7 @@ export const RESUME_CSS = String.raw`/**
 }
 
 /* ============================================
-   15. 滚动条美化
+   20. 滚动条
    ============================================ */
 .resume-document::-webkit-scrollbar {
   width: 6px;
@@ -680,8 +677,8 @@ export const RESUME_CSS = String.raw`/**
    所有元素的颜色使用变量
    ============================================ */
 .resume-document { color: var(--text-primary); background: var(--bg); }
-.resume-document h1 { color: var(--text-primary); border-bottom-color: var(--accent); }
-.resume-document h2 { color: var(--text-primary); border-bottom-color: var(--border); }
+.resume-document h1 { color: var(--text-primary); }
+.resume-document h2 { color: var(--text-primary); }
 .resume-document p,
 .resume-document li { color: var(--text-secondary); }
 .resume-document .item-duration { color: var(--text-muted); }
@@ -691,7 +688,6 @@ export const RESUME_CSS = String.raw`/**
 }
 .resume-document [contenteditable="true"]:focus {
   background-color: var(--focus-bg);
-  box-shadow: 0 0 0 2px var(--accent-light);
 }
 
 /* resume-markdown.css */

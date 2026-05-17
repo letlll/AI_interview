@@ -96,10 +96,23 @@ export function createMarkedInstance(): Marked {
           const plainTitle = this.parser.parseInline(token.tokens).replace(/"/g, '&quot;');
           return `<h1 class="resume-name" contenteditable="true" data-original-title="${plainTitle}">${inner}</h1>\n`;
         }
+        // ### 日期拆解：检测 | 分隔符，左标题 + 右日期
+        if (depth === 3) {
+          const rawText = token.tokens?.map((t: any) => t.raw || t.text || '').join('') || '';
+          const barIdx = rawText.indexOf('|');
+          if (barIdx > 0) {
+            const leftRaw = rawText.substring(0, barIdx).trim();
+            const rightRaw = rawText.substring(barIdx + 1).trim();
+            const slug = autoDetectSectionType(leftRaw);
+            return `<h3 class="subsection-title" contenteditable="true" data-section-type="${slug}"><span class="project-title-text">${leftRaw}</span><span class="project-title-date">${rightRaw}</span></h3>\n`;
+          }
+        }
         const slug = autoDetectSectionType(inner.replace(/<[^>]+>/g, '').trim());
-        const titleClass = slug ? `section-title--${slug}` : '';
-        const classes = ['section-title', titleClass, `h${depth}`].filter(Boolean).join(' ');
-        return `<h${depth} class="${classes}" contenteditable="true" data-section-type="${slug}">${inner}</h${depth}>\n`;
+        if (depth === 2) {
+          const titleClass = slug ? `section-title--${slug}` : '';
+          return `<h2 class="section-title ${titleClass}" contenteditable="true" data-section-type="${slug}">${inner}</h2>\n`;
+        }
+        return `<h${depth} class="subsection-title" contenteditable="true" data-section-type="${slug}">${inner}</h${depth}>\n`;
       },
       list(this: any, token: any): string {
         const sectionType = (token._sectionType as string) || 'custom';

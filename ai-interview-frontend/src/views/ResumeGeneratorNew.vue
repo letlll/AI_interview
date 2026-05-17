@@ -1380,17 +1380,26 @@ function markdownToHtml(markdown: string, themeClass: string, extraStyles: strin
         const depth = token.depth;
         const inner = this.parser.parseInline(token.tokens);
         if (depth === 1) return `<h1 class="resume-name">${inner}</h1>\n`;
-        // 自动识别 section type：根据标题文本关键词判断
-        if (depth >= 2) {
-          const text = inner.replace(/<[^>]+>/g, '').trim();
-          const slug = autoDetectSectionType(text);
-          sectionType = slug; // 同步 sectionType，后续内容（列表等）也用这个 type
-          const classes = ['section-title', slug ? `section-title--${slug}` : '', `h${depth}`].filter(Boolean).join(' ');
-          return `<h${depth} class="${classes}" data-section-type="${slug}">${inner}</h${depth}>\n`;
+        // ### 日期拆解：检测 | 分隔符，左标题 + 右日期
+        if (depth === 3) {
+          const rawText = token.tokens?.map((t: any) => t.raw || t.text || '').join('') || '';
+          const barIdx = rawText.indexOf('|');
+          if (barIdx > 0) {
+            const leftRaw = rawText.substring(0, barIdx).trim();
+            const rightRaw = rawText.substring(barIdx + 1).trim();
+            const slug = autoDetectSectionType(leftRaw);
+            sectionType = slug;
+            return `<h3 class="subsection-title" data-section-type="${slug}"><span class="project-title-text">${leftRaw}</span><span class="project-title-date">${rightRaw}</span></h3>\n`;
+          }
         }
-        const slug = sectionType ? `section-title--${sectionType}` : '';
-        const classes = ['section-title', slug, `h${depth}`].filter(Boolean).join(' ');
-        return `<h${depth} class="${classes}" data-section-type="${sectionType}">${inner}</h${depth}>\n`;
+        // 自动识别 section type：根据标题文本关键词判断
+        const text = inner.replace(/<[^>]+>/g, '').trim();
+        const slug = autoDetectSectionType(text);
+        sectionType = slug;
+        if (depth === 2) {
+          return `<h2 class="section-title section-title--${slug}" data-section-type="${slug}">${inner}</h2>\n`;
+        }
+        return `<h${depth} class="subsection-title" data-section-type="${slug}">${inner}</h${depth}>\n`;
       },
       list(token: any): string {
         let body = '';
