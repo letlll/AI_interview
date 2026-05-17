@@ -64,6 +64,81 @@ Step 2 — 根据分类结果，按 mode/sub_skill 的行为约束生成 `instru
 - output_type = extra_styles
 - 返回 CSS 片段注入 extraStyles
 - 不改 resumeData.content
+- **返回完整 extraStyles**：不返回 diff/patch，将现有规则 + 本次修改合并后返回完整 CSS 字符串
+
+#### CSS 类参考表
+
+**第 1 层 — 全局容器/主题**
+
+| 选择器 | 作用 | 常用属性 |
+|--------|------|---------|
+| `.resume-document` | 全局容器 | font-family, font-size, line-height, padding, color |
+| `.resume-document.theme-{name}` | 主题（blue/dark/minimal/classic/modern） | — |
+| CSS 变量 | 见下方变量表 | 在 `.resume-document {}` 内重定义 |
+
+CSS 变量清单（在 `.resume-document {}` 内覆盖）：
+`--accent` `--accent-light` `--text-primary` `--text-secondary` `--text-muted`
+`--bg` `--border` `--hover-bg` `--focus-bg` `--tag-bg`
+`--border-work` `--border-projects` `--border-education` `--border-custom`
+
+**第 2 层 — 标题层级**
+
+| 选择器 | 作用 | 常用属性 |
+|--------|------|---------|
+| `.resume-name` | H1 姓名 | font-size（默认22px）, text-align, margin |
+| `.section-title` | H2 区块标题 | font-size（默认15px）, margin（段前24px段后12px） |
+| `.subsection-title` | H3/H4 子标题 | font-size, font-family, margin |
+| `.project-title-text` | H3 `|` 左侧项目名 | font-size, font-weight, color |
+| `.project-title-date` | H3 `|` 右侧日期 | font-size（默认12px）, color（默认#999） |
+
+**第 3 层 — 内容块**
+
+| 选择器 | 作用 | 常用属性 |
+|--------|------|---------|
+| `.work-item` `.project-item` `.education-item` `.summary-item` | 经历/摘要条目 | margin-bottom, padding |
+| `.skill-item` | 技能标签 | background-color, color, border, border-radius, padding, font-size |
+| `.paragraph` | 正文段落 | line-height, margin-bottom, font-size |
+| `.link` | 链接 | color, text-decoration |
+| `.table` | 三线表 | border, font-size |
+| `.blockquote` | 引用块 | border-left, padding, background-color |
+| `.work-list` `.project-list` `.education-list` `.skills-list` `.summary-list` | 列表容器 | padding-left, list-style |
+| `.item-header` `.item-title` `.item-company` `.item-duration` `.item-body` | 条目内部 | font-size, color |
+
+#### style mode 修改规则
+
+1. **保留现有规则** — 用户未提到的选择器/属性全部原样保留，不删不改
+2. **属性精确修改** — 用户说"字体调大"→ 只改 font-size，不动 font-family/color/line-height
+3. **选择器匹配** — 参考上方参考表精准定位。如"列表间距太大"→ `.work-item { margin-bottom: 2px; }`，不是改 line-height
+4. **返回完整 CSS** — 合并现有规则 + 本次修改，返回完整 extraStyles，不返回 diff
+5. **注释标记修改行** — 在被修改的属性上方加 `/* modified */` 注释
+
+#### 示例
+
+示例 1 — 用户："字体调大一点"（extraStyles 之前为空）
+
+```json
+{
+  "classification": { "intent": "style_adjust", "mode": "style", "output_type": "extra_styles", "sub_skill": "none", "..." },
+  "instructions": [
+    { "action": "replace", "path": "extraStyles", "value": "/* modified */\n.resume-document {\n  font-size: 16px;\n}\n" }
+  ],
+  "message": "已将正文字号从 14px 调整为 16px。"
+}
+```
+
+示例 2 — 用户："技能标签颜色太淡了"（extraStyles 已有 `.resume-document { font-size: 16px; }`）
+
+```json
+{
+  "classification": { "intent": "style_adjust", "mode": "style", "output_type": "extra_styles", "sub_skill": "none", "..." },
+  "instructions": [
+    { "action": "replace", "path": "extraStyles", "value": ".resume-document {\n  font-size: 16px;\n}\n.skill-item {\n  /* modified */\n  background-color: #e0e0e0;\n  /* modified */\n  color: #333333;\n  border: 1px solid #e0e0e0;\n  border-radius: 3px;\n  padding: 2px 10px;\n  font-size: 13px;\n}\n" }
+  ],
+  "message": "已加深技能标签颜色：背景 #f5f5f5 → #e0e0e0，文字 #666 → #333。"
+}
+```
+
+注意示例 2 中：用户没要求改 font-size，所以 `.resume-document { font-size: 16px; }` 原样保留。`.skill-item` 的 border/border-radius/padding/font-size 也原样保留，只改了用户要求改的 background-color 和 color。
 
 ### review（审阅模式）
 - 用户要求评价/诊断现有简历
