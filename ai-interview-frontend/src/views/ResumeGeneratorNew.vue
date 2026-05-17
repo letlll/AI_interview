@@ -334,6 +334,7 @@ import { Marked } from 'marked';                        // ← 新增：Marked �
 import { markedHighlight } from 'marked-highlight';     // ← 新增：代码高亮插件
 import hljs from 'highlight.js';                         // ← 新增：highlight.js
 import { RESUME_CSS } from '@/styles/resumeMarkdownCss';
+import { autoDetectSectionType } from '@/composables/useResumeRenderer';
 const chatPanelRef = ref<InstanceType<typeof AIChatPanel>>();
 const selectedTemplate = ref('classic');
 // 极简版：content 就是 internalMarkdown（完整 Markdown 字符串）
@@ -1338,27 +1339,6 @@ const handleDownloadPdf = () => {
   }
 };
 
-
-/**
- * 根据标题文本关键词自动识别 section type
- * @param text 标题纯文本（已去除 HTML 标签）
- * @returns section type 字符串（如 'projects', 'education', 'work', 'skills', 'summary'），无匹配返回空字符串
- */
-function autoDetectSectionType(text: string): string {
-  if (!text) return '';
-  const lower = text.toLowerCase();
-  // 教育相关
-  if (lower.includes('教育') || lower.includes('学校') || lower.includes('学历')) return 'education';
-  // 技能/个人能力相关
-  if (lower.includes('技能') || lower.includes('技术') || lower.includes('能力') || lower.includes('证书')) return 'skills';
-  // 自我评价/简介相关
-  if (lower.includes('评价') || lower.includes('简介') || lower.includes('关于') || lower.includes('自我介绍') || lower.includes('求职')) return 'summary';
-  // 工作经历相关
-  if (lower.includes('工作') || lower.includes('实习') || lower.includes('社会实践')) return 'work';
-  // 项目经历相关（包括：智能医疗、电子竞赛、系统名称等）
-  if (lower.includes('项目') || lower.includes('设计') || lower.includes('系统') || lower.includes('竞赛') || lower.includes('大赛') || lower.includes('作品') || lower.includes('平台')) return 'projects';
-  return '';
-}
 
 /**
  * Markdown → HTML 转换（用于 Electron API 调用）

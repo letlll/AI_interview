@@ -41,14 +41,27 @@ const ITEM_CLASS_MAP: Record<string, string> = {
 
 // ============================================================
 // Auto-detect section type from heading text
+// Hybrid strategy: ^ start-of-string exact match first,
+// then includes() substring fallback for non-standard headings.
 // ============================================================
 export function autoDetectSectionType(text: string): string {
-  const lower = text.toLowerCase();
-  if (/^(工作|实习|experience|work)/.test(lower)) return 'work';
-  if (/^(项目|demo|project)/.test(lower)) return 'projects';
-  if (/^(教育|education|学校)/.test(lower)) return 'education';
-  if (/^(技能|skill|技术)/.test(lower)) return 'skills';
-  if (/^(个人|summary|简介|about)/.test(lower)) return 'summary';
+  if (!text) return 'custom';
+  const lower = text.toLowerCase().trim();
+
+  // Phase 1: ^ start-of-string exact match (standard ## heading format)
+  if (/^(工作|实习)/.test(lower)) return 'work';
+  if (/^(项目)/.test(lower)) return 'projects';
+  if (/^(教育|学校|学历)/.test(lower)) return 'education';
+  if (/^(技能|技术|能力|证书)/.test(lower)) return 'skills';
+  if (/^(个人|简介|关于|自我介绍|求职|评价)/.test(lower)) return 'summary';
+
+  // Phase 2: includes() substring fallback (non-standard headings)
+  if (lower.includes('experience') || lower.includes('work')) return 'work';
+  if (lower.includes('竞赛') || lower.includes('大赛') || lower.includes('作品') || lower.includes('demo') || lower.includes('project')) return 'projects';
+  if (lower.includes('education')) return 'education';
+  if (lower.includes('skill')) return 'skills';
+  if (lower.includes('summary') || lower.includes('about')) return 'summary';
+
   return 'custom';
 }
 

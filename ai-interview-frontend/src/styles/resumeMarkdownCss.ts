@@ -15,7 +15,7 @@
 export const RESUME_CSS = String.raw`/**
  * 简历 Markdown 渲染样式 — 知网 GB/T 7713 论文规范
  *
- * 字体系统：黑体（标题）/ 微软雅黑（正文）/ Times New Roman（英文数字）
+ * 字体系统：黑体（标题）/ 宋体（正文）/ Times New Roman（英文数字）
  * 五级层级：# → ## → ### | 日期 → #### → - **key**：value
  */
 
@@ -28,7 +28,7 @@ export const RESUME_CSS = String.raw`/**
   padding: 40px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   min-height: 1000px;
-  font-family: 'Microsoft YaHei', '微软雅黑', 'Times New Roman', serif;
+  font-family: 'SimSun', '宋体', 'Times New Roman', serif;
   line-height: 1.5;
   font-size: 14px;
   background: var(--bg, #ffffff);
@@ -132,11 +132,11 @@ export const RESUME_CSS = String.raw`/**
 
 /* ============================================
    7. 正文 — - **key**：value
-   微软雅黑 + TNR，14px，行高 1.5，list-style disc 缩进 1.5em
+   宋体 + TNR，14px，行高 1.5，list-style disc 缩进 1.5em
    ============================================ */
 .resume-document p,
 .resume-document li {
-  font-family: 'Microsoft YaHei', '微软雅黑', 'Times New Roman', serif;
+  font-family: 'SimSun', '宋体', 'Times New Roman', serif;
   font-size: 14px;
   font-weight: 400;
   color: #333333;
@@ -177,7 +177,7 @@ export const RESUME_CSS = String.raw`/**
   color: #666666;
   margin-bottom: 24px;
   text-align: center;
-  font-family: 'Times New Roman', 'Microsoft YaHei', '微软雅黑', serif;
+  font-family: 'Times New Roman', 'SimSun', '宋体', serif;
 }
 
 .basic-info-item {
@@ -196,12 +196,45 @@ export const RESUME_CSS = String.raw`/**
 .project-list,
 .education-list,
 .item-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   padding: 0 0 0 1.5em;
-  list-style: disc;
   margin: 0;
+}
+
+/* 无序列表：圆点 */
+.summary-list,
+.work-list,
+.projects-list,
+.project-list,
+.education-list,
+.item-list {
+  list-style: disc;
+}
+
+/* 有序列表：浏览器默认编号（1, 2, 3...） */
+ol.skills-list,
+ol.summary-list,
+ol.work-list,
+ol.projects-list,
+ol.project-list,
+ol.education-list,
+ol.item-list {
+  list-style: decimal;
+}
+
+/* 列表项间距 */
+.work-item,
+.project-item,
+.education-item,
+.item,
+.summary-item {
+  margin-bottom: 4px;
+}
+.work-item:last-child,
+.project-item:last-child,
+.education-item:last-child,
+.item:last-child,
+.summary-item:last-child {
+  margin-bottom: 0;
 }
 
 /* ============================================
