@@ -1867,7 +1867,6 @@ const handleRefreshChat = async () => {
 }
 .pdf-preview-page-body {
   min-width: 0;
-  max-height: min(72vh, 900px);
   overflow: auto;
   display: flex;
   justify-content: center;
