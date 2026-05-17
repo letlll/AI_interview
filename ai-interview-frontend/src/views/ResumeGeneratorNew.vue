@@ -1483,17 +1483,18 @@ return `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <style>
-/* 全局 reset */
+/* 全局 reset：PDF 打印屏蔽阴影/圆角/区块边框/内边距（打印边距由浏览器控制） */
 body { background: #ffffff; }
 .resume-document {
-  background: var(--bg, #ffffff);
-  color: var(--text-primary, #1f1f1f);
   max-width: unset !important;
   min-height: unset !important;
-  box-shadow: none !important;
-  border-radius: unset !important;
   margin: 0 !important;
   padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+.resume-document .section-title {
+  border-bottom: none !important;
 }
 
 

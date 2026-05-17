@@ -11,14 +11,16 @@ import { renderMarkdownContent, postProcessSectionsDOM, RESUME_CSS } from '@/com
 import 'highlight.js/styles/atom-one-dark.css';
 import 'katex/dist/katex.min.css';
 
-// 全局注入 RESUME_CSS，确保与 PDF 渲染使用相同 CSS（仅注入一次）
+// 全局注入 RESUME_CSS，确保与 PDF 渲染使用相同 CSS
+// 每次模块加载时更新内容（HMR 热更新时 DOM 元素已存在，跳过 createElement）
 const RESUME_STYLE_ID = 'resume-css-global';
-if (!document.getElementById(RESUME_STYLE_ID)) {
-  const style = document.createElement('style');
-  style.id = RESUME_STYLE_ID;
-  style.textContent = RESUME_CSS;
-  document.head.appendChild(style);
+let styleEl = document.getElementById(RESUME_STYLE_ID);
+if (!styleEl) {
+  styleEl = document.createElement('style');
+  styleEl.id = RESUME_STYLE_ID;
+  document.head.appendChild(styleEl);
 }
+styleEl.textContent = RESUME_CSS;
 
 const props = defineProps<{
   content: string;
@@ -389,71 +391,5 @@ defineExpose({
   overflow: auto;
 }
 
-:deep(.resume-document) {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 40px;
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  min-height: 1000px;
-}
-
-/* Markdown 通用样式兜底 */
-:deep(.markdown-body h1),
-:deep(.markdown-body h2),
-:deep(.markdown-body h3) {
-  border-bottom: 1px solid #eaecef;
-  padding-bottom: 0.3em;
-  margin-top: 24px;
-  margin-bottom: 16px;
-  font-weight: 600;
-}
-:deep(.markdown-body h1) { font-size: 2em; }
-:deep(.markdown-body h2) { font-size: 1.5em; }
-:deep(.markdown-body h3) { font-size: 1.25em; }
-:deep(.markdown-body p) { margin-bottom: 16px; }
-:deep(.markdown-body blockquote) {
-  padding: 0 1em;
-  color: #6a737d;
-  border-left: 0.25em solid #dfe2e5;
-  margin-bottom: 16px;
-}
-:deep(.markdown-body ul),
-:deep(.markdown-body ol) {
-  padding-left: 2em;
-  margin-bottom: 16px;
-}
-:deep(.markdown-body code) {
-  padding: 0.2em 0.4em;
-  margin: 0;
-  font-size: 85%;
-  background-color: rgba(27, 31, 35, 0.05);
-  border-radius: 3px;
-}
-:deep(.markdown-body pre) {
-  word-break: break-all;
-  white-space: pre-wrap;
-  background-color: #282c34;
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 16px;
-  overflow: auto;
-}
-:deep(.markdown-body pre code) {
-  padding: 0;
-  margin: 0;
-  font-size: inherit;
-  background: transparent;
-}
-:deep(.markdown-body table) {
-  display: block;
-  width: 100%;
-  overflow: auto;
-  border-collapse: collapse;
-  margin-bottom: 16px;
-}
-:deep(.markdown-body tr) { background-color: #fff; border-top: 1px solid #c6cbd1; }
-:deep(.markdown-body th),
-:deep(.markdown-body td) { padding: 6px 13px; border: 1px solid #dfe2e5; }
 :deep(.markdown-body .mermaid-container) { text-align: center; margin-bottom: 16px; }
 </style>

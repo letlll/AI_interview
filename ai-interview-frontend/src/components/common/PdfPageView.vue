@@ -438,19 +438,5 @@ defineExpose({ pageRefs, pageCount, recalculate, contentRef });
 .pdf-page-view .image { max-width: 100%; height: auto; }
 .pdf-page-view .image-caption { font-size: 12px; color: #666; margin-top: 4px; }
 .pdf-page-view .blockquote { border-left: 3px solid #e0e0e0; padding-left: 12px; margin: 0 0 8px; color: #666; font-size: 13px; }
-.pdf-page-view .theme-blue .resume-name { color: #1a56db; }
-.pdf-page-view .theme-blue .section-title { color: #1a56db; border-color: #bfdbfe; }
-.pdf-page-view .theme-blue .skill-item { background: #eff6ff; color: #1e40af; }
-.pdf-page-view .theme-dark .resume-name, .pdf-page-view .theme-dark { color: #f9fafb; background: #111827; }
-.pdf-page-view .theme-dark .section-title { color: #9ca3af; border-color: #374151; }
-.pdf-page-view .theme-dark .skill-item { background: #1f2937; color: #d1d5db; }
-.pdf-page-view .theme-minimal .resume-name { color: #000; }
-.pdf-page-view .theme-minimal .section-title { color: #000; border-color: #000; }
-.pdf-page-view .theme-minimal .skill-item { background: #f9f9f9; color: #333; }
-.pdf-page-view .theme-classic .resume-name { color: #1e3a5f; }
-.pdf-page-view .theme-classic .section-title { color: #1e3a5f; border-color: #c4d4e4; }
-.pdf-page-view .theme-classic .skill-item { background: #e8f0f8; color: #1e3a5f; }
-.pdf-page-view .theme-modern .resume-name { color: #6366f1; }
-.pdf-page-view .theme-modern .section-title { color: #6366f1; border-color: #c7d2fe; }
-.pdf-page-view .theme-modern .skill-item { background: #eef2ff; color: #4338ca; }
+/* 主题颜色现已由 RESUME_CSS 设计令牌系统统一管理，不再在此处硬编码覆盖 */
 </style>
