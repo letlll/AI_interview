@@ -132,16 +132,16 @@ const createResume = async () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .generator-page { padding: 30px; background-color: #f9faff; }
-.generator-card { background-color: #fff; padding: 30px 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.generator-card { background-color: var(--color-white); padding: 30px 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 .step-content { margin-top: 40px; }
 .form-step-1 { max-width: 500px; margin: 0 auto; }
 .actions { margin-top: 40px; text-align: center; }
 .template-selection { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-.template-card { border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.2s; overflow: hidden; }
+.template-card { border: 2px solid var(--color-border-cream); border-radius: 8px; cursor: pointer; transition: all 0.2s; overflow: hidden; }
 .template-card.is-selected { border-color: var(--el-color-primary); box-shadow: 0 0 10px var(--el-color-primary-light-7); }
-.template-preview { height: 250px; background-color: #f5f7fa; display: flex; align-items: center; justify-content: center; color: #ccc; }
+.template-preview { height: 250px; background-color: var(--color-parchment); display: flex; align-items: center; justify-content: center; color: #ccc; }
 .template-name { text-align: center; padding: 10px; font-size: 14px; }
 .preview-container { border: 1px solid #eee; padding: 10px; }
 .mini-canvas { transform: scale(0.5); transform-origin: top left; width: 200%; height: 200%; }

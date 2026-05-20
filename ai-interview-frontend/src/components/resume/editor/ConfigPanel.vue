@@ -159,7 +159,7 @@ watch(() => editorStore.selectedComponentId, (newId) => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .config-panel { padding: 16px; }
 .zone-wrapper { margin-bottom: 24px; }
 .zone-header {
@@ -168,13 +168,13 @@ watch(() => editorStore.selectedComponentId, (newId) => {
   align-items: center;
   margin-bottom: 12px;
 }
-.zone-title { font-size: 13px; color: #999; }
+.zone-title { font-size: 13px; color: var(--color-warm-silver); }
 .module-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 50px;
-  border: 1px dashed #e0e0e0;
+  border: 1px dashed var(--color-border-cream);
   border-radius: 4px;
   padding: 10px;
 }
@@ -195,7 +195,7 @@ watch(() => editorStore.selectedComponentId, (newId) => {
   align-items: center;
   justify-content: center;
   padding: 16px 8px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--color-warm-sand);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;

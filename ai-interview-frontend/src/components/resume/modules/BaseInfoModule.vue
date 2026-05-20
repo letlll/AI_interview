@@ -47,7 +47,7 @@ const fullPhotoUrl = computed(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 默认（主内容区）样式 */
 .base-info-module {
   display: flex;
@@ -57,21 +57,21 @@ const fullPhotoUrl = computed(() => {
 .photo-container {
   width: 100px;
   height: 120px;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-warm-sand);
   flex-shrink: 0;
   margin-left: 20px;
 }
 .name { font-size: 28px; font-weight: 600; margin-bottom: 12px; }
 .info-items { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; }
-.info-item .label { color: #888; }
-.info-item .value { color: #333; }
+.info-item .label { color: var(--color-stone-gray); }
+.info-item .value { color: var(--color-near-black); }
 
 /* 侧边栏模式下的特定样式 */
 .base-info-module.sidebar-mode {
   flex-direction: column; /* 垂直布局 */
   align-items: center; /* 居中对齐 */
   text-align: center;
-  color: #fff; /* 文字颜色变为白色 */
+  color: var(--color-white); /* 文字颜色变为白色 */
 }
 .sidebar-mode .photo-container {
   width: 120px;
@@ -82,7 +82,7 @@ const fullPhotoUrl = computed(() => {
   margin-left: 0;
   margin-bottom: 20px;
 }
-.sidebar-mode .name { color: #fff; }
+.sidebar-mode .name { color: var(--color-white); }
 .sidebar-mode .info-items {
   flex-direction: column; /* 垂直排列 */
   align-items: center;

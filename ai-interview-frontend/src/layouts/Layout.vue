@@ -91,7 +91,7 @@ onMounted(() => {
   </el-container>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .app-layout {
   height: 100vh;
 }
@@ -101,7 +101,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--el-menu-border-color);
-  background-color: #fff;
+  background-color: var(--color-ivory);
 }
 
 .logo-area {
@@ -135,7 +135,7 @@ onMounted(() => {
 }
 
 .bell-icon {
-  color: #606266;
+  color: var(--color-stone-gray);
   transition: color 0.2s;
 }
 
@@ -162,7 +162,7 @@ onMounted(() => {
 }
 
 .app-main {
-  background-color: #f5f7fa;
+  background-color: var(--color-parchment);
   height: calc(100vh - 60px);
   overflow-y: auto;
 }

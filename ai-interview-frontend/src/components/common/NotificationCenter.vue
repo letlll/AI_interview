@@ -77,16 +77,16 @@ const handleMarkAllRead = () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .notification-center { max-height: 400px; display: flex; flex-direction: column; }
-.nc-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid #eee; }
+.nc-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-bottom: 1px solid var(--color-border-cream); }
 .nc-header h3 { margin: 0; font-size: 1rem; }
 .nc-list { flex-grow: 1; overflow-y: auto; }
-.nc-empty { text-align: center; color: #999; padding: 40px 0; }
-.nc-item { padding: 10px 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background-color 0.2s; }
-.nc-item:hover { background-color: #f5f7fa; }
+.nc-empty { text-align: center; color: var(--color-warm-silver); padding: 40px 0; }
+.nc-item { padding: 10px 15px; border-bottom: 1px solid var(--color-border-cream); cursor: pointer; transition: background-color 0.2s; }
+.nc-item:hover { background-color: var(--color-parchment); }
 .nc-item.unread { background-color: #ecf5ff; }
-.item-text { margin: 0 0 5px; font-size: 0.9rem; color: #333; }
-:deep(.item-text strong) { font-weight: 500; color: #000; }
-.item-time { margin: 0; font-size: 0.75rem; color: #999; }
+.item-text { margin: 0 0 5px; font-size: 0.9rem; color: var(--color-near-black); }
+:deep(.item-text strong) { font-weight: 500; color: var(--color-near-black); }
+.item-time { margin: 0; font-size: 0.75rem; color: var(--color-warm-silver); }
 </style>

@@ -73,6 +73,7 @@
 .el-menu {
 	border-right: none !important;
 	width: 220px;
+	background-color: #f5f4ed !important;
 }
 
 .el-menu-item {
@@ -343,43 +344,53 @@
    严格遵循 DESIGN.md
    ================================================ */
 
-/* 按钮 — Warm Sand / White / Terracotta Brand
+/* 按钮 — Warm Sand / White / Terracotta Brand / Dark Charcoal
    参考: DESIGN.md Section 4 — Buttons
+   环阴影规则: 单环 = bg-color 0px 0px 0px 0px, ring-color 0px 0px 0px 1px
 ------------------------------- */
 .el-button {
-	border-radius: 8px !important;
 	font-family: var(--font-sans) !important;
 }
 
-// Warm Sand 次要按钮
+// Warm Sand 次要按钮 — 8px 圆角，单环阴影
 .el-button--default {
+	border-radius: 8px !important;
 	background: var(--color-warm-sand) !important;
-	border-color: var(--color-ring-warm) !important;
+	border: none !important;
 	color: var(--color-charcoal-warm) !important;
-	box-shadow: 0 0 0 1px var(--color-warm-sand), 0 0 0 1px var(--color-ring-warm) !important;
+	box-shadow: var(--color-warm-sand) 0px 0px 0px 0px, var(--color-ring-warm) 0px 0px 0px 1px !important;
 	&:hover {
 		background: #dedcd2 !important;
-		border-color: var(--color-ring-deep) !important;
 		color: var(--color-dark-warm) !important;
+		box-shadow: var(--color-warm-sand) 0px 0px 0px 0px, var(--color-ring-deep) 0px 0px 0px 1px !important;
+	}
+	&:active {
+		background: #d4d1c7 !important;
+		box-shadow: var(--color-warm-sand) 0px 0px 0px 0px, var(--color-ring-deep) 0px 0px 0px 1px !important;
 	}
 	&.is-disabled {
 		background: var(--color-border-cream) !important;
-		border-color: var(--color-warm-sand) !important;
 		color: var(--color-stone-gray) !important;
+		box-shadow: none !important;
 	}
 }
 
-// White Surface 白底按钮
+// White Surface 白底按钮 — 12px 圆角，border 而非 box-shadow
 .el-button--white {
+	border-radius: 12px !important;
 	background: var(--color-white) !important;
-	border-color: var(--color-warm-sand) !important;
+	border: 1px solid var(--color-border-cream) !important;
 	color: var(--color-near-black) !important;
-	box-shadow: 0 0 0 1px var(--color-white), 0 0 0 1px var(--color-warm-sand) !important;
+	box-shadow: none !important;
 	&:hover {
 		background: var(--color-parchment) !important;
 		border-color: var(--color-ring-warm) !important;
 		color: var(--color-dark-warm) !important;
 	}
+	&:active {
+		background: var(--color-warm-sand) !important;
+		border-color: var(--color-ring-deep) !important;
+	}
 	&.is-disabled {
 		background: var(--color-border-cream) !important;
 		border-color: var(--color-warm-sand) !important;
@@ -387,51 +398,102 @@
 	}
 }
 
-// Terracotta Brand 主 CTA
+// Terracotta Brand 主 CTA — 12px 圆角，单环阴影
 .el-button--primary {
+	border-radius: 12px !important;
 	background: var(--color-terracotta) !important;
-	border-color: var(--color-terracotta) !important;
+	border: none !important;
 	color: var(--color-ivory) !important;
-	box-shadow: 0 0 0 1px var(--color-terracotta), 0 0 0 1px var(--color-terracotta) !important;
+	box-shadow: var(--color-terracotta) 0px 0px 0px 0px, var(--color-terracotta) 0px 0px 0px 1px !important;
 	&:hover {
 		background: #b85538 !important;
-		border-color: #b85538 !important;
 		color: var(--color-ivory) !important;
+		box-shadow: #b85538 0px 0px 0px 0px, #b85538 0px 0px 0px 1px !important;
+	}
+	&:active {
+		background: #a34a2e !important;
+		box-shadow: #a34a2e 0px 0px 0px 0px, #a34a2e 0px 0px 0px 1px !important;
 	}
 	&.is-disabled {
 		background: var(--color-warm-sand) !important;
-		border-color: var(--color-ring-warm) !important;
 		color: var(--color-stone-gray) !important;
+		box-shadow: none !important;
 	}
 }
 
+// Dark Charcoal — 8px 圆角，单环阴影（复用 el-button--info）
+.el-button--info {
+	border-radius: 8px !important;
+	background: var(--color-dark-surface) !important;
+	border: none !important;
+	color: var(--color-ivory) !important;
+	box-shadow: var(--color-dark-surface) 0px 0px 0px 0px, var(--color-dark-surface) 0px 0px 0px 1px !important;
+	&:hover {
+		background: #3d3d3b !important;
+		color: var(--color-white) !important;
+		box-shadow: #3d3d3b 0px 0px 0px 0px, #3d3d3b 0px 0px 0px 1px !important;
+	}
+	&:active {
+		background: #252523 !important;
+		box-shadow: #252523 0px 0px 0px 0px, #252523 0px 0px 0px 1px !important;
+	}
+	&.is-disabled {
+		background: var(--color-warm-sand) !important;
+		color: var(--color-stone-gray) !important;
+		box-shadow: none !important;
+	}
+}
+
+// Plain 文本按钮 — 透明底，暖色环边框
+.el-button.is-plain {
+	border-radius: 8px !important;
+	background: transparent !important;
+	border: none !important;
+	color: var(--color-charcoal-warm) !important;
+	box-shadow: var(--color-ring-warm) 0px 0px 0px 1px !important;
+	&:hover {
+		background: var(--color-warm-sand) !important;
+		color: var(--color-dark-warm) !important;
+		box-shadow: var(--color-ring-deep) 0px 0px 0px 1px !important;
+	}
+	&:active {
+		background: var(--color-border-cream) !important;
+	}
+	&.is-disabled {
+		background: transparent !important;
+		color: var(--color-stone-gray) !important;
+		box-shadow: var(--color-warm-sand) 0px 0px 0px 1px !important;
+	}
+}
+
+// 功能色按钮 — success / warning / danger 保持语义不变
 .el-button--success {
+	border-radius: 8px !important;
 	background: #5a7a5a !important;
-	border-color: #5a7a5a !important;
+	border: none !important;
 	color: var(--color-ivory) !important;
 	&:hover {
 		background: #4d6b4d !important;
-		border-color: #4d6b4d !important;
 	}
 }
 
 .el-button--warning {
+	border-radius: 8px !important;
 	background: #b87a30 !important;
-	border-color: #b87a30 !important;
+	border: none !important;
 	color: var(--color-ivory) !important;
 	&:hover {
 		background: #a36b27 !important;
-		border-color: #a36b27 !important;
 	}
 }
 
 .el-button--danger {
+	border-radius: 8px !important;
 	background: var(--color-error) !important;
-	border-color: var(--color-error) !important;
+	border: none !important;
 	color: var(--color-ivory) !important;
 	&:hover {
 		background: #a02c2c !important;
-		border-color: #a02c2c !important;
 	}
 }
 

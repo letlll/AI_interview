@@ -376,7 +376,7 @@ defineExpose({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 :deep(.markdown-body) {
   height: 100%;
   overflow: auto;

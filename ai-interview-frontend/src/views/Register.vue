@@ -165,6 +165,6 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 样式已全局化，这里可以为空 */
 </style>

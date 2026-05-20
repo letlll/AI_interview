@@ -92,11 +92,11 @@
         type="textarea"
         :rows="3"
         placeholder="告诉 AI 你的需求，例如：帮我生成一份前端工程师的简历..."
-        @keydown.enter.ctrl="handleSend"
+        @keydown.enter="handleKeyEnter"
         :disabled="isLoading"
       />
       <div class="input-actions">
-        <span class="input-tip">Ctrl + Enter 发送</span>
+        <span class="input-tip">Enter 发送，Ctrl+Enter 换行</span>
         <el-button type="primary" @click="handleSend" :loading="isLoading">
           发送
         </el-button>
@@ -176,6 +176,14 @@ const quickActions = [
     prompt: '帮我添加一个项目经验'
   }
 ];
+
+const handleKeyEnter = (e: KeyboardEvent) => {
+  // Ctrl+Enter 或 Shift+Enter → 换行（不发送）
+  if (e.ctrlKey || e.shiftKey) return;
+  // 普通 Enter → 发送消息
+  e.preventDefault();
+  handleSend();
+};
 
 const handleSend = () => {
   if (!userInput.value.trim() || isLoading.value) return;
@@ -301,7 +309,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--el-bg-color);
+  background: var(--color-ivory);
 }
 
 .messages-container {
@@ -319,12 +327,12 @@ onMounted(() => {
   }
 
   &::-webkit-scrollbar-thumb {
-    background: var(--el-border-color-light);
+    background: var(--color-warm-silver);
     border-radius: 4px;
     transition: background 0.3s;
 
     &:hover {
-      background: var(--el-border-color);
+      background: var(--color-stone-gray);
     }
   }
 }
@@ -343,7 +351,7 @@ onMounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--color-stone-gray);
   font-size: 14px;
 }
 
@@ -360,8 +368,8 @@ onMounted(() => {
     }
     
     .message-text {
-      background: var(--el-color-primary-light-9);
-      color: var(--el-text-color-primary);
+      background: var(--next-color-primary-lighter);
+      color: var(--color-near-black);
     }
   }
 }
@@ -383,7 +391,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--color-stone-gray);
 }
 
 .message-sender {
@@ -393,8 +401,8 @@ onMounted(() => {
 .message-text {
   padding: 12px 16px;
   border-radius: 8px;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
+  background: var(--color-parchment);
+  color: var(--color-near-black);
   line-height: 1.6;
   white-space: normal;
   word-break: break-word;
@@ -413,31 +421,31 @@ onMounted(() => {
   pre code { background: none; padding: 0; }
   code:not(pre code) { background: rgba(0,0,0,0.08); border-radius: 3px; padding: 2px 5px; font-size: 13px; }
   table { border-collapse: collapse; width: 100%; margin: 0 0 8px; font-size: 13px; }
-  th, td { border: 1px solid var(--el-border-color); padding: 6px 10px; }
-  th { background: var(--el-fill-color-light); font-weight: 600; }
-  blockquote { border-left: 3px solid var(--el-color-primary); margin: 0 0 8px; padding: 4px 12px; color: var(--el-text-color-secondary); font-size: 14px; }
-  hr { border: none; border-top: 1px solid var(--el-border-color); margin: 10px 0; }
-  a { color: var(--el-color-primary); }
+  th, td { border: 1px solid var(--color-border-warm); padding: 6px 10px; }
+  th { background: var(--color-parchment); font-weight: 600; }
+  blockquote { border-left: 3px solid var(--color-terracotta); margin: 0 0 8px; padding: 4px 12px; color: var(--color-stone-gray); font-size: 14px; }
+  hr { border: none; border-top: 1px solid var(--color-border-warm); margin: 10px 0; }
+  a { color: var(--color-terracotta); }
 }
 
 .typing-indicator {
   display: flex;
   gap: 4px;
   padding: 12px 16px;
-  background: var(--el-fill-color-light);
+  background: var(--color-parchment);
   border-radius: 8px;
-  
+
   span {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--el-color-primary);
+    background: var(--color-terracotta);
     animation: typing 1.4s infinite;
-    
+
     &:nth-child(2) {
       animation-delay: 0.2s;
     }
-    
+
     &:nth-child(3) {
       animation-delay: 0.4s;
     }
@@ -457,13 +465,13 @@ onMounted(() => {
 
 .quick-actions {
   padding: 16px 20px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter);
+  border-top: 1px solid var(--color-border-cream);
+  background: var(--color-parchment);
 }
 
 .quick-actions-title {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--color-stone-gray);
   margin-bottom: 8px;
 }
 
@@ -475,8 +483,8 @@ onMounted(() => {
 
 .input-container {
   padding: 16px 20px;
-  border-top: 1px solid var(--el-border-color);
-  background: var(--el-bg-color);
+  border-top: 1px solid var(--color-border-warm);
+  background: var(--color-ivory);
 }
 
 .input-actions {
@@ -488,6 +496,6 @@ onMounted(() => {
 
 .input-tip {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--color-stone-gray);
 }
 </style>

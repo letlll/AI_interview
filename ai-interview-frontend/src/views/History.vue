@@ -141,7 +141,7 @@ const getResumeTitle = (resumeId: number | null) => (resumeId ? `简历ID: ${res
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .history-container {
   padding: 24px;
 }

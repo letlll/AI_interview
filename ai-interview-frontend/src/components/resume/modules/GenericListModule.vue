@@ -41,16 +41,16 @@ const titleComponent = computed(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .item { margin-bottom: 12px; }
 .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
 .main-info { font-weight: 600; }
-.sub-info { color: #555; font-style: italic; }
+.sub-info { color: var(--color-stone-gray); font-style: italic; }
 
 /* 【核心修改】 */
 .description {
   font-size: 14px;
-  color: #555;
+  color: var(--color-stone-gray);
   line-height: 1.8;
   font-family: inherit;
   margin-left: 8px; /* 保持一点缩进 */

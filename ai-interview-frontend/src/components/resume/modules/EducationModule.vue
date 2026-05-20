@@ -54,17 +54,17 @@ const formatDisplayDateRange = (dateRange: (string | null)[] | string): string =
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .item { margin-bottom: 12px; }
 .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
 .main-info { font-weight: 600; }
-.sub-info { color: #555; }
-.date-range { font-style: italic; color: #888; }
+.sub-info { color: var(--color-stone-gray); }
+.date-range { font-style: italic; color: var(--color-stone-gray); }
 
 /* 【核心修改】 */
 .description {
   font-size: 14px;
-  color: #555;
+  color: var(--color-stone-gray);
   line-height: 1.8;
   font-family: inherit;
   margin-left: 8px;

@@ -26,19 +26,19 @@ defineProps({
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .post-card-skeleton {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border-cream);
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 20px;
-  background-color: #fff;
+  background-color: var(--color-ivory);
 }
 
 .cover-placeholder {
   width: 100%;
   height: 240px;
-  background-color: #f5f5f5;
+  background-color: var(--color-parchment);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -61,7 +61,7 @@ defineProps({
 
 .excerpt {
   margin: 0 0 12px;
-  color: #666;
+  color: var(--color-stone-gray);
   font-size: 0.9rem;
   
   /* 【核心修正】添加标准属性 */
@@ -79,6 +79,6 @@ defineProps({
   align-items: center;
   gap: 8px;
   font-size: 0.8rem;
-  color: #999;
+  color: var(--color-warm-silver);
 }
 </style>

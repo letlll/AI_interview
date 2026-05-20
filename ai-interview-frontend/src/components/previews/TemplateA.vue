@@ -50,25 +50,25 @@ const formatDate = (dateStr: string | null) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .a4-paper {
   width: 210mm;
   min-height: 297mm;
   padding: 25mm;
-  background: white;
+  background: var(--color-white);
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
   box-sizing: border-box;
 }
 .resume-header { text-align: center; margin-bottom: 20px; }
 h1 { margin: 0; font-size: 24px; }
-.contact-info { display: flex; justify-content: center; gap: 15px; margin-top: 10px; color: #555; }
+.contact-info { display: flex; justify-content: center; gap: 15px; margin-top: 10px; color: var(--color-stone-gray); }
 .resume-section { margin-top: 20px; }
-.section-title { font-size: 18px; font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 10px; }
+.section-title { font-size: 18px; font-weight: bold; border-bottom: 2px solid var(--color-near-black); padding-bottom: 5px; margin-bottom: 10px; }
 .section-item { margin-top: 10px; }
 .item-header { display: flex; justify-content: space-between; align-items: baseline; }
 h3, h4 { margin: 0; }
 h3 { font-size: 16px; }
-h4 { font-size: 14px; font-weight: normal; color: #555; margin-top: 5px; }
+h4 { font-size: 14px; font-weight: normal; color: var(--color-stone-gray); margin-top: 5px; }
 p { margin: 5px 0; line-height: 1.6; }
 .description-text { white-space: pre-wrap; }
 </style>

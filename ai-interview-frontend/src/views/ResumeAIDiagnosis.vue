@@ -132,10 +132,10 @@ const handleUpload = async () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .diagnosis-page { display: flex; justify-content: center; align-items: flex-start; padding-top: 50px; }
-.diagnosis-card { width: 100%; max-width: 600px; padding: 40px; background-color: #fff; border-radius: 8px; text-align: center; box-shadow: var(--el-box-shadow-light); }
+.diagnosis-card { width: 100%; max-width: 600px; padding: 40px; background-color: var(--color-ivory); border-radius: 8px; text-align: center; box-shadow: var(--el-box-shadow-light); }
 .title { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
-.subtitle { color: #999; margin-bottom: 30px; }
+.subtitle { color: var(--color-warm-silver); margin-bottom: 30px; }
 .upload-button { margin-top: 30px; width: 50%; }
 </style>

@@ -6,6 +6,8 @@ import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
 // 2. 引入 Element Plus 的样式文件
 import 'element-plus/dist/index.css'
+// 2.5 引入自定义主题（覆盖 Element Plus 默认 CSS 变量，必须在 element-plus CSS 之后）
+import '@/theme/index.scss'
 
 import App from './App.vue'
 import router from './router' // 引入 router

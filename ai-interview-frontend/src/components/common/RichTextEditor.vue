@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .rich-text-editor-wrapper { border: 1px solid var(--el-border-color); border-radius: 4px; z-index: 100; }
 .rich-text-editor-wrapper :deep(.w-e-toolbar) { z-index: 101 !important; }
 .rich-text-editor-wrapper :deep(.w-e-text-container) { z-index: 100 !important; }

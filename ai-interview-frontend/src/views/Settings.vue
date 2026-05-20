@@ -119,7 +119,7 @@ const handleSave = async () => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .settings-container {
   padding: 24px;
 }
@@ -130,7 +130,7 @@ const handleSave = async () => {
 }
 .form-item-description {
   font-size: 0.85rem;
-  color: #909399;
+  color: var(--color-warm-silver);
   margin-top: 0;
   margin-bottom: 8px;
   line-height: 1.5;
@@ -148,7 +148,7 @@ const handleSave = async () => {
   align-items: center;
 }
 .model-name {
-  color: #606266;
+  color: var(--color-stone-gray);
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;

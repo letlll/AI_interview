@@ -77,9 +77,9 @@ const handleSimpleModuleInput = (module: any, value: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .module-form {
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--color-warm-sand);
   border-radius: 4px;
   overflow: hidden;
   --el-collapse-border-color: transparent;
@@ -93,7 +93,7 @@ const handleSimpleModuleInput = (module: any, value: string) => {
   width: 100%;
   padding: 0;
   height: 48px;
-  background-color: #fafafa;
+  background-color: var(--color-ivory);
 }
 
 /* 2. 确保我们的 .module-header 能撑满这个 Flex 容器 */
@@ -107,7 +107,7 @@ const handleSimpleModuleInput = (module: any, value: string) => {
 /* 3. 沿用之前的 Flex 布局逻辑 */
 .drag-handle {
   cursor: grab;
-  color: #999;
+  color: var(--color-warm-silver);
   margin-right: 10px;
 }
 .module-title {

@@ -58,6 +58,6 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
-.callback-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; gap: 20px; color: #606266; }
+<style lang="scss" scoped>
+.callback-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; gap: 20px; color: var(--color-stone-gray); }
 </style>

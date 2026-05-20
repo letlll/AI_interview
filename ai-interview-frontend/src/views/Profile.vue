@@ -110,7 +110,7 @@ import {
   type ChangePasswordData,
   type SocialAccount 
 } from '@/api/modules/user';
-import defaultAvatar from '@/assets/images/default_avatar.png';
+import defaultAvatar from '@/assets/images/logo.jpg';
 
 const authStore = useAuthStore();
 const loading = ref(true);
@@ -234,14 +234,14 @@ const handleDisconnect = async (provider: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .profile-container { display: flex; flex-direction: column; gap: 20px; }
 .profile-content { display: flex; align-items: flex-start; gap: 50px; }
 .avatar-section { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 .info-section { flex-grow: 1; max-width: 500px; }
 .social-accounts { display: flex; flex-direction: column; gap: 15px; }
-.account-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid #e4e7ed; border-radius: 4px; }
+.account-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border: 1px solid var(--color-border-cream); border-radius: 4px; }
 .account-info { display: flex; align-items: center; gap: 10px; font-weight: 500; }
 .provider-icon { width: 24px; height: 24px; }
-.account-status { display: flex; align-items: center; gap: 10px; color: #909399; }
+.account-status { display: flex; align-items: center; gap: 10px; color: var(--color-warm-silver); }
 </style>

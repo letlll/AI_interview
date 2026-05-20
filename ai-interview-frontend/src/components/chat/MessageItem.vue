@@ -113,7 +113,7 @@ const getFullUrl = (url: string | null) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 链接颜色适配背景 */
 .bg-blue-500 a {
   color: white;

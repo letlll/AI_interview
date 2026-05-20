@@ -55,7 +55,7 @@ onMounted(async () => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .analysis-report-detail-container :deep(.el-card) {
   break-inside: avoid;
 }

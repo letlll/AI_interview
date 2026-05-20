@@ -11,7 +11,7 @@ defineProps({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 这些样式复刻了您提供的模板中的标题样式 */
 .title-wrapper {
   width: 100%;

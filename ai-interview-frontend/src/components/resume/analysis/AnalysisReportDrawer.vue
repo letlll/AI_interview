@@ -96,18 +96,18 @@ const scoreColors = [
 ];
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .report-container { display: flex; flex-direction: column; gap: 20px; }
 .report-section .el-card__header { padding: 10px 15px; }
 .report-section h3 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
 .score-section { display: flex; align-items: center; gap: 24px; }
 .percentage-value { font-size: 28px; font-weight: bold; }
-.percentage-label { font-size: 12px; color: #999; }
+.percentage-label { font-size: 12px; color: var(--color-warm-silver); }
 .tag-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; margin-bottom: 16px; }
 .report-section ul { padding-left: 20px; margin: 0; }
 .report-section li { margin-bottom: 8px; }
 .suggestion-item {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-parchment);
   padding-bottom: 12px;
   margin-bottom: 12px;
 }

@@ -243,23 +243,23 @@
                 <button
                   class="color-preset-btn"
                   :class="{ active: presetColorScheme === 'default' }"
-                  style="background: #333333;"
+                  style="background: var(--color-near-black);"
                   title="经典黑"
                   @click="applyColorPreset('default')"
                 ></button>
                 <button
                   class="color-preset-btn"
                   :class="{ active: presetColorScheme === 'blue' }"
-                  style="background: #409eff;"
+                  style="background: var(--color-focus-blue);"
                   title="专业蓝"
                   @click="applyColorPreset('blue')"
                 ></button>
                 <button
                   class="color-preset-btn"
-                  :class="{ active: presetColorScheme === 'purple' }"
-                  style="background: #7c3aed;"
-                  title="深紫"
-                  @click="applyColorPreset('purple')"
+                  :class="{ active: presetColorScheme === 'terracotta' }"
+                  style="background: var(--color-terracotta);"
+                  title="品牌色"
+                  @click="applyColorPreset('terracotta')"
                 ></button>
               </div>
             </div>
@@ -368,6 +368,31 @@ const emit = defineEmits<Emits>();
 // ==================== 状态 ====================
 const activeTab = ref<'quick' | 'code' | 'reference'>('quick');
 
+// ==================== 快捷调整 CSS 合并逻辑 ====================
+// 快捷调整生成的 CSS 块用标记注释包裹，追加到 customStyles 末尾
+// 不会覆盖用户在代码编辑器中手写的 customStyles
+const AUTO_START = '/* === quick-adjust === */';
+const AUTO_END = '/* === end-quick-adjust === */';
+
+function emitQuickAdjustCss(css: string) {
+  let current = props.customStyles || '';
+
+  // 移除已有的 quick-adjust 块
+  const markerRe = new RegExp(
+    escapeRe(AUTO_START) + '[\\s\\S]*?' + escapeRe(AUTO_END),
+    'g'
+  );
+  current = current.replace(markerRe, '').trim();
+
+  // 构建新的 quick-adjust 块
+  const block = `${AUTO_START}\n${css}\n${AUTO_END}`;
+
+  // 用户手写内容在前，quick-adjust 块追加到末尾
+  const merged = current ? current + '\n\n' + block : block;
+
+  emit('update:customStyles', merged);
+}
+
 // ==================== 带类型的滑块更新函数（避免在模板中写 TS 类型注解） ====================
 function onMaxWidth(v: number) { update('maxWidth', `${v}px`); }
 function onPadding(v: number) { update('padding', `${v}px`); }
@@ -393,7 +418,7 @@ const DEFAULTS = {
   boxShadow: '0 2px 12px rgba(0,0,0,0.1)',
   fontSize: '16px',
   lineHeight: '1.75',
-  accentColor: '#409eff',
+  accentColor: '#c96442',
   nameFontSize: '32px',
   nameTextAlign: 'center',
   sectionTitleFontSize: '18px',
@@ -411,14 +436,18 @@ const values = ref({ ...DEFAULTS });
 function parseCss(css: string) {
   const v = { ...DEFAULTS };
 
+  // 取最后一个匹配（CSS 层叠优先级最高）
   const get = (selector: string, prop: string): string => {
-    // 简单正则：匹配 .class { prop: value; }
     const re = new RegExp(
       `${escapeRe(selector)}\\s*\\{[^}]*?${escapeRe(prop)}\\s*:\\s*([^;}]+)`,
-      'i'
+      'gi'
     );
-    const m = css.match(re);
-    return m ? m[1].trim() : '';
+    let match: RegExpExecArray | null;
+    let lastVal = '';
+    while ((match = re.exec(css)) !== null) {
+      lastVal = match[1].trim();
+    }
+    return lastVal;
   };
 
   // resume-document 相关
@@ -441,15 +470,15 @@ function parseCss(css: string) {
                         get('.subsection-title', 'border-bottom').replace(/[0-9.]+/, '').trim() || v.borderBottomWidth;
 
   // 间距
-  v.sectionMarginBottom = get('.resume-section', 'margin-bottom') || v.sectionMarginBottom;
+  v.sectionMarginBottom = get('.section', 'margin-bottom') || v.sectionMarginBottom;
 
   // item gap (列表)
   const workListM = css.match(/\.work-list[^}]*gap\s*:\s*([^;}]+)/i);
   if (workListM) v.itemGap = workListM[1].trim();
 
-  // 标签
-  v.tagFontSize = get('.skill-tag', 'font-size') || v.tagFontSize;
-  v.tagBorderRadius = get('.skill-tag', 'border-radius') || v.tagBorderRadius;
+  // 标签（.skill-item 是渲染器实际生成的 class）
+  v.tagFontSize = get('.skill-item', 'font-size') || v.tagFontSize;
+  v.tagBorderRadius = get('.skill-item', 'border-radius') || v.tagBorderRadius;
 
   return v;
 }
@@ -480,7 +509,7 @@ function compileCss(v: typeof values.value): string {
   border-bottom-width: ${v.borderBottomWidth};
 }
 
-.resume-section {
+.section {
   margin-bottom: ${v.sectionMarginBottom};
 }
 
@@ -490,27 +519,16 @@ function compileCss(v: typeof values.value): string {
   gap: ${v.itemGap};
 }
 
-.skill-tag {
+.skill-item {
   font-size: ${v.tagFontSize};
   border-radius: ${v.tagBorderRadius};
 }`;
 }
 
-// ==================== 同步 from props → internal state ====================
-watch(
-  () => props.extraStyles,
-  (newCss) => {
-    if (activeTab.value === 'quick') {
-      values.value = parseCss(newCss || '');
-    }
-  },
-  { immediate: true }
-);
-
-// ==================== 控件值变化 → 更新 extraStyles ====================
+// ==================== 控件值变化 → 合并到 customStyles ====================
 function update(key: keyof typeof DEFAULTS, newVal: string) {
   values.value = { ...values.value, [key]: newVal };
-  emit('update:extraStyles', compileCss(values.value));
+  emitQuickAdjustCss(compileCss(values.value));
 }
 
 // ==================== 高级代码编辑 ====================
@@ -541,12 +559,12 @@ watch(
 );
 
 watch(activeTab, (tab) => {
-  if (!isPanelMounted.value) return; // mounted 初始跳过
-  if (tab === 'quick') {
-    emit('update:extraStyles', compileCss(values.value));
-  } else {
+  if (!isPanelMounted.value) return;
+  if (tab === 'code' || tab === 'reference') {
     codeValue.value = props.customStyles || '';
   }
+  // 切换到快速调整时不触发 emit — 滑块值已从 extraStyles 解析
+  // 只有用户拖动滑块时（update()）才将结果合并到 customStyles
 });
 
 function handleCodeInput() {
@@ -602,17 +620,17 @@ function applyBorderPreset(style: string) {
       css = '.section-title,\n.subsection-title {\n  border-bottom: none;\n  padding-bottom: 0;\n}';
       break;
     case 'thin':
-      css = '.section-title,\n.subsection-title {\n  border-bottom: 1px solid #409eff;\n  padding-bottom: 4px;\n}';
+      css = '.section-title,\n.subsection-title {\n  border-bottom: 1px solid #c96442;\n  padding-bottom: 4px;\n}';
       break;
     case 'thick':
-      css = '.section-title,\n.subsection-title {\n  border-bottom: 3px solid #409eff;\n  padding-bottom: 6px;\n}';
+      css = '.section-title,\n.subsection-title {\n  border-bottom: 3px solid #c96442;\n  padding-bottom: 6px;\n}';
       break;
     case 'left':
-      css = '.section-title,\n.subsection-title {\n  border-bottom: none;\n  border-left: 4px solid #409eff;\n  padding-left: 12px;\n  padding-bottom: 0;\n}';
+      css = '.section-title,\n.subsection-title {\n  border-bottom: none;\n  border-left: 4px solid #c96442;\n  padding-left: 12px;\n  padding-bottom: 0;\n}';
       break;
   }
   codeValue.value = css;
-  emit('update:customStyles', css);
+  emitQuickAdjustCss(css);
   activeTab.value = 'code';
 }
 
@@ -621,17 +639,17 @@ function applyColorPreset(scheme: string) {
   let css = '';
   switch (scheme) {
     case 'default':
-      css = '.section-title,\n.subsection-title {\n  color: #333333;\n}';
+      css = '.section-title,\n.subsection-title {\n  color: #141413;\n}';
       break;
     case 'blue':
-      css = '.section-title,\n.subsection-title {\n  color: #409eff;\n}';
+      css = '.section-title,\n.subsection-title {\n  color: #3898ec;\n}';
       break;
-    case 'purple':
-      css = '.section-title,\n.subsection-title {\n  color: #7c3aed;\n}';
+    case 'terracotta':
+      css = '.section-title,\n.subsection-title {\n  color: #c96442;\n}';
       break;
   }
   codeValue.value = css;
-  emit('update:customStyles', css);
+  emitQuickAdjustCss(css);
   activeTab.value = 'code';
 }
 
@@ -639,7 +657,7 @@ function applyColorPreset(scheme: string) {
 const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .style-panel-root {
   height: 100%;
   display: flex;
@@ -649,12 +667,20 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 
 .style-tabs {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:deep(.el-tabs__header) {
+  flex-shrink: 0;
 }
 
 :deep(.el-tabs__content) {
-  overflow-y: auto;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
   padding-right: 4px;
 }
 
@@ -665,7 +691,7 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 .section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #606266;
+  color: var(--color-stone-gray);
   margin: 12px 0 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -680,12 +706,12 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
-  color: #303133;
+  color: var(--color-near-black);
   margin-bottom: 4px;
 }
 
 .control-value {
-  color: #409eff;
+  color: var(--color-terracotta);
   font-weight: 500;
   min-width: 36px;
   text-align: right;
@@ -729,10 +755,10 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
   display: inline-block;
   padding: 2px 8px;
   font-size: 11px;
-  font-family: 'Consolas', 'Monaco', monospace;
-  color: #409eff;
-  background: #ecf5ff;
-  border: 1px solid #d9ecff;
+  font-family: var(--font-mono);
+  color: var(--color-terracotta);
+  background: var(--next-color-primary-lighter);
+  border: 1px solid var(--color-border-cream);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s;
@@ -740,9 +766,9 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 }
 
 .class-chip:hover {
-  color: #fff;
-  background: #409eff;
-  border-color: #409eff;
+  color: var(--color-white);
+  background: var(--color-terracotta);
+  border-color: var(--color-terracotta);
 }
 
 .code-editor-main {
@@ -755,9 +781,9 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #909399;
+  color: var(--color-warm-silver);
   margin-bottom: 12px;
-  background: #f4f4f5;
+  background: var(--color-parchment);
   padding: 8px 12px;
   border-radius: 6px;
 }
@@ -779,7 +805,7 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 
 .preset-label {
   font-size: 12px;
-  color: #909399;
+  color: var(--color-warm-silver);
   margin-bottom: 6px;
 }
 
@@ -805,8 +831,8 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 }
 
 .color-preset-btn.active {
-  border-color: #303133;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3);
+  border-color: var(--color-near-black);
+  box-shadow: 0 0 0 2px var(--color-ring-warm);
 }
 
 /* ==================== 样式参考面板 ==================== */
@@ -820,9 +846,9 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #909399;
+  color: var(--color-warm-silver);
   margin-bottom: 12px;
-  background: #f4f4f5;
+  background: var(--color-parchment);
   padding: 8px 12px;
   border-radius: 6px;
 }
@@ -830,9 +856,9 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 .class-card {
   padding: 8px 12px;
   margin-bottom: 8px;
-  background: #fafafa;
+  background: var(--color-ivory);
   border-radius: 6px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--color-border-cream);
 }
 
 .class-card-header {
@@ -843,10 +869,10 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 }
 
 .class-name {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
-  color: #409eff;
-  background: #ecf5ff;
+  color: var(--color-terracotta);
+  background: var(--next-color-primary-lighter);
   padding: 1px 6px;
   border-radius: 3px;
   cursor: pointer;
@@ -854,28 +880,28 @@ const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 }
 
 .class-name:hover {
-  background: #d9ecff;
+  background: #f7c9bc;
 }
 
 .class-desc {
   font-size: 12px;
-  color: #606266;
+  color: var(--color-stone-gray);
   margin: 0 0 2px;
   line-height: 1.5;
 }
 
 .class-props {
   font-size: 11px;
-  color: #909399;
+  color: var(--color-warm-silver);
   margin: 0;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--font-mono);
 }
 
 /* ==================== el-collapse 微调 ==================== */
 .reference-panel :deep(.el-collapse-item__header) {
   font-size: 13px;
   font-weight: 600;
-  color: #303133;
+  color: var(--color-near-black);
 }
 
 .reference-panel :deep(.el-collapse-item__content) {

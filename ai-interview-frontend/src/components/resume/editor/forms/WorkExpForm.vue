@@ -101,7 +101,7 @@ const removeItem = (index: number) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .list-item-form-vertical { 
   padding: 15px; 
   border: 1px solid #f0f0f0; 
@@ -121,7 +121,7 @@ const removeItem = (index: number) => {
 }
 </style>
 
-<style>
+<style lang="scss">
 /* 全局样式保持不变，用于美化按钮 */
 .ai-polish-button {
   padding: 5px 10px;
@@ -129,7 +129,7 @@ const removeItem = (index: number) => {
   font-size: 12px;
   border-radius: 15px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: var(--color-white);
   border: none;
   transition: all 0.3s ease;
   box-shadow: 0 2px 5px rgba(118, 75, 162, 0.3);

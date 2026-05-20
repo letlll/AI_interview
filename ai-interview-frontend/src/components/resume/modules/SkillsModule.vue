@@ -41,7 +41,7 @@ const titleComponent = computed(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .skills-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -51,5 +51,5 @@ const titleComponent = computed(() => {
   font-size: 14px;
 }
 .skill-name { font-weight: 500; }
-.skill-proficiency { color: #555; }
+.skill-proficiency { color: var(--color-stone-gray); }
 </style>

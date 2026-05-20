@@ -68,35 +68,35 @@ const templates: Template[] = [
     name: '经典模板',
     iconComponent: Document,
     description: '通用正式/校招首选',
-    color: '#2563eb',
+    color: '#3898ec',
   },
   {
     id: 'modern',
     name: '现代模板',
     iconComponent: Notebook,
     description: '互联网/技术岗',
-    color: '#6b21a8',
+    color: '#c96442',
   },
   {
     id: 'minimal',
     name: '简约模板',
     iconComponent: Edit,
     description: '极简干净/设计师',
-    color: '#555555',
+    color: '#87867f',
   },
   {
     id: 'professional',
     name: '专业模板',
     iconComponent: Files,
     description: '金融/国企/传统行业',
-    color: '#1a1a1a',
+    color: '#141413',
   },
   {
     id: 'creative',
     name: '创意模板',
     iconComponent: Brush,
     description: '暗黑科技/创意岗',
-    color: '#f97316',
+    color: '#d97757',
   }
 ];
 
@@ -116,8 +116,8 @@ const selectTemplate = (templateId: string) => {
   top: 60px;
   width: 60px;
   height: calc(100vh - 60px);
-  background: var(--el-bg-color);
-  border-right: 1px solid var(--el-border-color);
+  background: var(--color-ivory);
+  border-right: 1px solid var(--color-border-warm);
   transition: width 0.3s ease;
   overflow: hidden;
   z-index: 100;
@@ -133,12 +133,12 @@ const selectTemplate = (templateId: string) => {
   align-items: center;
   gap: 12px;
   padding: 16px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--color-border-cream);
 
   .header-title {
     font-size: 14px;
     font-weight: 500;
-    color: var(--el-text-color-primary);
+    color: var(--color-near-black);
     white-space: nowrap;
   }
 }
@@ -157,12 +157,12 @@ const selectTemplate = (templateId: string) => {
   position: relative;
 
   &:hover {
-    background: var(--el-fill-color-light);
+    background: var(--color-parchment);
   }
 
   &.is-active {
-    background: var(--el-color-primary-light-9);
-    
+    background: var(--next-color-primary-lighter);
+
     &::before {
       content: '';
       position: absolute;
@@ -170,11 +170,11 @@ const selectTemplate = (templateId: string) => {
       top: 0;
       bottom: 0;
       width: 3px;
-      background: var(--el-color-primary);
+      background: var(--color-terracotta);
     }
 
     .template-name {
-      color: var(--el-color-primary);
+      color: var(--color-terracotta);
       font-weight: 500;
     }
   }
@@ -202,7 +202,7 @@ const selectTemplate = (templateId: string) => {
 
 .template-name {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+  color: var(--color-near-black);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -211,7 +211,7 @@ const selectTemplate = (templateId: string) => {
 
 .template-desc {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--color-stone-gray);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

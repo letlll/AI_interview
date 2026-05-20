@@ -36,7 +36,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .page-container {
   padding: 20px;
   height: calc(100vh - 60px);

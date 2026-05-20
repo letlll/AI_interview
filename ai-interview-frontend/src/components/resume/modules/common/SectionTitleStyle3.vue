@@ -16,7 +16,7 @@ defineProps({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 这些样式精确复刻了您提供的模板中的标题样式 */
 .title-wrapper {
   width: 100%;
@@ -39,7 +39,7 @@ defineProps({
 .title-text {
   font-size: 18px;
   font-weight: 500;
-  color: #fff; /* 白色文字 */
+  color: var(--color-white); /* 白色文字 */
   letter-spacing: 2px;
 }
 
@@ -61,7 +61,7 @@ defineProps({
   transform: rotate(45deg);
   left: 38.75px;
   top: 11.75px;
-  background-color: #fff;
+  background-color: var(--color-white);
 }
 .left-line {
   height: calc(100% - 14.5px);

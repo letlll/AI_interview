@@ -15,25 +15,21 @@
           </div>
         </div>
         <div class="emotion-bars-container space-y-2">
-           <el-progress v-for="emotion in sortedEmotions" :key="emotion.name" :percentage="emotion.score" :stroke-width="8" striped striped-flow>
-              <span class="text-xs text-gray-600">{{ emotion.name }}</span>
-            </el-progress>
+           <el-progress v-for="emotion in sortedEmotions" :key="emotion.name" :percentage="emotion.score" :stroke-width="8" :striped="true" :stripe-flow="true">{{ emotion.name }}</el-progress>
         </div>
       </aside>
 
       <main class="center-panel glass-card p-6 flex flex-col">
         <div class="question-display-area flex-grow flex flex-col gap-4">
-          <div class="ai-presenter flex items-start gap-4">
-            <el-avatar :src="aiAvatar" :size="48" class="flex-shrink-0 shadow-lg" />
-            <div class="flex-grow">
-              <div class="question-header flex items-center gap-4">
-                <h2 class="font-bold text-xl text-gray-800">AI 面试官</h2>
-                <el-tooltip :content="speechTooltip" placement="top" :disabled="!currentQuestion">
-                  <el-button v-if="currentQuestion" @click="toggleSpeech" :icon="speechIcon" type="primary" circle />
-                </el-tooltip>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">问题 {{ currentQuestion?.sequence }} / {{ sessionInfo?.question_count }}</p>
+          <div class="ai-presenter">
+            <el-avatar :src="aiAvatar" :size="48" class="flex-shrink-0 avatar-warm" />
+            <div class="presenter-text">
+              <h2 class="presenter-heading">AI 面试官</h2>
+              <p class="presenter-subtitle">问题 {{ currentQuestion?.sequence }} / {{ sessionInfo?.question_count }}</p>
             </div>
+            <el-tooltip v-if="currentQuestion" :content="speechTooltip" placement="top">
+              <el-button @click="toggleSpeech" :icon="speechIcon" type="default" circle class="tts-btn" />
+            </el-tooltip>
           </div>
           
           <div class="question-text-box bg-white/60 p-5 rounded-lg min-h-[150px] text-gray-900 text-lg leading-relaxed overflow-y-auto flex items-center">
@@ -46,32 +42,33 @@
         </div>
         
         <div class="answer-input-area mt-6">
-          <RichTextEditor v-model="userAnswer" placeholder="请在这里输入您的回答，或使用下方的语音输入功能..." />
-          <div class="speech-control-bar flex items-center justify-center gap-4 p-3 mt-2 bg-white/50 rounded-lg">
+          <RichTextEditor v-model="userAnswer" placeholder="请输入您的回答，或点击下方麦克风进行语音输入..." />
+          <div class="speech-control-bar">
             <el-tooltip content="开始语音输入" placement="top" :disabled="isListening">
-              <el-button @click="startSpeech" :disabled="isListening" type="primary" circle :icon="Microphone" />
+              <el-button @click="startSpeech" :disabled="isListening" type="default" circle :icon="Microphone" class="speech-btn" />
             </el-tooltip>
             <el-tooltip content="停止语音输入" placement="top" :disabled="!isListening">
-              <el-button @click="stopSpeech" :disabled="!isListening" type="danger" circle :icon="SwitchButton" />
+              <el-button @click="stopSpeech" :disabled="!isListening" type="default" circle :icon="SwitchButton" class="speech-btn" />
             </el-tooltip>
-            <span v-if="isListening" class="text-sm text-red-500 animate-pulse">正在聆听...</span>
-            <span v-else class="text-sm text-gray-500">点击麦克风开始语音回答</span>
+            <span v-if="isListening" class="speech-status is-recording">正在聆听...</span>
+            <span v-else class="speech-status">语音回答</span>
           </div>
         </div>
       </main>
 
       <aside class="right-panel flex flex-col gap-6">
-        <div class="controls glass-card p-4 flex flex-col items-center gap-4">
-           <el-button type="primary" size="large" @click="submitAnswer" :loading="isSubmitting" :disabled="!userAnswer.trim()" class="w-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        <div class="controls glass-card p-5 flex flex-col items-center gap-4">
+           <el-button type="primary" size="large" @click="submitAnswer" :loading="isSubmitting" :disabled="!userAnswer.trim()" class="w-full">
             {{ isSubmitting ? '处理中...' : '确认并进入下一题' }}
           </el-button>
+          <div class="divider-line"></div>
           <el-button type="danger" @click="() => confirmFinishInterview()" :loading="isFinishing" class="w-full" plain>
             {{ isFinishing ? '正在结束...' : '结束面试' }}
           </el-button>
         </div>
-        <div class="tips glass-card p-4">
-          <h3 class="uppercase text-xs font-semibold text-gray-400 tracking-wider mb-3">面试注意事项</h3>
-          <ul class="text-xs text-gray-600 list-disc pl-4 space-y-2">
+        <div class="tips glass-card p-5">
+          <h3 class="tips-header">面试注意事项</h3>
+          <ul class="tips-list">
             <li>请确保网络通畅，选择光线充足、背景整洁的环境。</li>
             <li>请正视摄像头，保持声音清晰、语速适中。</li>
             <li>回答问题时，建议结合 STAR 法则，突出个人贡献和量化成果。</li>
@@ -92,7 +89,7 @@ import { ElMessage, ElMessageBox, ElButton, ElProgress, ElIcon, ElAvatar, ElTool
 import { VideoPlay, VideoPause, RefreshRight, Microphone, SwitchButton } from '@element-plus/icons-vue';
 import { getInterviewSessionApi, submitAnswerStreamApi, type InterviewSessionItem, type InterviewQuestionItem, type AnalysisFrame } from '@/api/modules/interview';
 import RichTextEditor from '@/components/common/RichTextEditor.vue';
-import aiAvatar from '@/assets/images/image.png';
+import aiAvatar from '@/assets/images/image.svg';
 
 const route = useRoute();
 const router = useRouter();
@@ -185,10 +182,113 @@ onMounted(async () => { await loadModels(); await setupCamera(); await fetchSess
 onUnmounted(() => { if (analysisInterval.value) clearInterval(analysisInterval.value); if (videoRef.value && videoRef.value.srcObject) { (videoRef.value.srcObject as MediaStream).getTracks().forEach(track => track.stop()); } cancel(); stopSpeech(); });
 </script>
 
-<style scoped>
-.glass-card { background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 1rem; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1); }
-.interview-room-container { overflow: hidden; }
+<style lang="scss" scoped>
+// Claude Design System 卡片 — 实色象牙白，柔和暖调阴影
+.glass-card {
+	background: var(--color-ivory);
+	border: 1px solid var(--color-border-cream);
+	border-radius: 8px;
+	box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+}
+.interview-room-container {
+	background: var(--color-parchment);
+	overflow: hidden;
+}
+// 暖色调替代 Tailwind 灰度
+.text-gray-400 { color: var(--color-warm-silver) !important; text-align: center; }
+.text-gray-500 { color: var(--color-stone-gray) !important; }
+.text-gray-600 { color: var(--color-olive-gray) !important; }
+.text-gray-700 { color: var(--color-charcoal-warm) !important; }
+.text-gray-800 { color: var(--color-near-black) !important; }
+.text-gray-900 { color: var(--color-near-black) !important; }
+.bg-gray-200 { background-color: var(--color-warm-sand) !important; }
+.text-blue-600 { color: var(--color-terracotta) !important; }
+.text-red-500 { color: var(--color-error) !important; }
+.text-green-800 { color: #3d5a3d !important; }
+.bg-green-100\/80 { background-color: rgba(221, 251, 230, 0.8) !important; }
+.border-green-200 { border-color: #b8d9b8 !important; }
+.bg-white\/50 { background-color: var(--color-ivory) !important; }
+.bg-white\/60 { background-color: var(--color-white) !important; padding: 24px !important;}
+.bg-black { background-color: var(--color-near-black) !important; }
+.bg-opacity-50 { --tw-bg-opacity: 0.5; }
+.shadow-inner { box-shadow: rgba(0, 0, 0, 0.06) 0px 2px 4px inset !important; }
+// AI-presenter — 头像暖调阴影 + 衬线体标题排版
+.avatar-warm {
+	box-shadow: rgba(0, 0, 0, 0.08) 0px 2px 8px;
+  margin: 12px;
+}
+.ai-presenter {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.presenter-text {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.presenter-heading {
+	font-family: var(--font-serif);
+	font-size: 20.8px;
+	font-weight: 500;
+	line-height: 1.20;
+	color: var(--color-near-black);
+	margin: 0;
+}
+.presenter-subtitle {
+	font-family: var(--font-sans);
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.25;
+	letter-spacing: 0.12px;
+	color: var(--color-stone-gray);
+	margin: 0;
+}
+.tts-btn {
+	flex-shrink: 0;
+  margin: 12px;
+}
+// 右侧面板 — Controls 卡片
+.text-warm-silver { color: var(--color-warm-silver); }
+.divider-line {
+	height: 1px;
+	width: 100%;
+	background: var(--color-border-cream);
+}
+// 右侧面板 — Tips 卡片
+.tips-header {
+	font-family: var(--font-sans);
+	font-size: 10px;
+	font-weight: 400;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	color: var(--color-stone-gray);
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--color-border-cream);
+  display: flex;
+  align-items: center;    /* 垂直居中 */
+  justify-content: center;/* 水平居中 */
+}
+.tips-list {
+	list-style: none;
+	padding: 16px;
+	margin: 0;
+	li {
+    list-style: none;
+		font-family: var(--font-sans);
+		font-size: 13px;
+		line-height: 1.6;
+		color: var(--color-olive-gray);
+		padding: 6px 0; /* 去掉左侧内边距，完全左对齐 */
+		position: relative;
+		/* 已删除：圆点伪元素 */
+		/* 已删除：列表之间的分割线 */
+	}
+}
 .main-content-grid { display: grid; grid-template-columns: 300px 1fr 260px; grid-template-rows: calc(100vh - 6rem); gap: 1.5rem; }
 @media (max-width: 1280px) { .main-content-grid { grid-template-columns: 300px 1fr; grid-template-rows: auto; } .right-panel { grid-column: 1 / -1; flex-direction: row; align-items: flex-start; } .right-panel .controls, .right-panel .tips { flex-basis: 50%; } }
 @media (max-width: 768px) { .interview-room-container { overflow-y: auto; } .main-content-grid { display: flex; flex-direction: column; height: auto; } .right-panel { flex-direction: column; } }
+/* 语音控制栏 */ .speech-control-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;margin-top:8px;background:var(--color-ivory);border:1px solid var(--color-border-cream);border-radius:8px} .speech-btn{margin:10px} .speech-status{font-family:var(--font-sans);font-size:13px;line-height:1.6;color:var(--color-stone-gray)} .speech-status.is-recording{color:var(--color-terracotta)}
 </style>

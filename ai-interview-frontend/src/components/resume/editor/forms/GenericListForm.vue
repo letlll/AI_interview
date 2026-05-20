@@ -115,8 +115,8 @@ const removeItem = (index: number) => {
 };
 </script>
 
-<style scoped>
-.list-item-form-vertical { padding: 15px; border: 1px solid #f0f0f0; margin-bottom: 15px; border-radius: 4px; }
+<style lang="scss" scoped>
+.list-item-form-vertical { padding: 15px; border: 1px solid var(--color-parchment); margin-bottom: 15px; border-radius: 4px; }
 .description-wrapper { width: 100%; }
 .description-label { display: flex; justify-content: space-between; width: 100%; align-items: center; margin-bottom: 8px; }
 </style>

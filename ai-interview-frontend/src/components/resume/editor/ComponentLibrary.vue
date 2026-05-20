@@ -72,20 +72,20 @@ const scrollToModule = (moduleId: string) => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 样式保持不变 */
 .panel-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-.panel-desc { font-size: 12px; color: #999; margin-bottom: 16px; }
+.panel-desc { font-size: 12px; color: var(--color-warm-silver); margin-bottom: 16px; }
 .added-modules-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-.added-module-item { display: flex; align-items: center; padding: 8px 12px; border: 1px solid #e8e8e8; border-radius: 4px; cursor: pointer; background-color: #fff; }
+.added-module-item { display: flex; align-items: center; padding: 8px 12px; border: 1px solid var(--color-warm-sand); border-radius: 4px; cursor: pointer; background-color: var(--color-ivory); }
 .added-module-item.is-active { border-color: #409eff; background-color: #ecf5ff; }
-.drag-indicator { cursor: grab; color: #999; margin-right: 8px; }
-.delete-icon { margin-left: auto; color: #999; cursor: pointer; }
+.drag-indicator { cursor: grab; color: var(--color-warm-silver); margin-right: 8px; }
+.delete-icon { margin-left: auto; color: var(--color-warm-silver); cursor: pointer; }
 .delete-icon:hover { color: #f56c6c; }
-.add-module-btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 10px; border: 1px dashed #dcdfe6; border-radius: 4px; color: #409eff; cursor: pointer; background-color: #f9f9f9; }
+.add-module-btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 10px; border: 1px dashed #dcdfe6; border-radius: 4px; color: #409eff; cursor: pointer; background-color: var(--color-ivory); }
 .add-module-btn:hover { border-color: #409eff; background-color: #ecf5ff; }
 .module-pool { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 16px; }
-.module-pool-item { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 8px; border: 1px solid #e8e8e8; border-radius: 4px; cursor: pointer; }
+.module-pool-item { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 8px; border: 1px solid var(--color-warm-sand); border-radius: 4px; cursor: pointer; }
 .module-pool-item:hover { border-color: #409eff; color: #409eff; }
 .module-pool-item .el-icon { font-size: 24px; margin-bottom: 8px; }
 </style>

@@ -268,7 +268,7 @@
 
               <!-- 错误状态 -->
               <div v-else-if="electronPreviewError" class="pdf-preview-error">
-                <el-icon size="32" color="#f56c6c"><CircleCloseFilled /></el-icon>
+                <el-icon size="32" color="#b53333"><CircleCloseFilled /></el-icon>
                 <p>{{ electronPreviewError }}</p>
                 <el-button size="small" @click="handleRefreshElectronPreview">重试</el-button>
               </div>
@@ -1383,7 +1383,7 @@ const handleRefreshChat = async () => {
 .resume-generator-new {
   position: relative;
   height: calc(100vh - 60px);
-  background: var(--el-bg-color-page);
+  background: var(--color-parchment);
 }
 
 .main-content {
@@ -1398,14 +1398,16 @@ const handleRefreshChat = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color);
+  background: var(--color-ivory);
+  border-bottom: 1px solid var(--color-border-warm);
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-size: 20.8px;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  line-height: 1.20;
+  color: var(--color-near-black);
   margin: 0;
 }
 
@@ -1442,7 +1444,7 @@ const handleRefreshChat = async () => {
 
     &.status-draft {
       background: #e6f7ff;
-      color: #1890ff;
+      color: #3898ec;
     }
 
     &.status-published {
@@ -1474,8 +1476,8 @@ const handleRefreshChat = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color);
-  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--color-border-warm);
+  background: var(--color-ivory);
   flex-shrink: 0;
 }
 
@@ -1487,13 +1489,13 @@ const handleRefreshChat = async () => {
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: var(--el-text-color-primary);
+  color: var(--color-near-black);
   padding: 4px 8px;
   border-radius: 4px;
   transition: background 0.2s;
 
   &:hover {
-    background: var(--el-fill-color-light);
+    background: var(--color-parchment);
   }
 }
 
@@ -1503,9 +1505,9 @@ const handleRefreshChat = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color);
+  border-bottom: 1px solid var(--color-border-warm);
   font-weight: 500;
-  color: var(--el-text-color-primary);
+  color: var(--color-near-black);
   flex-shrink: 0;
 }
 
@@ -1517,7 +1519,7 @@ const handleRefreshChat = async () => {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  border-right: 1px solid var(--el-border-color);
+  border-right: 1px solid var(--color-border-warm);
   display: flex;
   flex-direction: column;
 
@@ -1526,11 +1528,17 @@ const handleRefreshChat = async () => {
   }
 }
 
+// AI 聊天面板需要 flex:1 才能正确撑满 chat-section 剩余空间（header 之后）
+.chat-section :deep(.ai-chat-panel) {
+  flex: 1;
+  min-height: 0;
+}
+
 // Markdown、源码、样式编辑器样式
 .markdown-section,
 .source-section,
 .style-section {
-  background: var(--el-bg-color);
+  background: var(--color-ivory);
 
   .markdown-editor,
   .source-editor {
@@ -1540,9 +1548,10 @@ const handleRefreshChat = async () => {
     :deep(.el-textarea__inner) {
       height: 100%;
       resize: none;
-      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-      font-size: 14px;
+      font-family: var(--font-mono);
+      font-size: 15px;
       line-height: 1.6;
+      letter-spacing: -0.32px;
       padding: 16px;
       border: none;
       border-radius: 0;
@@ -1551,24 +1560,24 @@ const handleRefreshChat = async () => {
 }
 
 .markdown-editor :deep(.el-textarea__inner) {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--color-parchment);
+  color: var(--color-near-black);
 }
 
 .source-editor :deep(.el-textarea__inner) {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--color-parchment);
+  color: var(--color-near-black);
 }
 
 // 预览区样式
 .preview-section {
-  background: var(--el-bg-color);
+  background: var(--color-ivory);
 
   .preview-content {
     flex: 1;
     overflow: auto;
-    padding: 0;           
-    background: #c8c8c8;
+    padding: 0;
+    background: var(--color-parchment);
   }
 }
 
@@ -1580,28 +1589,28 @@ const handleRefreshChat = async () => {
   z-index: 10;
   width: 32px;
   height: 64px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color);
+  background: var(--color-ivory);
+  border: 1px solid var(--color-border-warm);
   border-right: none;
   border-radius: 4px 0 0 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--el-text-color-regular);
+  color: var(--color-charcoal-warm);
   transition: all 0.3s ease;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
-  
+
   &:hover {
-    background: var(--el-fill-color-light);
-    color: var(--el-color-primary);
+    background: var(--color-parchment);
+    color: var(--color-terracotta);
     width: 36px;
   }
-  
+
   .preview-collapsed & {
     right: -32px;
     border-radius: 0 4px 4px 0;
-    border-right: 1px solid var(--el-border-color);
+    border-right: 1px solid var(--color-border-warm);
     border-left: none;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
   }
@@ -1634,7 +1643,7 @@ const handleRefreshChat = async () => {
     width: 100%;
     height: 100vh;
     z-index: 1000;
-    background: var(--el-bg-color);
+    background: var(--color-ivory);
   }
   
   .collapse-toggle {
@@ -1677,14 +1686,14 @@ const handleRefreshChat = async () => {
   align-items: center;
   justify-content: center;
   padding: 60px 0;
-  color: var(--el-text-color-secondary);
+  color: var(--color-stone-gray);
 }
 .pdf-preview-loading p {
   margin-top: 12px;
 }
 .pdf-preview-info {
   margin-bottom: 16px;
-  color: var(--el-text-color-secondary);
+  color: var(--color-stone-gray);
   font-size: 13px;
 }
 .pdf-preview-pages {
@@ -1695,7 +1704,7 @@ const handleRefreshChat = async () => {
   max-width: 100%;
 }
 .pdf-preview-page {
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--color-border-cream);
   border-radius: 4px;
   overflow: hidden;
   min-width: 0;
@@ -1703,10 +1712,10 @@ const handleRefreshChat = async () => {
 }
 .pdf-preview-page-label {
   padding: 6px 12px;
-  background: var(--el-fill-color-light);
+  background: var(--color-parchment);
   font-size: 12px;
-  color: var(--el-text-color-secondary);
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  color: var(--color-stone-gray);
+  border-bottom: 1px solid var(--color-border-cream);
 }
 .pdf-preview-page-body {
   min-width: 0;
@@ -1715,7 +1724,7 @@ const handleRefreshChat = async () => {
   justify-content: center;
   align-items: flex-start;
   padding: 12px;
-  background: var(--el-fill-color-lighter);
+  background: var(--color-ivory);
   box-sizing: border-box;
 }
 .pdf-preview-img {
@@ -1726,7 +1735,7 @@ const handleRefreshChat = async () => {
   height: auto;
   object-fit: contain;
   /* 纸张外轮廓：阴影 + 白色背景 + 圆角 */
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 4px;
   box-shadow:
     0 4px 6px rgba(0, 0, 0, 0.07),
@@ -1743,7 +1752,7 @@ const handleRefreshChat = async () => {
   height: 100%;
   overflow-y: auto;
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--color-parchment);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -1765,12 +1774,12 @@ const handleRefreshChat = async () => {
   justify-content: center;
   padding: 60px 0;
   gap: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--color-stone-gray);
   width: 100%;
 }
 
 .pdf-preview-error p {
-  color: #f56c6c;
+  color: var(--color-error);
   margin: 0;
 }
 </style>

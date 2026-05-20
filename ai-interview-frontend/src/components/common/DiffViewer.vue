@@ -57,9 +57,16 @@ const htmlToText = (html: string): string => {
 
 </script>
 
-<style scoped>
-.diff-viewer-container { border: 1px solid #e0e0e0; border-radius: 4px; padding: 16px; background-color: #f9f9f9; font-family: 'Courier New', Courier, monospace; line-height: 1.6; }
-.diff-legend { margin-bottom: 12px; font-family: sans-serif; font-size: 12px; }
+<style lang="scss" scoped>
+.diff-viewer-container {
+  border: 1px solid var(--color-border-cream);
+  border-radius: 4px;
+  padding: 16px;
+  background-color: var(--color-ivory);
+  font-family: var(--font-mono);
+  line-height: 1.6;
+}
+.diff-legend { margin-bottom: 12px; font-family: var(--font-sans); font-size: 12px; }
 .legend-item { margin-right: 16px; padding: 2px 6px; border-radius: 3px; }
 .added { background-color: #ddfbe6; color: #278342; }
 .deleted { background-color: #fce8e8; color: #c73737; text-decoration: line-through; }

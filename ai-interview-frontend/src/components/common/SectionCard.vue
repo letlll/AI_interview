@@ -13,7 +13,7 @@ defineProps<{
 }>();
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .section-card {
   margin-bottom: 20px;
 }
@@ -22,6 +22,6 @@ defineProps<{
   font-weight: 600;
   margin: 0 0 15px 0;
   padding-bottom: 10px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-cream);
 }
 </style>

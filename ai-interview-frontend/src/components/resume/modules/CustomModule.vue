@@ -28,11 +28,11 @@ const titleComponent = computed(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 【核心修改】 */
 .section-content {
   font-size: 14px;
-  color: #555;
+  color: var(--color-stone-gray);
   line-height: 1.8;
   font-family: inherit;
 }

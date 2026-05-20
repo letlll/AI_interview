@@ -95,7 +95,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 样式可以保持不变，但 processing 状态不再需要 */
 .recorder-container { display: flex; flex-direction: column; align-items: center; gap: 15px; }
 .record-button { width: 100px; height: 100px; border-radius: 50%; border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s ease; color: white; }
@@ -103,7 +103,7 @@ onUnmounted(() => {
 .record-button.recording { background-color: #F56C6C; animation: pulse 1.5s infinite; }
 .status-indicator { font-size: 1.2rem; font-weight: 500; }
 .status-indicator.recording { color: #F56C6C; }
-.status-indicator.idle { color: #606266; }
+.status-indicator.idle { color: var(--color-stone-gray); }
 .tip-text { color: #c0c4cc; }
 
 @keyframes pulse {

@@ -31,11 +31,11 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="scope">
-            <el-button @click="handleContinueWithAI(scope.row.id)" :icon="Cpu" type="warning" plain>AI 编辑</el-button>
-            <el-button link type="primary" @click="handlePreview(scope.row)">预览</el-button>
+            <el-button @click="handleContinueWithAI(scope.row.id)" :icon="Cpu" type="warning" plain>编辑</el-button>
+            <el-button link type="primary" @click="handlePreview(scope.row)">&nbsp;预览&nbsp;</el-button>
             <el-popconfirm title="确定要删除这份简历吗？" @confirm="handleDelete(scope.row.id)">
               <template #reference>
-                <el-button link type="danger">删除</el-button>
+                <el-button link type="danger">&nbsp;删除&nbsp;</el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -222,7 +222,7 @@ const statusText = (status: string) => ({ draft: '草稿', published: '已发布
 const statusTagType = (status: string) => ({ draft: 'info', published: 'success', parsed: 'success', failed: 'danger' }[status] || 'info');
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 样式与之前保持一致 */
 .page-container { padding: 20px; }
 .page-card-header { display: flex; justify-content: space-between; align-items: center; }

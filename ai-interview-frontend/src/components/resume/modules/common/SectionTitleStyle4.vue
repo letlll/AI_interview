@@ -11,7 +11,7 @@ defineProps({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .title-wrapper-sidebar {
   display: flex;
   flex-direction: column;
@@ -22,7 +22,7 @@ defineProps({
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: #fff; /* 白色文字 */
+  color: var(--color-white); /* 白色文字 */
   padding-bottom: 5px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.5); /* 半透明下划线 */
 }

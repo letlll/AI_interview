@@ -276,7 +276,7 @@ watch(() => props.extraStyles, () => { renderContent(); recalculate(); });
 defineExpose({ pageRefs, pageCount, recalculate, contentRef });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /*
  * 布局说明：
  * .pdf-page-view        → 铺满父容器，display:flex 居中，overflow 交由外层 .preview-content 处理
@@ -298,7 +298,7 @@ defineExpose({ pageRefs, pageCount, recalculate, contentRef });
   flex-direction: column;
   align-items: center;
   padding: 24px 0;
-  background: #d0d0d0; /* 比原来稍深，增强页间阴影对比 */
+  background: #d0d0d0; /* 模拟桌面背景，保持中性灰色 */
   box-sizing: border-box;
 }
 
@@ -311,8 +311,8 @@ defineExpose({ pageRefs, pageCount, recalculate, contentRef });
   box-sizing: border-box;
   font-size: 14px;
   line-height: 1.6;
-  color: #333;
-  background: #ffffff;
+  color: var(--color-near-black);
+  background: var(--color-white);
   visibility: hidden;
   pointer-events: none;
   /* height/overflow 由 JS 动态设置，初始同正常文档流 */
@@ -323,14 +323,10 @@ defineExpose({ pageRefs, pageCount, recalculate, contentRef });
 .pdf-pages-container {
   position: relative;
   margin: 0 auto;
-  background: #c8c8c8; /* 灰缝底色：比 #d0d0d0 更深，缝更明显 */
+  background: #c8c8c8; /* 灰缝底色，模拟纸张叠放间隙 */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 794px;
-  /* 高度由 JS 动态设置: n * PAGE_LAYOUT_HEIGHT_PX + (n-1) * PAGE_GAP_PX
-     = n * (A4_HEIGHT_PX + PAGE_GAP_PX) + (n-1) * PAGE_GAP_PX
-     = n * A4_HEIGHT_PX + n * PAGE_GAP_PX + (n-1) * PAGE_GAP_PX
-     = n * A4_HEIGHT_PX + (2n-1) * PAGE_GAP_PX
-     简化为：n * A4_HEIGHT_PX + (2n-1) * PAGE_GAP_PX */
+  /* 高度由 JS 动态设置 */
 }
 
 .pdf-page-shell {
@@ -364,7 +360,7 @@ defineExpose({ pageRefs, pageCount, recalculate, contentRef });
   right: 16px;
   font-size: 10px;
   color: rgba(0, 0, 0, 0.35);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
   pointer-events: none;
   z-index: 3;
   user-select: none;
@@ -379,14 +375,14 @@ defineExpose({ pageRefs, pageCount, recalculate, contentRef });
   box-sizing: border-box;
   font-size: 14px;
   line-height: 1.6;
-  color: #333;
-  background: #ffffff;
+  color: var(--color-near-black);
+  background: var(--color-white);
   /* 注意：clone 内已有 padding:30px，这里不再设 padding */
 }
 </style>
 
 <!-- 简历样式（全局，无 scoped） -->
-<style>
+<style lang="scss">
 /* 断行规则：尽量保持块级元素不被从中截断 */
 .pdf-page-view .resume-document {
   max-width: 100%;

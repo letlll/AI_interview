@@ -14,23 +14,23 @@
 // No script logic needed here
 </script>
 
-<style>
+<style lang="scss">
 /* 全局样式 */
 html, body, #app, #app-container {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  overflow: hidden; /* 防止背景元素导致滚动条 */
+  font-family: var(--font-sans);
+  overflow: hidden;
 }
 
-/* 根容器，应用渐变背景 */
+/* 根容器 — Claude Parchment 暖色背景 */
 #app-container {
   position: relative;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); /* 一个柔和的蓝灰色渐变 */
-  overflow-y: auto; /* 只允许内容区域垂直滚动 */
-  scroll-behavior: smooth; /* 全局平滑滚动 */
+  background: var(--color-parchment);
+  overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 /* 粒子效果容器 */

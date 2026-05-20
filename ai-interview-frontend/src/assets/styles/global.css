@@ -95,7 +95,7 @@ body {
 
 /* [UI/UX 升级] 为整个应用设置优雅的渐变背景 */
 body {
-  background: linear-gradient(to bottom right, #FEFDE8, #aaf2b2, #8ceaee);
+  background: #f5f4ed;
   min-height: 100vh;
 }
 

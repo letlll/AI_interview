@@ -171,19 +171,19 @@ const exportToPDF = async () => {
 };
 </script>
 
-<style scoped>
-.preview-page-container { background-color: #f0f2f5; min-height: 100vh; }
-.preview-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10; }
-.loading-container { max-width: 210mm; margin: 20px auto; padding: 20px; background: #fff; }
+<style lang="scss" scoped>
+.preview-page-container { background-color: var(--color-parchment); min-height: 100vh; }
+.preview-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background-color: var(--color-ivory); box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10; }
+.loading-container { max-width: 210mm; margin: 20px auto; padding: 20px; background: var(--color-ivory); }
 .resume-wrapper { padding: 30px 0; display: flex; justify-content: center; }
-.resume-paper { width: 210mm; min-height: 297mm; background-color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); transition: all 0.3s; }
+.resume-paper { width: 210mm; min-height: 297mm; background-color: var(--color-white); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); transition: all 0.3s; }
 
 .preview-component-item {
   border-bottom: none;
-  background-color: #fff;
+  background-color: var(--color-white);
 }
 .canvas-area .preview-component-item:not(:last-child) {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--color-parchment);
 }
 .empty-tip { padding-top: 100px; }
 .pdf-iframe { width: 100%; height: 100%; border: none; min-height: 600px; }

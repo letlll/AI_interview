@@ -151,15 +151,15 @@ const handleAnalysis = async () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .resume-editor-container { display: flex; flex-direction: column; height: calc(100vh - 60px); overflow: hidden; }
-.editor-header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 60px; background-color: #fff; border-bottom: 1px solid #e8e8e8; flex-shrink: 0; }
+.editor-header { display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 60px; background-color: var(--color-white); border-bottom: 1px solid #e8e8e8; flex-shrink: 0; }
 .header-left { display: flex; align-items: center; gap: 16px; }
 .resume-title-input { width: 300px; }
 .header-actions { display: flex; align-items: center; gap: 16px; }
 .template-selector { width: 150px; }
 .editor-main { display: flex; flex-grow: 1; overflow: hidden; height: 100%; }
 .editor-loading { padding: 20px; }
-.editor-sidebar { width: 450px; background-color: #fff; border-right: 1px solid #e8e8e8; overflow-y: auto; flex-shrink: 0; height: 100%; }
+.editor-sidebar { width: 450px; background-color: var(--color-white); border-right: 1px solid #e8e8e8; overflow-y: auto; flex-shrink: 0; height: 100%; }
 .editor-canvas-wrapper { flex-grow: 1; padding: 20px; overflow-y: auto; background-color: #f0f2f5; display: flex; justify-content: center; height: 100%; }
 </style>

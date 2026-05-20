@@ -104,7 +104,7 @@ const removeItem = (propKey: string, index: number) => {
 };
 </script>
 
-<style>
+<style lang="scss">
 /* 样式保持不变 */
 .avatar-uploader .el-upload { border: 1px dashed var(--el-border-color); border-radius: 6px; cursor: pointer; position: relative; overflow: hidden; transition: var(--el-transition-duration-fast); }
 .avatar-uploader .el-upload:hover { border-color: var(--el-color-primary); }
