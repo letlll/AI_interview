@@ -62,32 +62,32 @@ Step 2 — 根据分类结果，按 mode/sub_skill 的行为约束生成 `instru
 ### style（样式模式）
 - 用户要求调字体/颜色/间距/布局
 - output_type = extra_styles
-- 返回 CSS 片段注入 extraStyles
+- 返回 CSS 片段写入 customStyles
 - 不改 resumeData.content
-- **返回完整 extraStyles**：不返回 diff/patch，将现有规则 + 本次修改合并后返回完整 CSS 字符串
+- **返回增量 CSS**：customStyles 排在 themeStyles 之后，同选择器自然覆盖主题默认值
+- 只返回需要修改的选择器和属性，不要重复 themeStyles 中已有的全部规则
+
+#### 样式架构说明
+
+简历样式分两层：
+1. **themeStyles**（主题 CSS）— 用户选主题时整套替换，AI 不直接修改
+2. **customStyles**（用户自定义）— AI 和用户修改的目标，排列在 themeStyles 后自然覆盖
 
 #### CSS 类参考表
 
-**第 1 层 — 全局容器/主题**
+**第 1 层 — 全局容器**
 
 | 选择器 | 作用 | 常用属性 |
 |--------|------|---------|
-| `.resume-document` | 全局容器 | font-family, font-size, line-height, padding, color |
-| `.resume-document.theme-{name}` | 主题（blue/dark/minimal/classic/modern） | — |
-| CSS 变量 | 见下方变量表 | 在 `.resume-document {}` 内重定义 |
-
-CSS 变量清单（在 `.resume-document {}` 内覆盖）：
-`--accent` `--accent-light` `--text-primary` `--text-secondary` `--text-muted`
-`--bg` `--border` `--hover-bg` `--focus-bg` `--tag-bg`
-`--border-work` `--border-projects` `--border-education` `--border-custom`
+| `.resume-document` | 全局容器 | box-shadow, border-radius, padding, font-family, font-size, color, background |
 
 **第 2 层 — 标题层级**
 
 | 选择器 | 作用 | 常用属性 |
 |--------|------|---------|
-| `.resume-name` | H1 姓名 | font-size（默认22px）, text-align, margin |
-| `.section-title` | H2 区块标题 | font-size（默认15px）, margin（段前24px段后12px） |
-| `.subsection-title` | H3/H4 子标题 | font-size, font-family, margin |
+| `.resume-name` | H1 姓名 | font-size（默认22px）, text-align, margin, color |
+| `.section-title` | H2 区块标题 | font-size（默认15px）, border-bottom, color |
+| `.subsection-title` | H3/H4 子标题 | font-size, font-family, margin, color |
 | `.project-title-text` | H3 `|` 左侧项目名 | font-size, font-weight, color |
 | `.project-title-date` | H3 `|` 右侧日期 | font-size（默认12px）, color（默认#999） |
 
@@ -101,69 +101,49 @@ CSS 变量清单（在 `.resume-document {}` 内覆盖）：
 | `.link` | 链接 | color, text-decoration |
 | `.table` | 三线表 | border, font-size |
 | `.blockquote` | 引用块 | border-left, padding, background-color |
+| `.divider` | 分隔线 | border-top |
 | `.work-list` `.project-list` `.education-list` `.skills-list` `.summary-list` | 列表容器 | padding-left, list-style |
 | `.item-header` `.item-title` `.item-company` `.item-duration` `.item-body` | 条目内部 | font-size, color |
+| `.section-title--work` `.section-title--projects` `.section-title--education` `.section-title--skill` | H2 类型变体 | border-bottom-color |
 
-#### CSS 设计令牌（可选参考）
+**第 4 层 — 可编辑状态**
 
-以下 CSS 变量定义在 `.resume-document` 上，可通过覆盖变量来批量调整风格。AI 默认仍返回具体属性值，仅在用户明确要求"换主题风格"或"整体调间距"时才使用变量。
-
-| 令牌 | 作用 | 默认值 |
-|------|------|--------|
-| `--spacing-doc-padding` | 文档内边距 | 40px |
-| `--spacing-section-gap` | 区块间距 | 24px |
-| `--spacing-item-gap` | 列表项间距 | 4px |
-| `--font-size-base` | 正文字号 | 14px |
-| `--font-size-name` | 姓名字号 | 22px |
-| `--font-size-h2` | 区块标题字号 | 15px |
-| `--line-height` | 正文行高 | 1.5 |
-| `--radius-doc` | 文档圆角 | 8px |
-| `--radius-sm` | 小元素圆角 | 3px |
-| `--skill-radius` | 技能标签圆角 | 3px |
-| `--skill-bg` | 技能标签背景 | #f5f5f5 |
-| `--border-section-width` | 区块标题底线粗细 | 0（无） |
-| `--shadow-doc` | 文档阴影 | 较弱阴影 |
-| `--list-marker` | 列表符号 | disc |
-
-使用令牌的 extraStyles 示例：
-```css
-.resume-document {
-  --spacing-doc-padding: 50px;
-  --font-size-base: 15px;
-}
-```
+| 选择器 | 作用 |
+|--------|------|
+| `[contenteditable="true"]:hover` | 编辑悬停背景 |
+| `[contenteditable="true"]:focus` | 编辑焦点背景 |
 
 #### style mode 修改规则
 
-1. **保留现有规则** — 用户未提到的选择器/属性全部原样保留，不删不改
+1. **只写增量** — 仅返回需要修改的选择器和属性，不重复 themeStyles 已有规则
 2. **属性精确修改** — 用户说"字体调大"→ 只改 font-size，不动 font-family/color/line-height
-3. **选择器匹配** — 参考上方参考表精准定位。如"列表间距太大"→ `.work-item { margin-bottom: 2px; }`，不是改 line-height
-4. **返回完整 CSS** — 合并现有规则 + 本次修改，返回完整 extraStyles，不返回 diff
+3. **选择器匹配** — 参考上方参考表精准定位。如"列表间距太大"→ `.work-item { margin-bottom: 2px; }`
+4. **path=customStyles** — 写入用户自定义样式层，排在 themeStyles 后自然覆盖
 5. **注释标记修改行** — 在被修改的属性上方加 `/* modified */` 注释
 
 #### 示例
 
-示例 1 — 用户："字体调大一点"（extraStyles 之前为空）
+示例 1 — 用户："字体调大一点"（customStyles 之前为空）
 
 ```json
 {
   "classification": { "intent": "style_adjust", "mode": "style", "output_type": "extra_styles", "sub_skill": "none", "..." },
   "instructions": [
-    { "action": "replace", "path": "extraStyles", "value": "/* modified */\n.resume-document {\n  font-size: 16px;\n}\n" }
+    { "action": "replace", "path": "customStyles", "value": "/* modified */\n.resume-document {\n  font-size: 16px;\n}\n" }
   ],
   "message": "已将正文字号从 14px 调整为 16px。"
 }
 ```
 
-示例 2 — 用户："技能标签颜色太淡了"（extraStyles 已有 `.resume-document { font-size: 16px; }`）
+示例 2 — 用户："技能标签颜色太淡了"（customStyles 已有 `.resume-document { font-size: 16px; }`）
 
 ```json
 {
   "classification": { "intent": "style_adjust", "mode": "style", "output_type": "extra_styles", "sub_skill": "none", "..." },
   "instructions": [
-    { "action": "replace", "path": "extraStyles", "value": ".resume-document {\n  font-size: 16px;\n}\n.skill-item {\n  /* modified */\n  background-color: #e0e0e0;\n  /* modified */\n  color: #333333;\n  border: 1px solid #e0e0e0;\n  border-radius: 3px;\n  padding: 2px 10px;\n  font-size: 13px;\n}\n" }
+    { "action": "replace", "path": "customStyles", "value": ".resume-document {\n  font-size: 16px;\n}\n.skill-item {\n  /* modified */\n  background-color: #e0e0e0;\n  /* modified */\n  color: #333333;\n  border: 1px solid #e0e0e0;\n  border-radius: 3px;\n  padding: 2px 10px;\n  font-size: 13px;\n}\n" }
   ],
-  "message": "已加深技能标签颜色：背景 #f5f5f5 → #e0e0e0，文字 #666 → #333。"
+  "message": "已加深技能标签颜色：背景 → #e0e0e0，文字 → #333。"
 }
 ```
 

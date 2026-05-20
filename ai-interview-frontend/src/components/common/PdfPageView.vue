@@ -53,7 +53,6 @@ import { renderMarkdownContent, postProcessSectionsDOM } from '@/composables/use
 
 const props = defineProps<{
   content?: string;
-  themeClass?: string;
   extraStyles?: string;
   visible?: boolean;
 }>();
@@ -115,7 +114,6 @@ const renderContent = () => {
   // 使用 composable，extraStyles 已内联到 .resume-document 内部
   el.innerHTML = renderMarkdownContent({
     content: props.content,
-    themeClass: props.themeClass || 'theme-blue',
     extraStyles: props.extraStyles || '',
   });
   postProcessSectionsDOM(el);
@@ -236,7 +234,6 @@ onMounted(() => {
   console.log('[PdfPageView onMounted]', {
     contentLen: props.content?.length ?? 0,
     visible: props.visible,
-    themeClass: props.themeClass,
   });
   renderContent();
   recalculate();
@@ -274,7 +271,6 @@ watch(() => props.content, () => {
     }
   });
 }, { immediate: true });
-watch(() => props.themeClass, () => { renderContent(); recalculate(); });
 watch(() => props.extraStyles, () => { renderContent(); recalculate(); });
 
 defineExpose({ pageRefs, pageCount, recalculate, contentRef });
@@ -412,13 +408,7 @@ defineExpose({ pageRefs, pageCount, recalculate, contentRef });
 }
 
 .pdf-page-view .resume-name { font-size: 28px; font-weight: 700; text-align: center; margin: 0 0 12px; color: inherit; border: none !important; padding: 0 !important; }
-.pdf-page-view .section-title { font-size: 16px; font-weight: 600; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin: 16px 0 10px; color: inherit; }
-.pdf-page-view .section-title.h1 { font-size: 32px; }
-.pdf-page-view .section-title.h2 { font-size: 18px; }
-.pdf-page-view .section-title.h3 { font-size: 16px; }
-.pdf-page-view .section-title.h4 { font-size: 15px; }
-.pdf-page-view .section-title.h5 { font-size: 14px; }
-.pdf-page-view .section-title.h6 { font-size: 13px; }
+.pdf-page-view .section-title, .pdf-page-view .subsection-title { font-size: 16px; font-weight: 600; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; margin: 16px 0 10px; color: inherit; }
 .pdf-page-view .item-list, .pdf-page-view .skills-list, .pdf-page-view .summary-list, .pdf-page-view .work-list, .pdf-page-view .project-list, .pdf-page-view .education-list, .pdf-page-view .custom-list { padding-left: 20px; margin: 0 0 10px; list-style: disc; }
 .pdf-page-view .item { margin-bottom: 4px; }
 .pdf-page-view .skills-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }

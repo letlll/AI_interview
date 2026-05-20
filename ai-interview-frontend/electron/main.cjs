@@ -30,7 +30,7 @@ const TEMP_DIR = path.join(os.tmpdir(), 'electron-pdf-temp');
 // 隐藏 BrowserWindow 尺寸
 // 内容区 .resume-document: max-width:800px + padding:40px*2 = 880px
 // 预留 60px 余量（避免边角被裁切），设为 940px 宽
-const A4_WIDTH = 940;
+const A4_WIDTH = 794;
 const A4_HEIGHT = 1400;
 
 // DPI 和 pt 换算常量（与 Obsidian constant.ts 保持一致）
@@ -78,12 +78,14 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @param {number} marginRight
  * @returns {string} 注入后的 HTML
  */
-function injectPageCss(html, marginTop, marginBottom, marginLeft, marginRight) {
+function injectPageCss(html) {
+  const styleCount = (html.match(/<style/g) || []).length;
+  console.log('[injectPageCss] 注入前 HTML 中 <style> 标签数:', styleCount, 'HTML 长度:', html.length);
+
   const pageCss = `
 <style>
 @page {
   size: A4;
-  margin: ${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px;
 }
 /* 避免标题被分割到两页 */
 h1, h2, h3, h4, h5, h6 {
@@ -101,13 +103,17 @@ img, table, pre {
 `;
 
   // 追加到 <head> 结尾；若没有 </head> 则直接追加到 body 前
+  let result;
   if (html.includes('</head>')) {
-    return html.replace('</head>', pageCss + '</head>');
+    result = html.replace('</head>', pageCss + '</head>');
   } else if (html.includes('<body')) {
-    return html.replace(/<body/i, pageCss + '<body');
+    result = html.replace(/<body/i, pageCss + '<body');
   } else {
-    return pageCss + html;
+    result = pageCss + html;
   }
+  const finalStyleCount = (result.match(/<style/g) || []).length;
+  console.log('[injectPageCss] 注入后 <style> 标签数:', finalStyleCount, '结果长度:', result.length);
+  return result;
 }
 
 /**
@@ -118,13 +124,6 @@ img, table, pre {
  * @returns {Promise<void>}
  */
 async function loadHtmlWithAnchors(html, options = {}) {
-  const {
-    marginTop = 40,
-    marginBottom = 40,
-    marginLeft = 50,
-    marginRight = 50,
-  } = options;
-
   if (!mainWindow || mainWindow.isDestroyed()) {
     createWindow();
   }
@@ -148,7 +147,7 @@ async function loadHtmlWithAnchors(html, options = {}) {
   // 写入临时 HTML 文件之前，注入 @page 规则强制 Chromium 按 A4 分页
   // Chromium 的 pageSize 选项只决定 MediaBox 尺寸，不自动分页；
   // 必须配合 CSS @page { size: A4 } 和 page-break-* 才会在 PDF 中真正分页
-  html = injectPageCss(html, marginTop, marginBottom, marginLeft, marginRight);
+  html = injectPageCss(html);
 
   // 写入临时 HTML 文件
   fs.writeFileSync(filePath, html, 'utf8');
@@ -297,10 +296,10 @@ function parsePdfPageBreaks(pdfDoc) {
  */
 async function capturePageImagesByPdfBreaks(win, pageBreaks) {
   // A4 尺寸（96dpi）：
-  // 纸宽：210mm * 96/25.4 ≈ 794px（内容区）；视口总宽（含边距 50+50）= 894px
+  // 纸宽：210mm * 96/25.4 ≈ 794px（内容区）
   // 纸高：297mm * 96/25.4 ≈ 1123px（总高，内容区 841.89pt → 1123px）
   const ptToPx = 96 / 72;
-  const A4_VIEWPORT_WIDTH_PX = 894;  // 794 + 50 + 50，视口总宽（含边距）
+  const A4_VIEWPORT_WIDTH_PX = 794;  // A4 纸宽 210mm × 96dpi / 25.4 ≈ 794px
   const A4_PAGE_HEIGHT_PX    = Math.ceil(841.89 * ptToPx); // = 1123px，每页固定滚动量
 
   // 获取 DPR（Electron capturePage() 返回物理像素，需缩放回逻辑像素）
@@ -372,7 +371,14 @@ async function generatePdfPreview(html, options = {}) {
   const { resumeName = '', marginTop = 40, marginBottom = 40, marginLeft = 50, marginRight = 50,
     displayHeaderFooter = true, headerTemplate, footerTemplate } = options;
 
-  console.log('[generatePdfPreview] 开始生成预览，HTML ��度:', html.length);
+  console.log('[generatePdfPreview] 开始生成预览，HTML 长度:', html.length);
+  console.log('[generatePdfPreview] HTML 中 CSS 关键内容探测:', {
+    hasRESUME_CSS: html.includes('resume-markdown'),
+    hasThemeComment: html.includes('切换主题时整套替换'),
+    hasCustomComment: html.includes('切换主题时保留'),
+    hasSectionTitle: html.includes('section-title'),
+    styleTagCount: (html.match(/<style/g) || []).length,
+  });
 
   // 1. 加载 HTML 并注入锚点（对应 Obsidian renderMarkdown + fixDoc + modifyDest）
   await loadHtmlWithAnchors(html, { marginTop, marginBottom, marginLeft, marginRight });
@@ -484,6 +490,9 @@ async function generatePdf(html, options = {}) {
 
   const fileName = `resume-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.html`;
   const filePath = path.join(TEMP_DIR, fileName);
+
+  // 注入 @page 规则强制 Chromium 按 A4 分页
+  html = injectPageCss(html);
 
   fs.writeFileSync(filePath, html, 'utf8');
   const fileUrl = `file://${filePath.replace(/\\/g, '/')}`;
@@ -628,6 +637,14 @@ function createHttpServer() {
             const raw = Buffer.concat(body).toString();
             const { html, options } = JSON.parse(raw);
             console.log(`[Electron PDF /api/preview] HTML 长度: ${html?.length ?? 0}`);
+            console.log('[Electron PDF /api/preview] CSS 探测:', {
+              hasRESUME_CSS: html.includes('.resume-document'),
+              hasThemeBlock: html.includes('切换主题时整套替换'),
+              hasCustomBlock: html.includes('切换主题时保留'),
+              hasSectionTitle: html.includes('section-title'),
+              styleTagCount: (html.match(/<style/g) || []).length,
+              htmlPreview: html.slice(0, 300),
+            });
 
             const result = await generatePdfPreview(html, options);
             console.log(`[Electron PDF /api/preview] 生成完成，预览 ${result.pageCount} 页，PDF 大小: ${result.pdfBase64.length} bytes`);
@@ -675,6 +692,12 @@ function createHttpServer() {
             const raw = Buffer.concat(body).toString();
             const { html, options } = JSON.parse(raw);
             console.log(`[Electron PDF /api/pdf] HTML 长度: ${html?.length ?? 0}`);
+            console.log('[Electron PDF /api/pdf] CSS 探测:', {
+              hasRESUME_CSS: html.includes('.resume-document'),
+              hasThemeBlock: html.includes('切换主题时整套替换'),
+              hasCustomBlock: html.includes('切换主题时保留'),
+              styleTagCount: (html.match(/<style/g) || []).length,
+            });
             const pdfBuffer = await generatePdf(html, options);
             console.log(`[Electron PDF /api/pdf] 生成完成，大小: ${pdfBuffer.length} bytes`);
             res.writeHead(200, { 'Content-Type': 'application/pdf' });

@@ -206,24 +206,139 @@
                 :min="0" :max="20" :step="2" :show-tooltip="false"
               />
             </div>
+
+            <el-divider />
+
+            <div class="section-title">快速预设</div>
+
+            <div class="preset-section">
+              <div class="preset-label">标题下划线</div>
+              <div class="preset-row">
+                <el-button
+                  :type="presetBorderStyle === 'none' ? 'primary' : 'default'"
+                  size="small"
+                  @click="applyBorderPreset('none')"
+                >无</el-button>
+                <el-button
+                  :type="presetBorderStyle === 'thin' ? 'primary' : 'default'"
+                  size="small"
+                  @click="applyBorderPreset('thin')"
+                >细线</el-button>
+                <el-button
+                  :type="presetBorderStyle === 'thick' ? 'primary' : 'default'"
+                  size="small"
+                  @click="applyBorderPreset('thick')"
+                >粗线</el-button>
+                <el-button
+                  :type="presetBorderStyle === 'left' ? 'primary' : 'default'"
+                  size="small"
+                  @click="applyBorderPreset('left')"
+                >左侧竖线</el-button>
+              </div>
+            </div>
+
+            <div class="preset-section">
+              <div class="preset-label">标题配色</div>
+              <div class="preset-row color-row">
+                <button
+                  class="color-preset-btn"
+                  :class="{ active: presetColorScheme === 'default' }"
+                  style="background: #333333;"
+                  title="经典黑"
+                  @click="applyColorPreset('default')"
+                ></button>
+                <button
+                  class="color-preset-btn"
+                  :class="{ active: presetColorScheme === 'blue' }"
+                  style="background: #409eff;"
+                  title="专业蓝"
+                  @click="applyColorPreset('blue')"
+                ></button>
+                <button
+                  class="color-preset-btn"
+                  :class="{ active: presetColorScheme === 'purple' }"
+                  style="background: #7c3aed;"
+                  title="深紫"
+                  @click="applyColorPreset('purple')"
+                ></button>
+              </div>
+            </div>
           </div>
         </el-tab-pane>
 
         <!-- ==================== Tab2: 高级代码 ==================== -->
         <el-tab-pane label="高级代码" name="code">
-          <div class="code-panel">
-            <div class="code-tip">
-              <el-icon><InfoFilled /></el-icon>
-              可直接编辑 CSS 代码，所有修改将同步到预览
+          <div class="code-panel-with-sidebar">
+            <div class="class-sidebar">
+              <el-input
+                v-model="classFilter"
+                placeholder="搜索 class..."
+                size="small"
+                clearable
+                class="class-search"
+              />
+              <div class="class-list-scroll">
+                <button
+                  v-for="cls in filteredClassNames"
+                  :key="cls"
+                  class="class-chip"
+                  @click="insertClass(cls)"
+                  :title="'插入 ' + cls"
+                >{{ cls }}</button>
+              </div>
             </div>
-            <el-input
-              v-model="codeValue"
-              type="textarea"
-              :rows="20"
-              placeholder=".resume-document { ... }"
-              class="css-code-editor"
-              @input="handleCodeInput"
-            />
+            <div class="code-editor-main">
+              <div class="code-tip">
+                <el-icon><InfoFilled /></el-icon>
+                点击左侧类名插入模板 — class 清单见"样式参考"标签页
+              </div>
+              <el-input
+                v-model="codeValue"
+                type="textarea"
+                :rows="20"
+                placeholder=".resume-document { ... }"
+                class="css-code-editor"
+                @input="handleCodeInput"
+              />
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <!-- ==================== Tab3: 样式参考 ==================== -->
+        <el-tab-pane label="样式参考" name="reference">
+          <div class="reference-panel">
+            <div class="ref-tip">
+              <el-icon><InfoFilled /></el-icon>
+              以下是简历中所有可用的 CSS class，修改 customStyles 时可参考
+            </div>
+            <el-collapse v-model="activeRefGroups">
+              <el-collapse-item
+                v-for="group in cssClassReference"
+                :key="group.group"
+                :title="group.group + '（' + group.classes.length + '）'"
+                :name="group.group"
+              >
+                <div
+                  v-for="cls in group.classes"
+                  :key="cls.name"
+                  class="class-card"
+                >
+                  <div class="class-card-header">
+                    <code class="class-name" @click="copyClassName(cls.name)">{{ cls.name }}</code>
+                    <el-button
+                      size="small"
+                      text
+                      type="primary"
+                      @click="insertClassAndSwitch(cls.name)"
+                    >
+                      插入代码
+                    </el-button>
+                  </div>
+                  <p class="class-desc">{{ cls.desc }}</p>
+                  <p class="class-props">常用属性：{{ cls.props }}</p>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -231,23 +346,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { InfoFilled } from '@element-plus/icons-vue';
+import { cssClassReference, allClassNames } from '@/composables/useResumeTheme';
+import { ElMessage } from 'element-plus';
 
 // ==================== Props / Emits ====================
 interface Props {
   extraStyles: string;
+  customStyles?: string;
 }
 
 interface Emits {
   (e: 'update:extraStyles', val: string): void;
+  (e: 'update:customStyles', val: string): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 // ==================== 状态 ====================
-const activeTab = ref<'quick' | 'code'>('quick');
+const activeTab = ref<'quick' | 'code' | 'reference'>('quick');
 
 // ==================== 带类型的滑块更新函数（避免在模板中写 TS 类型注解） ====================
 function onMaxWidth(v: number) { update('maxWidth', `${v}px`); }
@@ -310,18 +429,16 @@ function parseCss(css: string) {
   v.fontSize = get('.resume-document', 'font-size') || v.fontSize;
   v.lineHeight = get('.resume-document', 'line-height') || v.lineHeight;
 
-  // CSS 变量
-  const accentM = css.match(/--accent\s*:\s*([^;}]+)/);
-  if (accentM) v.accentColor = accentM[1].trim();
-
   // 姓名
   v.nameFontSize = get('.resume-name', 'font-size') || v.nameFontSize;
   v.nameTextAlign = get('.resume-name', 'text-align') || v.nameTextAlign;
 
   // 标题
-  v.sectionTitleFontSize = get('.section-title', 'font-size') || v.sectionTitleFontSize;
+  v.sectionTitleFontSize = get('.section-title', 'font-size') || get('.subsection-title', 'font-size') || v.sectionTitleFontSize;
   v.borderBottomWidth = get('.section-title', 'border-bottom-width') ||
-                        get('.section-title', 'border-bottom').replace(/[0-9.]+/, '').trim() || v.borderBottomWidth;
+                        get('.section-title', 'border-bottom').replace(/[0-9.]+/, '').trim() ||
+                        get('.subsection-title', 'border-bottom-width') ||
+                        get('.subsection-title', 'border-bottom').replace(/[0-9.]+/, '').trim() || v.borderBottomWidth;
 
   // 间距
   v.sectionMarginBottom = get('.resume-section', 'margin-bottom') || v.sectionMarginBottom;
@@ -352,16 +469,13 @@ function compileCss(v: typeof values.value): string {
   line-height: ${v.lineHeight};
 }
 
-:root {
-  --accent: ${v.accentColor};
-}
-
 .resume-name {
   font-size: ${v.nameFontSize};
   text-align: ${v.nameTextAlign};
 }
 
-.section-title {
+.section-title,
+.subsection-title {
   font-size: ${v.sectionTitleFontSize};
   border-bottom-width: ${v.borderBottomWidth};
 }
@@ -406,10 +520,10 @@ const codeValue = ref('');
 const isPanelMounted = ref(false);
 onMounted(() => { isPanelMounted.value = true; });
 
+// 同步 extraStyles → quick tab 滑块值解析（不污染 codeValue）
 watch(
   () => props.extraStyles,
   (newCss) => {
-    codeValue.value = newCss || '';
     if (activeTab.value === 'quick') {
       values.value = parseCss(newCss || '');
     }
@@ -417,25 +531,112 @@ watch(
   { immediate: true }
 );
 
+// 同步 customStyles → code tab 编辑器（仅用户自定义部分）
+watch(
+  () => props.customStyles,
+  (newCss) => {
+    codeValue.value = newCss || '';
+  },
+  { immediate: true }
+);
+
 watch(activeTab, (tab) => {
+  if (!isPanelMounted.value) return; // mounted 初始跳过
   if (tab === 'quick') {
-    // 只有用户手动切换到 quick tab 时才同步，mounted 初始跳过
     emit('update:extraStyles', compileCss(values.value));
   } else {
-    // 切换到代码模式，优先用 props 中的实际值
-    codeValue.value = props.extraStyles || codeValue.value;
+    codeValue.value = props.customStyles || '';
   }
 });
 
 function handleCodeInput() {
-  emit('update:extraStyles', codeValue.value);
+  emit('update:customStyles', codeValue.value);
   if (activeTab.value === 'code') {
-    // 尝试同步回滑块（解析失败则保持原值）
     try {
       values.value = parseCss(codeValue.value);
     } catch (_) { /* ignore */ }
   }
 }
+
+// ==================== Class 侧边栏 ====================
+const classFilter = ref('');
+const filteredClassNames = computed(() => {
+  const q = classFilter.value.trim().toLowerCase();
+  if (!q) return allClassNames;
+  return allClassNames.filter(n => n.toLowerCase().includes(q));
+});
+
+function insertClass(className: string) {
+  const template = `${className} {\n  \n}\n`;
+  if (activeTab.value !== 'code') {
+    activeTab.value = 'code';
+  }
+  codeValue.value = codeValue.value
+    ? codeValue.value + '\n' + template
+    : template;
+  emit('update:customStyles', codeValue.value);
+}
+
+function insertClassAndSwitch(className: string) {
+  activeTab.value = 'code';
+  insertClass(className);
+}
+
+function copyClassName(className: string) {
+  navigator.clipboard.writeText(className).then(() => {
+    ElMessage.success(`已复制 ${className}`);
+  }).catch(() => {
+    ElMessage.info(className);
+  });
+}
+
+// ==================== 预设样式 ====================
+const presetBorderStyle = ref('none');
+const presetColorScheme = ref('default');
+
+function applyBorderPreset(style: string) {
+  presetBorderStyle.value = style;
+  let css = '';
+  switch (style) {
+    case 'none':
+      css = '.section-title,\n.subsection-title {\n  border-bottom: none;\n  padding-bottom: 0;\n}';
+      break;
+    case 'thin':
+      css = '.section-title,\n.subsection-title {\n  border-bottom: 1px solid #409eff;\n  padding-bottom: 4px;\n}';
+      break;
+    case 'thick':
+      css = '.section-title,\n.subsection-title {\n  border-bottom: 3px solid #409eff;\n  padding-bottom: 6px;\n}';
+      break;
+    case 'left':
+      css = '.section-title,\n.subsection-title {\n  border-bottom: none;\n  border-left: 4px solid #409eff;\n  padding-left: 12px;\n  padding-bottom: 0;\n}';
+      break;
+  }
+  codeValue.value = css;
+  emit('update:customStyles', css);
+  activeTab.value = 'code';
+}
+
+function applyColorPreset(scheme: string) {
+  presetColorScheme.value = scheme;
+  let css = '';
+  switch (scheme) {
+    case 'default':
+      css = '.section-title,\n.subsection-title {\n  color: #333333;\n}';
+      break;
+    case 'blue':
+      css = '.section-title,\n.subsection-title {\n  color: #409eff;\n}';
+      break;
+    case 'purple':
+      css = '.section-title,\n.subsection-title {\n  color: #7c3aed;\n}';
+      break;
+  }
+  codeValue.value = css;
+  emit('update:customStyles', css);
+  activeTab.value = 'code';
+}
+
+// ==================== 样式参考面板 ====================
+const activeRefGroups = ref<string[]>(cssClassReference.map(g => g.group));
 </script>
 
 <style scoped>
@@ -495,6 +696,60 @@ function handleCodeInput() {
   padding: 4px;
 }
 
+.code-panel-with-sidebar {
+  display: flex;
+  gap: 8px;
+  height: 100%;
+  padding: 4px;
+}
+
+.class-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.class-search {
+  flex-shrink: 0;
+}
+
+.class-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.class-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #409eff;
+  background: #ecf5ff;
+  border: 1px solid #d9ecff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.class-chip:hover {
+  color: #fff;
+  background: #409eff;
+  border-color: #409eff;
+}
+
+.code-editor-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .code-tip {
   display: flex;
   align-items: center;
@@ -511,9 +766,119 @@ function handleCodeInput() {
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: #333;
   background: #1e1e1e;
   color: #d4d4d4;
   border-radius: 6px;
+}
+
+/* ==================== 预设卡片 ==================== */
+
+.preset-section {
+  margin-bottom: 12px;
+}
+
+.preset-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 6px;
+}
+
+.preset-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.color-preset-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+  outline: none;
+}
+
+.color-preset-btn:hover {
+  transform: scale(1.1);
+}
+
+.color-preset-btn.active {
+  border-color: #303133;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3);
+}
+
+/* ==================== 样式参考面板 ==================== */
+
+.reference-panel {
+  padding: 4px;
+}
+
+.ref-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 12px;
+  background: #f4f4f5;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.class-card {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #ebeef5;
+}
+
+.class-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.class-name {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: #409eff;
+  background: #ecf5ff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.class-name:hover {
+  background: #d9ecff;
+}
+
+.class-desc {
+  font-size: 12px;
+  color: #606266;
+  margin: 0 0 2px;
+  line-height: 1.5;
+}
+
+.class-props {
+  font-size: 11px;
+  color: #909399;
+  margin: 0;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* ==================== el-collapse 微调 ==================== */
+.reference-panel :deep(.el-collapse-item__header) {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.reference-panel :deep(.el-collapse-item__content) {
+  padding-bottom: 4px;
 }
 </style>

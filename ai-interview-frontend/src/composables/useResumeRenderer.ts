@@ -225,6 +225,78 @@ export function renderMarkdownContent(options: RenderOptions): string {
 }
 
 // ============================================================
+// Build standalone HTML document for Electron PDF export
+// Injects RESUME_CSS + themeStyles + customStyles as separate
+// <style> blocks so theme switch replaces themeStyles only.
+// Reuses the shared Marked instance (same as preview).
+// ============================================================
+export interface PdfHtmlOptions {
+  content: string;
+  themeStyles?: string;
+  customStyles?: string;
+}
+
+export function buildPdfHtmlDocument(options: PdfHtmlOptions): string {
+  const { content, themeStyles = '', customStyles = '' } = options;
+  console.log('[buildPdfHtmlDocument] 入参:', {
+    contentLen: content.length,
+    themeStylesLen: themeStyles.length,
+    customStylesLen: customStyles.length,
+    themeStylesPreview: themeStyles.slice(0, 80),
+    customStylesPreview: customStyles.slice(0, 80),
+  });
+
+  const marked = createMarkedInstance();
+  const { markdown: cleanedMd } = preprocessMarkdown(content);
+  const htmlContent = marked.parse(cleanedMd) as string;
+
+  const themeStylesBlock = themeStyles.trim()
+    ? `/* 主题 CSS — 切换主题时整套替换 */\n${themeStyles}`
+    : '';
+  const customStylesBlock = customStyles.trim()
+    ? `/* 用户/AI 自定义 CSS — 切换主题时保留，排在 themeStyles 后自然覆盖 */\n${customStyles}`
+    : '';
+
+  console.log('[buildPdfHtmlDocument] CSS 块注入:', {
+    hasThemeBlock: !!themeStylesBlock,
+    hasCustomBlock: !!customStylesBlock,
+    cssTotalLen: RESUME_CSS.length + themeStyles.length + customStyles.length,
+  });
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body { background: #ffffff; }
+
+/* 基线 CSS（知网格式，与 Markdown 预览同源） */
+${RESUME_CSS}
+
+/* PDF 容器 reset：覆盖基线中的容器约束（排在 RESUME_CSS 后自然覆盖） */
+.resume-document {
+  max-width: unset;
+  min-height: unset;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+${themeStylesBlock}
+
+${customStylesBlock}
+</style>
+</head>
+<body>
+<div class="resume-document">
+${htmlContent}
+</div>
+</body>
+</html>`;
+}
+
+// ============================================================
 // Post-process DOM: group content by heading levels into sections
 // Call this after setting innerHTML
 // ============================================================

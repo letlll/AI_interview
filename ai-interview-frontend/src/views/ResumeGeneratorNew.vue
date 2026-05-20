@@ -205,7 +205,7 @@
                 </template>
               </el-dropdown>
             </div>
-            <StyleAdjustmentPanel :extraStyles="extraStyles" @update:extraStyles="onExtraStylesUpdate" />
+            <StyleAdjustmentPanel :extraStyles="extraStyles" :customStyles="customStyles" @update:extraStyles="onExtraStylesUpdate" @update:customStyles="onCustomStylesUpdate" />
           </div>
         </template>
 
@@ -246,7 +246,7 @@
               :extra-styles="extraStyles"
               @section-title-change="handleSectionTitleChange"
               @content-change="handleContentChange"
-              @extra-styles-append="v => extraStyles += '\n' + v"
+              @extra-styles-append="v => customStyles += '\n' + v"
               ref="markdownRendererRef"
             />
             <PdfPageView
@@ -329,12 +329,9 @@ import { createResumeApi, getResumeListApi , updateResumeApi, updateResumeFileAp
 import { useResumeAI, type ResumeData as AIResumeData, type Message, cleanInvalidKeys } from '@/composables/useResumeAI';
 import { jsonToResumeMarkdown } from '@/utils/resumeMarkdown';
 import { set } from 'lodash-es';
+import { useResumeTheme } from '@/composables/useResumeTheme';
 import { usePdfRenderer } from '@/composables/usePdfRenderer';
-import { Marked } from 'marked';                        // ← 新增：Marked 类
-import { markedHighlight } from 'marked-highlight';     // ← 新增：代码高亮插件
-import hljs from 'highlight.js';                         // ← 新增：highlight.js
-import { RESUME_CSS } from '@/styles/resumeMarkdownCss';
-import { autoDetectSectionType } from '@/composables/useResumeRenderer';
+import { buildPdfHtmlDocument } from '@/composables/useResumeRenderer';
 const chatPanelRef = ref<InstanceType<typeof AIChatPanel>>();
 const selectedTemplate = ref('classic');
 // 极简版：content 就是 internalMarkdown（完整 Markdown 字符串）
@@ -445,7 +442,8 @@ const loadResumeList = async () => {
   }
 };
 
-const extraStyles = ref('');       // 用户自定义 CSS 字符串
+// 主题与自定义样式（extraStyles = themeStyles + customStyles）
+const { themeStyles, customStyles, extraStyles, setTheme, setCustomStyles } = useResumeTheme();
 const markdownRendererRef = ref(); // MarkdownRenderer 实例
 const pdfPageViewRef = ref();       // 右侧 PdfPageView 实例（A4 分页预览）
 
@@ -462,16 +460,24 @@ const onPagesChanged = (count: number) => {
 
 
 
-// 获取简历数据（合并 extraStyles）
-const getResumeDataToSave = () => ({
-  ...resumeData.value,
-  extraStyles: extraStyles.value
-});
+// 获取简历数据（themeStyles + customStyles，排除旧字段 extraStyles）
+const getResumeDataToSave = () => {
+  const { extraStyles: _oldExtra, ...rest } = resumeData.value as any;
+  return {
+    ...rest,
+    themeStyles: themeStyles.value,
+    customStyles: customStyles.value
+  };
+};
 
-// 接收 StyleAdjustmentPanel 的样式更新
+// 接收 StyleAdjustmentPanel 快速调整的样式更新（写入 customStyles）
 function onExtraStylesUpdate(v: string) {
-  console.log('[onExtraStylesUpdate] 样式更新，长度:', v.length);
-  extraStyles.value = v;
+  customStyles.value = v;
+}
+
+// 接收 StyleAdjustmentPanel 代码编辑器的样式更新
+function onCustomStylesUpdate(v: string) {
+  customStyles.value = v;
 }
 
 onMounted(() => {
@@ -515,10 +521,21 @@ const handleResumeChange = async (resumeId: number) => {
     } else {
       internalMarkdown.value = cleanedContent.content || '';
     }
-    // 恢复 extraStyles
-    if (cleanedContent.extraStyles !== undefined) {
-      extraStyles.value = cleanedContent.extraStyles || '';
+    // 恢复主题与自定义样式（兼容旧字段 extraStyles）
+    if (cleanedContent.themeStyles !== undefined) {
+      themeStyles.value = cleanedContent.themeStyles || '';
     }
+    if (!themeStyles.value) {
+      setTheme(selectedTemplate.value);
+    }
+    if (cleanedContent.customStyles !== undefined) {
+      customStyles.value = cleanedContent.customStyles || '';
+    } else if (cleanedContent.extraStyles !== undefined) {
+      // 旧数据兼容：extraStyles 迁移到 customStyles
+      customStyles.value = cleanedContent.extraStyles || '';
+    }
+    // 清除旧架构残留的 extraStyles 字段
+    delete (resumeData.value as any).extraStyles;
 
     // 有内容时标记为未保存状态
     if (cleanedContent && Object.keys(cleanedContent).length > 0) {
@@ -888,7 +905,7 @@ const handleUserMessage = async (message: string) => {
     // ══════════════════════════════════════════════════════
     const directMatch = message.match(/^styles?\s*[:：]\s*([\s\S]+)$/i);
     if (directMatch) {
-      extraStyles.value = directMatch[1].trim();  // 改为直接赋值
+      customStyles.value = directMatch[1].trim();
       chatPanelRef.value.addAssistantMessage('样式已更新，请查看效果。');
       chatPanelRef.value.setLoading(false);
       return;
@@ -896,7 +913,7 @@ const handleUserMessage = async (message: string) => {
 
     const aiStyleMatch = response.message.match(/\/\* style:([\s\S]*?)\*\//);
     if (aiStyleMatch) {
-      extraStyles.value = aiStyleMatch[1].trim();  // 改为直接赋值
+      customStyles.value = aiStyleMatch[1].trim();
       response.message = response.message.replace(/\/\* style:[\s\S]*?\*\//g, '').trim();
     }
 
@@ -909,9 +926,9 @@ const handleUserMessage = async (message: string) => {
       const newData = applyInstructions(resumeData.value, response.instructions);
       resumeData.value = newData;
       if (newData.content) internalMarkdown.value = newData.content;
-      // 同步 extraStyles（AI 可能通过 instructions 修改了样式）
-      if (newData.extraStyles !== undefined) {
-        extraStyles.value = newData.extraStyles;
+      // 同步 customStyles（AI 通过 instructions 修改了自定义样式）
+      if (newData.customStyles !== undefined) {
+        customStyles.value = newData.customStyles;
       }
       // 保存版本
       const intent = detectIntent(message, lastEditedField.value);
@@ -1251,7 +1268,19 @@ const handleRefreshElectronPreview = async () => {
 
   try {
     // Step 1: 将 Markdown 转为 HTML
-    const htmlContent = markdownToHtml(internalMarkdown.value, resumeThemeClass.value, extraStyles.value);
+    console.log('[handleRefreshElectronPreview] 调用 buildPdfHtmlDocument 前:', {
+      contentLen: internalMarkdown.value.length,
+      themeStylesLen: themeStyles.value.length,
+      customStylesLen: customStyles.value.length,
+      themeStylesEmpty: !themeStyles.value,
+      customStylesEmpty: !customStyles.value,
+    });
+    const htmlContent = buildPdfHtmlDocument({
+      content: internalMarkdown.value,
+      themeStyles: themeStyles.value,
+      customStyles: customStyles.value,
+    });
+    console.log('[handleRefreshElectronPreview] buildPdfHtmlDocument 返回 HTML 长度:', htmlContent.length);
     electronPreviewLoadingText.value = '正在调用 Electron API...';
 
     // Step 2: 调用 Electron 预览 API
@@ -1340,178 +1369,6 @@ const handleDownloadPdf = () => {
 };
 
 
-/**
- * Markdown → HTML 转换（用于 Electron API 调用）
- */
-function markdownToHtml(markdown: string, themeClass: string, extraStyles: string): string {
-  // 1. 构建与 PdfPageView 完全相同的 marked 实例
-  let sectionType = '';
-  const md = new Marked();
-  md.use(markedHighlight({
-    langPrefix: 'hljs language-',
-    highlight(code: string, lang: string) {
-      const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-      return hljs.highlight(code, { language }).value;
-    },
-  }));
-  md.use({
-    renderer: {
-      heading(token: any): string {
-        const depth = token.depth;
-        const inner = this.parser.parseInline(token.tokens);
-        if (depth === 1) return `<h1 class="resume-name">${inner}</h1>\n`;
-        // ### 日期拆解：检测 | 分隔符，左标题 + 右日期
-        if (depth === 3) {
-          const rawText = token.tokens?.map((t: any) => t.raw || t.text || '').join('') || '';
-          const barIdx = rawText.indexOf('|');
-          if (barIdx > 0) {
-            const leftRaw = rawText.substring(0, barIdx).trim();
-            const rightRaw = rawText.substring(barIdx + 1).trim();
-            const slug = autoDetectSectionType(leftRaw);
-            sectionType = slug;
-            return `<h3 class="subsection-title" data-section-type="${slug}"><span class="project-title-text">${leftRaw}</span><span class="project-title-date">${rightRaw}</span></h3>\n`;
-          }
-        }
-        // 自动识别 section type：根据标题文本关键词判断
-        const text = inner.replace(/<[^>]+>/g, '').trim();
-        const slug = autoDetectSectionType(text);
-        sectionType = slug;
-        if (depth === 2) {
-          return `<h2 class="section-title section-title--${slug}" data-section-type="${slug}">${inner}</h2>\n`;
-        }
-        return `<h${depth} class="subsection-title" data-section-type="${slug}">${inner}</h${depth}>\n`;
-      },
-      list(token: any): string {
-        let body = '';
-        for (const item of token.items) body += this.listitem(item);
-        let listClass = 'item-list';
-        if (sectionType === 'skills' || sectionType === 'skill') listClass = 'skills-list';
-        else if (sectionType === 'summary') listClass = 'summary-list';
-        else if (sectionType) listClass = `${sectionType}-list`;
-        const tag = token.ordered ? 'ol' : 'ul';
-        const start = token.ordered && token.start !== 1 && token.start !== '' ? ` start="${token.start}"` : '';
-        return `<${tag} class="${listClass}"${start}>\n${body}</${tag}>\n`;
-      },
-      listitem(token: any): string {
-        const inner = this.parser.parse(token.tokens, !!token.loose);
-        let itemClass = 'item';
-        if (sectionType === 'skills' || sectionType === 'skill') itemClass = 'skill-item';
-        else if (sectionType === 'summary') itemClass = 'summary-item';
-        else if (sectionType === 'work') itemClass = 'work-item';
-        else if (sectionType === 'projects' || sectionType === 'project') itemClass = 'project-item';
-        else if (sectionType === 'education') itemClass = 'education-item';
-        return `<li class="${itemClass}">${inner}</li>\n`;
-      },
-      paragraph(token: any): string {
-        return `<p class="paragraph">${this.parser.parseInline(token.tokens)}</p>\n`;
-      },
-      link(token: any): string {
-        const inner = this.parser.parseInline(token.tokens);
-        const titleAttr = token.title ? ` title="${token.title}"` : '';
-        return `<a class="link" href="${token.href}"${titleAttr}>${inner}</a>`;
-      },
-      image(token: any): string {
-        let alt = token.text;
-        if (token.tokens?.length) alt = this.parser.parseInline(token.tokens);
-        const titleAttr = token.title ? ` title="${token.title}"` : '';
-        return `<figure class="image-figure"><img class="image" src="${token.href}" alt="${alt}"${titleAttr} />${alt ? `<figcaption class="image-caption">${alt}</figcaption>` : ''}</figure>`;
-      },
-      blockquote(token: any): string {
-        return `<blockquote class="blockquote">\n${this.parser.parse(token.tokens)}</blockquote>\n`;
-      },
-      code(token: any): string {
-        const langClass = token.lang ? ` language-${token.lang}` : '';
-        return `<pre class="code-block"><code class="code${langClass}">${token.text}</code></pre>\n`;
-      },
-      codespan(token: any): string {
-        return `<code class="inline-code">${token.text}</code>`;
-      },
-      strong(token: any): string {
-        return `<strong class="bold">${this.parser.parseInline(token.tokens)}</strong>`;
-      },
-      em(token: any): string {
-        return `<em class="italic">${this.parser.parseInline(token.tokens)}</em>`;
-      },
-      del(token: any): string {
-        return `<del class="strikethrough">${this.parser.parseInline(token.tokens)}</del>`;
-      },
-      hr(): string {
-        return `<hr class="divider" />\n`;
-      },
-      table(this: any, token: any): string {
-        let headerRow = '';
-        for (const cell of token.header) headerRow += this.tablecell(cell);
-        const thead = this.tablerow({ text: headerRow });
-        let body = '';
-        for (const row of token.rows) {
-          let rowHtml = '';
-          for (const cell of row) rowHtml += this.tablecell(cell);
-          body += this.tablerow({ text: rowHtml });
-        }
-        const tbody = body ? `<tbody class="table-body">${body}</tbody>` : '';
-        return `<div class="table-wrapper"><table class="table"><thead class="table-head">${thead}</thead>${tbody}</table></div>\n`;
-      },
-      tablerow(this: any, row: { text: string }): string {
-        return `<tr class="table-row">${row.text}</tr>\n`;
-      },
-      tablecell(this: any, cell: any): string {
-        const content = this.parser.parseInline(cell.tokens);
-        const tag = cell.header ? 'th' : 'td';
-        const alignClass = cell.align ? ` text-${cell.align}` : '';
-        return `<${tag} class="table-cell${alignClass}">${content}</${tag}>\n`;
-      },
-    },
-  });
-
-  // 2. 预处理：提取 section type 标记
-  sectionType = '';
-  const lines = markdown.split('\n');
-  const processed: string[] = [];
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const metaMatch = trimmed.match(/^<!--\s*(?:section:|type:)([\w-]+)(?::([\s\S]*?))?\s*-->\s*$/);
-    if (metaMatch) { sectionType = metaMatch[1]; continue; }
-    processed.push(line);
-  }
-
-  // 3. 解析 Markdown → HTML
-  const htmlContent = md.parse(processed.join('\n')) as string;
-
-  // 4. 组装完整 HTML 文档，内联 RESUME_CSS（与 Markdown 预览同源）
-return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-/* 全局 reset：PDF 打印屏蔽阴影/圆角/区块边框/内边距（打印边距由浏览器控制） */
-body { background: #ffffff; }
-.resume-document {
-  max-width: unset !important;
-  min-height: unset !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-}
-.resume-document .section-title {
-  border-bottom: none !important;
-}
-
-
-/* resume CSS（变量主题，与 Markdown 预览同源） */
-${RESUME_CSS}
-
-/* extraStyles（用户自定义，放在最后） */
-${extraStyles}
-</style>
-</head>
-<body>
-<div class="resume-document ${themeClass || 'theme-blue'}">
-${htmlContent}
-</div>
-</body>
-</html>`;
-}
 
 // ResumeGeneratorNew.vue 第 1844 行
 const handleRefreshChat = async () => {

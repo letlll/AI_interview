@@ -7,67 +7,141 @@
  * 通过 extraStyles（themeStyles 字段）注入，排在 RESUME_CSS 之后自然覆盖。
  */
 
-export const THEME_BLUE_CSS = `/* theme-blue — 专业蓝 */
+export const THEME_BLUE_CSS = `/* theme-blue — 商务专业蓝（优化版） */
 .resume-document {
-  color: #1f1f1f;
+  color: #1f2937; /* 更深的正文灰，阅读更舒适 */
   background: #ffffff;
+  font-family: "Microsoft YaHei", "SimHei", sans-serif; /* 统一正式字体 */
+  line-height: 1.6;
 }
 
-/* —— 标题 —— */
-.resume-name { color: #1f1f1f; }
-.section-title { border-bottom: none; color: #1f1f1f; }
-.subsection-title { color: #1f1f1f; }
-.resume-document h1, .resume-document h2, .resume-document h3, .resume-document h4 { color: #1f1f1f; }
+/* —— 标题：强化层级 + 商务蓝强调 —— */
+.resume-name { 
+  color: #1f2937; 
+  font-weight: 700; /* 姓名加粗更正式 */
+}
+.section-title { 
+  border-bottom: 2px solid #165DFF; /* 核心：蓝色下划线分区 */
+  color: #1f2937; 
+  font-weight: 600;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+.subsection-title { 
+  color: #1f2937; 
+  font-weight: 600;
+}
+.resume-document h1, 
+.resume-document h2, 
+.resume-document h3, 
+.resume-document h4 { 
+  color: #1f2937; 
+  font-weight: 600;
+}
 
-/* —— 正文 —— */
-.resume-document p, .resume-document li { color: #1f1f1f; }
-.resume-document .item-duration { color: #999999; }
-.paragraph { color: #1f1f1f; }
-.link { color: #1f1f1f; }
+/* —— 正文：优化可读性 —— */
+.resume-document p, 
+.resume-document li { 
+  color: #374151; 
+  line-height: 1.7;
+}
+.resume-document .item-duration { 
+  color: #9ca3af; /* 柔和浅灰，不刺眼 */
+}
+.paragraph { 
+  color: #374151; 
+}
+.link { 
+  color: #165DFF; /* 蓝色链接，贴合主题 */
+  text-decoration: none;
+}
 
-/* —— 基本信息 —— */
-.basic-info-block { color: #666666; }
-.basic-info-item { color: #666666; }
+/* —— 列表项头部（公司/学校/角色等信息） —— */
+.item-header {
+  color: #4b5563;
+}
+.item-title {
+  color: #1f2937;
+  font-weight: 600;
+}
+.item-description li {
+  color: #374151;
+}
 
-/* —— 列表项内部 —— */
-.item-title, .work-item__title, .project-item__title, .education-item__title { color: #1f1f1f; }
-.item-company, .work-item__company, .project-item__company { color: #666666; }
-.item-role, .work-item__role, .project-item__role { color: #666666; }
-.item-location, .work-item__location, .project-item__location { color: #999999; }
-.item-degree, .education-item__degree { color: #1f1f1f; }
-.item-description li, .work-item__description li, .project-item__description li { color: #1f1f1f; }
-
-/* —— 技能标签 —— */
+/* —— 技能标签：浅蓝质感，正式不浮夸 —— */
 .skill-item {
-  background-color: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  color: #666666;
+  background-color: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 4px; /* 精致圆角 */
+  color: #165DFF;
+  padding: 2px 8px;
+  font-size: 12px;
 }
 
-/* —— 引用块 —— */
+/* —— 引用块：蓝色侧边栏 —— */
 .blockquote {
-  border-left-color: #cccccc;
-  background-color: #fafafa;
-  color: #666666;
+  border-left: 3px solid #165DFF;
+  background-color: #f9fafb;
+  color: #4b5563;
+  padding: 8px 12px;
+  margin: 10px 0;
 }
 
 /* —— 分隔线 —— */
-.divider { border-top: 1px solid #e0e0e0; }
+.divider { 
+  border-top: 1px solid #e5e7eb; 
+}
 
-/* —— 三线表 —— */
-.table { border-top-color: #333333; border-bottom-color: #333333; }
-.table thead th { border-bottom-color: #666666; color: #333333; }
-.table tbody td { color: #333333; }
+/* —— 三线表：商务正式样式 —— */
+.table { 
+  border-top-color: #1f2937; 
+  border-bottom-color: #1f2937; 
+  width: 100%;
+  border-collapse: collapse;
+}
+.table thead th { 
+  border-bottom-color: #4b5563; 
+  color: #1f2937;
+  font-weight: 600;
+}
+.table tbody td { 
+  color: #374151; 
+}
 
 /* —— 代码块 —— */
-.code-block { background-color: #f5f5f5; border-color: #e0e0e0; }
-.code-block .code { color: #333333; }
-.inline-code { background-color: #f5f5f5; color: #333333; border-color: #e0e0e0; }
+.code-block { 
+  background-color: #f9fafb; 
+  border-color: #e5e7eb;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.code-block .code { 
+  color: #1f2937; 
+}
+.inline-code { 
+  background-color: #eff6ff; 
+  color: #165DFF; 
+  border-color: #dbeafe;
+  border-radius: 3px;
+  padding: 1px 4px;
+}
 
-/* —— 可编辑状态 —— */
-.resume-document [contenteditable="true"]:hover { background-color: #f5f7fa; }
-.resume-document [contenteditable="true"]:focus { background-color: #ecf5ff; }
+/* —— 可编辑状态：统一蓝色交互 —— */
+.resume-document [contenteditable="true"]:hover { 
+  background-color: #eff6ff; 
+}
+.resume-document [contenteditable="true"]:focus { 
+  background-color: #dbeafe; 
+  outline: none;
+}
+
+/* 打印适配：导出PDF无样式错乱 */
+@media print {
+  .resume-document {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
 `;
 
 export const THEME_CREATIVE_CSS = `/* theme-creative — 暗色创意 */
@@ -88,17 +162,10 @@ export const THEME_CREATIVE_CSS = `/* theme-creative — 暗色创意 */
 .paragraph { color: #e6edf3; }
 .link { color: #58a6ff; }
 
-/* —— 基本信息 —— */
-.basic-info-block { color: #8b949e; }
-.basic-info-item { color: #8b949e; }
-
-/* —— 列表项内部 —— */
-.item-title, .work-item__title, .project-item__title, .education-item__title { color: #e6edf3; }
-.item-company, .work-item__company, .project-item__company { color: #8b949e; }
-.item-role, .work-item__role, .project-item__role { color: #8b949e; }
-.item-location, .work-item__location, .project-item__location { color: #6e7681; }
-.item-degree, .education-item__degree { color: #e6edf3; }
-.item-description li, .work-item__description li, .project-item__description li { color: #e6edf3; }
+/* —— 列表项头部 —— */
+.item-header { color: #8b949e; }
+.item-title { color: #e6edf3; }
+.item-description li { color: #e6edf3; }
 
 /* —— 技能标签 —— */
 .skill-item {
@@ -151,17 +218,10 @@ export const THEME_MINIMAL_CSS = `/* theme-minimal — 极简灰 */
 .paragraph { color: #1a1a1a; }
 .link { color: #1a1a1a; }
 
-/* —— 基本信息 —— */
-.basic-info-block { color: #555555; }
-.basic-info-item { color: #555555; }
-
-/* —— 列表项内部 —— */
-.item-title, .work-item__title, .project-item__title, .education-item__title { color: #1a1a1a; }
-.item-company, .work-item__company, .project-item__company { color: #555555; }
-.item-role, .work-item__role, .project-item__role { color: #555555; }
-.item-location, .work-item__location, .project-item__location { color: #888888; }
-.item-degree, .education-item__degree { color: #1a1a1a; }
-.item-description li, .work-item__description li, .project-item__description li { color: #1a1a1a; }
+/* —— 列表项头部 —— */
+.item-header { color: #555555; }
+.item-title { color: #1a1a1a; }
+.item-description li { color: #1a1a1a; }
 
 /* —— 技能标签 — 无边框无线条 —— */
 .skill-item {
@@ -233,20 +293,13 @@ export const THEME_CLASSIC_CSS = `/* theme-classic — 经典黑白（衬线字�
 .paragraph { color: #000000; font-family: 'Georgia', 'SimSun', '宋体', serif; }
 .link { color: #000000; }
 
-/* —— 基本信息 —— */
-.basic-info-block { color: #333333; font-family: 'Georgia', 'Times New Roman', serif; }
-.basic-info-item { color: #333333; }
-
-/* —— 列表项内部 —— */
-.item-title, .work-item__title, .project-item__title, .education-item__title {
+/* —— 列表项头部 —— */
+.item-header { color: #333333; }
+.item-title {
   color: #000000;
   font-family: 'Georgia', 'SimHei', '黑体', serif;
 }
-.item-company, .work-item__company, .project-item__company { color: #333333; }
-.item-role, .work-item__role, .project-item__role { color: #333333; }
-.item-location, .work-item__location, .project-item__location { color: #666666; }
-.item-degree, .education-item__degree { color: #000000; }
-.item-description li, .work-item__description li, .project-item__description li { color: #000000; }
+.item-description li { color: #000000; }
 
 /* —— 技能标签 —— */
 .skill-item {
@@ -307,20 +360,13 @@ export const THEME_MODERN_CSS = `/* theme-modern — 现代紫 */
 .paragraph { color: #1f1f1f; }
 .link { color: #7c3aed; }
 
-/* —— 基本信息 —— */
-.basic-info-block { color: #6b7280; }
-.basic-info-item { color: #6b7280; }
-
-/* —— 列表项内部 —— */
-.item-title, .work-item__title, .project-item__title, .education-item__title {
+/* —— 列表项头部 —— */
+.item-header { color: #6b7280; }
+.item-title {
   color: #1f1f1f;
   font-family: 'Inter', 'SF Pro Display', 'SimHei', '黑体', sans-serif;
 }
-.item-company, .work-item__company, .project-item__company { color: #6b7280; }
-.item-role, .work-item__role, .project-item__role { color: #6b7280; }
-.item-location, .work-item__location, .project-item__location { color: #9ca3af; }
-.item-degree, .education-item__degree { color: #1f1f1f; }
-.item-description li, .work-item__description li, .project-item__description li { color: #1f1f1f; }
+.item-description li { color: #1f1f1f; }
 
 /* —— 技能标签（药丸形） —— */
 .skill-item {

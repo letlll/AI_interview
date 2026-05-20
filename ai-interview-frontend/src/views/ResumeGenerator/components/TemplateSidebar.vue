@@ -50,7 +50,6 @@ interface Template {
   iconComponent: any;
   description: string;
   color: string;
-  themeClass: string;   // ← 新增
 }
 
 const props = defineProps<{
@@ -59,7 +58,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
-  (e: 'themeClassChange', themeClass: string): void;   // ← 新增
 }>();
 
 const isExpanded = ref(false);
@@ -70,40 +68,35 @@ const templates: Template[] = [
     name: '经典模板',
     iconComponent: Document,
     description: '通用正式/校招首选',
-    color: '#2563eb',       // 蓝色主题 主色
-    themeClass: 'theme-blue'
+    color: '#2563eb',
   },
   {
     id: 'modern',
     name: '现代模板',
     iconComponent: Notebook,
     description: '互联网/技术岗',
-    color: '#6b21a8',       // 紫色主题 主色
-    themeClass: 'theme-modern'
+    color: '#6b21a8',
   },
   {
     id: 'minimal',
     name: '简约模板',
     iconComponent: Edit,
     description: '极简干净/设计师',
-    color: '#555555',       // 极简灰主题 主色
-    themeClass: 'theme-minimal'
+    color: '#555555',
   },
   {
     id: 'professional',
     name: '专业模板',
     iconComponent: Files,
     description: '金融/国企/传统行业',
-    color: '#1a1a1a',       // 经典黑白主题 主色
-    themeClass: 'theme-classic'
+    color: '#1a1a1a',
   },
   {
     id: 'creative',
     name: '创意模板',
     iconComponent: Brush,
     description: '暗黑科技/创意岗',
-    color: '#f97316',       // 暗黑主题 主色
-    themeClass: 'theme-creative'
+    color: '#f97316',
   }
 ];
 
@@ -113,10 +106,6 @@ const toggleExpand = () => {
 
 const selectTemplate = (templateId: string) => {
   emit('update:modelValue', templateId);
-  const template = templates.find(t => t.id === templateId);
-  if (template) {
-    emit('themeClassChange', template.themeClass);   // ← 新增
-  }
 };
 </script>
 

@@ -24,7 +24,6 @@ styleEl.textContent = RESUME_CSS;
 
 const props = defineProps<{
   content: string;
-  themeClass?: string;
   extraStyles?: string;
 }>();
 
@@ -310,7 +309,6 @@ const renderAll = async () => {
   // 使用 composable 渲染，extraStyles 已内联到 .resume-document 内部
   markdownRoot.value.innerHTML = renderMarkdownContent({
     content: props.content,
-    themeClass: props.themeClass || 'theme-blue',
     extraStyles: props.extraStyles || '',
   });
 
@@ -367,13 +365,6 @@ const renderAll = async () => {
 
 onMounted(() => { renderAll(); });
 watch(() => props.content, () => { renderAll(); });
-watch(() => props.themeClass, () => {
-  const doc = markdownRoot.value?.querySelector('.resume-document');
-  if (!doc) return;
-  doc.classList.remove('theme-blue', 'theme-dark', 'theme-minimal', 'theme-classic', 'theme-modern');
-  doc.classList.add(props.themeClass || 'theme-blue');
-});
-// extraStyles is handled by renderMarkdownContent — re-render on change
 watch(() => props.extraStyles, () => { renderAll(); });
 
 defineExpose({

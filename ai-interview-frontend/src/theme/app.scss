@@ -1,0 +1,540 @@
+/* ================================================
+   Claude Design System — Token 层 & 全局样式
+   严格遵循 DESIGN.md 规范
+   ================================================ */
+
+/* ================================================
+   1. CSS 变量 — Token 层 (--color-*)
+   来源: DESIGN.md Section 2 — Color Palette & Roles
+   ================================================ */
+:root {
+	/* Primary */
+	--color-near-black: #141413;
+	--color-terracotta: #c96442;
+	--color-coral: #d97757;
+
+	/* Secondary & Accent */
+	--color-error: #b53333;
+	--color-focus-blue: #3898ec;
+
+	/* Surface & Background */
+	--color-parchment: #f5f4ed;
+	--color-ivory: #faf9f5;
+	--color-white: #ffffff;
+	--color-warm-sand: #e8e6dc;
+	--color-dark-surface: #30302e;
+	--color-deep-dark: #141413;
+
+	/* Neutrals & Text */
+	--color-charcoal-warm: #4d4c48;
+	--color-olive-gray: #5e5d59;
+	--color-stone-gray: #87867f;
+	--color-dark-warm: #3d3d3a;
+	--color-warm-silver: #b0aea5;
+
+	/* Borders & Rings */
+	--color-border-cream: #f0eee6;
+	--color-border-warm: #e8e6dc;
+	--color-border-dark: #30302e;
+	--color-ring-warm: #d1cfc5;
+	--color-ring-deep: #c2c0b6;
+
+	/* Fonts */
+	--font-serif: Georgia, 'Times New Roman', Times, serif;
+	--font-sans: Arial, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--font-mono: SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
+
+	/* ================================================
+	   2. CSS 变量 — 应用层 (--next-* / --el-*)
+	   全部引用 Token 层，不存 hex 值
+	   ================================================ */
+	// 基础色映射
+	--next-color-white: var(--color-ivory);
+	--next-bg-main-color: var(--color-parchment);
+	--next-bg-color: var(--color-ivory);
+	--next-border-color-light: var(--color-warm-sand);
+
+	// 状态指示色
+	--next-color-primary-lighter: #fde8dc;
+	--next-color-success-lighter: #e8f2e0;
+	--next-color-warning-lighter: #fdf4e0;
+	--next-color-danger-lighter: #fde0e0;
+
+	// 交互态背景
+	--next-color-dark-hover: rgba(20, 20, 19, 0.1);
+	--next-color-menu-hover: rgba(20, 20, 19, 0.08);
+	--next-color-user-hover: rgba(20, 20, 19, 0.04);
+
+	// 设置面板
+	--next-color-seting-main: var(--color-warm-sand);
+	--next-color-seting-aside: #d8d6cc;
+	--next-color-seting-header: #c8c6bc;
+
+	// 顶栏 & 菜单 & 分栏
+	--next-bg-topBar: var(--color-ivory);
+	--next-bg-topBarColor: var(--color-near-black);
+	--next-bg-menuBar: var(--color-ivory);
+	--next-bg-menuBarColor: var(--color-charcoal-warm);
+	--next-bg-menuBarActiveColor: #fde8dc;
+	--next-bg-columnsMenuBar: var(--color-ivory);
+	--next-bg-columnsMenuBarColor: var(--color-stone-gray);
+
+	/* ================================================
+	   3. Element Plus 品牌色
+	   手调 Terracotta 9 级梯度，不依赖 Element Plus 自动生成
+	   ================================================ */
+	--el-color-primary: var(--color-terracotta);
+	--el-color-primary-dark-2: #b85538;
+	--el-color-primary-light-1: var(--color-coral);
+	--el-color-primary-light-2: #e28b70;
+	--el-color-primary-light-3: #ea9f89;
+	--el-color-primary-light-4: #f2b3a2;
+	--el-color-primary-light-5: #f7c9bc;
+	--el-color-primary-light-6: #fad9d1;
+	--el-color-primary-light-7: #fde8e3;
+	--el-color-primary-light-8: #fef0ec;
+	--el-color-primary-light-9: #fde8dc;
+}
+
+/* ================================================
+   4. 全局默认
+   ================================================ */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	outline: none !important;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+html,
+body,
+#app {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	font-family: var(--font-sans);
+	font-weight: 400;
+	font-size: 16px;
+	line-height: 1.60;
+	-webkit-font-smoothing: antialiased;
+	-webkit-tap-highlight-color: transparent;
+	background-color: var(--next-bg-main-color);
+	overflow: hidden;
+	position: relative;
+	--el-font-family: var(--font-sans);
+}
+
+/* 标题 — Serif */
+.font-serif,
+h1, h2, h3,
+.el-dialog__title {
+	font-family: var(--font-serif);
+}
+
+/* 代码 — Mono */
+code, pre {
+	font-family: var(--font-mono);
+	font-size: 15px;
+	font-weight: 400;
+	line-height: 1.60;
+	letter-spacing: -0.32px;
+}
+
+/* ================================================
+   5. Typography Scale — 14 级
+   来源: DESIGN.md Section 3
+   ================================================ */
+.text-display {
+	font-family: var(--font-serif);
+	font-size: 64px;
+	font-weight: 500;
+	line-height: 1.10;
+}
+
+.text-section-heading {
+	font-family: var(--font-serif);
+	font-size: 52px;
+	font-weight: 500;
+	line-height: 1.20;
+}
+
+.text-subheading-lg {
+	font-family: var(--font-serif);
+	font-size: 36px;
+	font-weight: 500;
+	line-height: 1.30;
+}
+
+.text-subheading {
+	font-family: var(--font-serif);
+	font-size: 32px;
+	font-weight: 500;
+	line-height: 1.10;
+}
+
+.text-subheading-sm {
+	font-family: var(--font-serif);
+	font-size: 25px;
+	font-weight: 500;
+	line-height: 1.20;
+}
+
+.text-feature-title {
+	font-family: var(--font-serif);
+	font-size: 20.8px;
+	font-weight: 500;
+	line-height: 1.20;
+}
+
+.text-body-serif {
+	font-family: var(--font-serif);
+	font-size: 17px;
+	font-weight: 400;
+	line-height: 1.60;
+}
+
+.text-body-lg {
+	font-family: var(--font-sans);
+	font-size: 20px;
+	font-weight: 400;
+	line-height: 1.60;
+}
+
+.text-body {
+	font-family: var(--font-sans);
+	font-size: 16px;
+	font-weight: 400;
+	line-height: 1.60;
+}
+
+.text-body-sm {
+	font-family: var(--font-sans);
+	font-size: 15px;
+	font-weight: 400;
+	line-height: 1.60;
+}
+
+.text-caption {
+	font-family: var(--font-sans);
+	font-size: 14px;
+	font-weight: 400;
+	line-height: 1.43;
+}
+
+.text-label {
+	font-family: var(--font-sans);
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.60;
+	letter-spacing: 0.12px;
+}
+
+.text-overline {
+	font-family: var(--font-sans);
+	font-size: 10px;
+	font-weight: 400;
+	line-height: 1.60;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+}
+
+.text-micro {
+	font-family: var(--font-sans);
+	font-size: 9.6px;
+	font-weight: 400;
+	line-height: 1.60;
+	letter-spacing: 0.096px;
+}
+
+/* ================================================
+   6. Depth & Elevation — 5 级
+   来源: DESIGN.md Section 6
+   ================================================ */
+.elevation-flat {
+	border: none;
+	box-shadow: none;
+}
+
+.elevation-contained {
+	border: 1px solid var(--color-border-cream);
+}
+
+.elevation-ring {
+	border: none;
+	box-shadow: 0px 0px 0px 1px var(--color-ring-warm);
+}
+
+.elevation-whisper {
+	border: 1px solid var(--color-border-cream);
+	box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+}
+
+.elevation-inset {
+	border: none;
+	box-shadow: inset 0px 0px 0px 1px rgba(0, 0, 0, 0.15);
+}
+
+/* ================================================
+   7. 主布局样式
+   spacing 对齐 8px base scale (3,4,6,8,10,12,16,20,24,30)
+   ================================================ */
+.layout-container {
+	width: 100%;
+	height: 100%;
+
+	.layout-pd {
+		padding: 16px !important;
+	}
+
+	.layout-flex {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+	}
+
+	.layout-aside {
+		background: var(--next-bg-menuBar);
+		box-shadow: 2px 0 6px rgb(0 21 41 / 1%);
+		height: inherit;
+		position: relative;
+		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		overflow-x: hidden !important;
+
+		.el-scrollbar__view {
+			overflow: hidden;
+		}
+	}
+
+	.layout-header {
+		padding: 0 !important;
+		height: auto !important;
+	}
+
+	.layout-main {
+		padding: 0 !important;
+		overflow: hidden;
+		width: 100%;
+		background-color: var(--next-bg-main-color);
+		display: flex;
+		flex-direction: column;
+
+		.layout-main-scroll {
+			@extend .layout-flex;
+
+			.layout-parent {
+				@extend .layout-flex;
+				position: relative;
+			}
+		}
+	}
+
+	.layout-padding {
+		@extend .layout-pd;
+		position: absolute;
+		left: 0;
+		top: 0;
+		height: 100%;
+		overflow: hidden;
+		@extend .layout-flex;
+
+		&-auto {
+			height: inherit;
+			@extend .layout-flex;
+		}
+
+		&-view {
+			background: var(--el-color-white);
+			width: 100%;
+			height: 100%;
+			border-radius: 8px;
+			border: 1px solid var(--el-border-color-light, var(--color-warm-sand));
+			overflow: hidden;
+		}
+	}
+
+	.layout-padding-unset {
+		padding: 0 !important;
+
+		&-view {
+			border-radius: 0 !important;
+			border: none !important;
+		}
+	}
+
+	.layout-iframe {
+		.el-loading-parent--relative {
+			height: 100%;
+		}
+	}
+
+	.el-scrollbar {
+		width: 100%;
+	}
+
+	.layout-el-aside-br-color {
+		border-right: 1px solid var(--el-border-color-light, var(--color-warm-sand));
+	}
+
+	// PC端左侧导航
+	.layout-aside-pc-220 {
+		width: 220px !important;
+		transition: width 0.3s ease;
+	}
+
+	.layout-aside-pc-64 {
+		width: 64px !important;
+		transition: width 0.3s ease;
+	}
+
+	.layout-aside-pc-1 {
+		width: 1px !important;
+		transition: width 0.3s ease;
+	}
+
+	// 手机端左侧导航
+	.layout-aside-mobile {
+		position: fixed;
+		top: 0;
+		left: -220px;
+		width: 220px;
+		z-index: 9999999;
+	}
+
+	.layout-aside-mobile-close {
+		left: -220px;
+		transition: all 0.3s cubic-bezier(0.39, 0.58, 0.57, 1);
+	}
+
+	.layout-aside-mobile-open {
+		left: 0;
+		transition: all 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+	}
+
+	.layout-aside-mobile-mode {
+		position: fixed;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.5);
+		z-index: 9999998;
+		animation: error-img 0.3s;
+	}
+
+	.layout-mian-height-50 {
+		height: calc(100vh - 50px);
+	}
+
+	.layout-columns-warp {
+		flex: 1;
+		display: flex;
+		overflow: hidden;
+	}
+
+	.layout-hide {
+		display: none;
+	}
+}
+
+/* ================================================
+   8. 全局工具类
+   ================================================ */
+
+/* element plus 全局样式 */
+.layout-breadcrumb-seting {
+	.el-divider {
+		background-color: rgb(230, 230, 230);
+	}
+}
+
+/* nprogress 进度条 */
+#nprogress {
+	.bar {
+		background: var(--el-color-primary) !important;
+		z-index: 9999999 !important;
+	}
+}
+
+/* flex 弹性布局 */
+.flex {
+	display: flex;
+}
+
+.flex-auto {
+	flex: 1;
+	overflow: hidden;
+}
+
+.flex-center {
+	@extend .flex;
+	flex-direction: column;
+	width: 100%;
+	overflow: hidden;
+}
+
+.flex-margin {
+	margin: auto;
+}
+
+.flex-warp {
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	margin: 0 -5px;
+
+	.flex-warp-item {
+		padding: 5px;
+
+		.flex-warp-item-box {
+			width: 100%;
+			height: 100%;
+		}
+	}
+}
+
+/* cursor 鼠标形状 */
+.cursor-default { cursor: default !important; }
+.cursor-help    { cursor: help !important; }
+.cursor-pointer { cursor: pointer !important; }
+.cursor-move    { cursor: move !important; }
+
+/* 宽高 100% */
+.w100      { width: 100% !important; }
+.h100      { height: 100% !important; }
+.vh100     { height: 100vh !important; }
+.max100vh  { max-height: 100vh !important; }
+.min100vh  { min-height: 100vh !important; }
+
+/* 颜色值 */
+.color-primary { color: var(--el-color-primary); }
+.color-success { color: var(--el-color-success); }
+.color-warning { color: var(--el-color-warning); }
+.color-danger  { color: var(--el-color-danger); }
+.color-info    { color: var(--el-color-info); }
+
+/* 字体大小 10-32px */
+@for $i from 10 through 32 {
+	.font#{$i} {
+		font-size: #{$i}px !important;
+	}
+}
+
+/* 外边距、内边距 1-35px */
+@for $i from 1 through 35 {
+	.mt#{$i} { margin-top: #{$i}px !important; }
+	.mr#{$i} { margin-right: #{$i}px !important; }
+	.mb#{$i} { margin-bottom: #{$i}px !important; }
+	.ml#{$i} { margin-left: #{$i}px !important; }
+	.pt#{$i} { padding-top: #{$i}px !important; }
+	.pr#{$i} { padding-right: #{$i}px !important; }
+	.pb#{$i} { padding-bottom: #{$i}px !important; }
+	.pl#{$i} { padding-left: #{$i}px !important; }
+}
