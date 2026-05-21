@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rabbitmqctl status *)",
+      "Bash(sc query *)"
+    ]
+  }
+}

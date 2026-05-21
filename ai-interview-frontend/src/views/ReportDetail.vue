@@ -197,6 +197,10 @@ const starAnalysisWithQuestionText = computed(() => {
 </script>
 
 <style lang="scss" scoped>
+.report-detail-container {
+  height: 100%;
+  overflow-y: auto;
+}
 /* 模拟 Element Plus 卡片样式 */
 .el-card {
   border: 1px solid #e2e8f0;

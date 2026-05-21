@@ -1,6 +1,10 @@
 import request from '@/api/request';
 import type { PaginatedResponse } from '@/types/api';
 
+// ============================================================
+// 操作日志 (Activity Logs) — 匹配后端 ActivityLog 模型
+// ============================================================
+
 export type ActionCategory = 'interview' | 'resume' | 'report';
 
 export type ActionType =
@@ -21,14 +25,14 @@ export interface OperationLog {
   timestamp: string;
 }
 
-export const getNotificationsApi = (params?: any): Promise<PaginatedResponse<OperationLog>> => {
-  return request({ url: '/notifications/', method: 'get', params });
+export const getActivityLogsApi = (params?: any): Promise<PaginatedResponse<OperationLog>> => {
+  return request({ url: '/activity-logs/', method: 'get', params });
 };
 
-export const markAllNotificationsAsReadApi = (): Promise<void> => {
-  return request({ url: '/notifications/mark-all-as-read/', method: 'post' });
+export const markAllActivityLogsAsReadApi = (): Promise<void> => {
+  return request({ url: '/activity-logs/mark-all-as-read/', method: 'post' });
 };
 
-export const markNotificationAsReadApi = (id: number): Promise<void> => {
-  return request({ url: `/notifications/${id}/mark-as-read/`, method: 'post' });
+export const markActivityLogAsReadApi = (id: number): Promise<void> => {
+  return request({ url: `/activity-logs/${id}/mark-as-read/`, method: 'post' });
 };

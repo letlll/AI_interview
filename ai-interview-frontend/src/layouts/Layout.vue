@@ -2,7 +2,7 @@
 import { onMounted } from 'vue';
 import { RouterView, RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from '@/store/modules/auth';
-import { useNotificationStore } from '@/store/modules/notification';
+import { useActivityLogStore } from '@/store/modules/activityLog';
 import { 
   ElContainer, ElHeader, ElMenu, ElMenuItem, ElSubMenu, 
   ElDropdown, ElDropdownMenu, ElDropdownItem, ElAvatar, 
@@ -13,13 +13,13 @@ import NotificationCenter from '@/components/common/NotificationCenter.vue';
 import { ArrowDown, ChatLineRound  } from '@element-plus/icons-vue'; // <-- 【核心修复】导入 ArrowDown
 
 const authStore = useAuthStore();
-const notificationStore = useNotificationStore();
+const activityLogStore = useActivityLogStore();
 const route = useRoute();
 
 onMounted(() => {
   if (authStore.isAuthenticated) {
     // 首次加载或刷新页面时，获取通知
-    notificationStore.fetchNotifications();
+    activityLogStore.fetchNotifications();
   }
 });
 </script>
@@ -54,7 +54,7 @@ onMounted(() => {
         <!-- 通知中心 Popover -->
         <el-popover placement="bottom-end" :width="360" trigger="click">
           <template #reference>
-            <el-badge :value="notificationStore.unreadCount" :max="99" :hidden="notificationStore.unreadCount === 0" class="notification-badge">
+            <el-badge :value="activityLogStore.unreadCount" :max="99" :hidden="activityLogStore.unreadCount === 0" class="notification-badge">
               <el-icon :size="20" class="bell-icon"><Bell /></el-icon>
             </el-badge>
           </template>
