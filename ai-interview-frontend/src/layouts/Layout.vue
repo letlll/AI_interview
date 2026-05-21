@@ -35,8 +35,7 @@ onMounted(() => {
         <el-menu-item index="/dashboard">仪表盘</el-menu-item>
         <!-- 【核心新增】聊天/私信入口 -->
         <el-menu-item index="/dashboard/chat">
-          <el-icon><ChatLineRound /></el-icon>
-          <span>我的私信</span>
+          <span>对话记录</span>
         </el-menu-item>
         <el-sub-menu index="/resumes">
           <template #title>简历中心</template>
