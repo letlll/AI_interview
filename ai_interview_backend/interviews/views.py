@@ -8,6 +8,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from resumes.models import Resume
+from notifications.activity_logger import (
+    log_interview_started, log_interview_completed, log_interview_aborted,
+    log_report_generated, log_resume_diagnosed,
+)
 from .models import InterviewSession, InterviewQuestion
 from .serializers import InterviewSessionSerializer, StartInterviewSerializer, SubmitAnswerSerializer
 from .ai_services import (
@@ -81,6 +85,10 @@ class InterviewSessionViewSet(viewsets.ModelViewSet):
                 session = InterviewSession.objects.get(id=session_id, user=request.user)
                 session.status = InterviewSession.Status.CANCELED
                 session.save()
+                try:
+                    log_interview_aborted(request.user, session)
+                except Exception:
+                    pass
                 cache.delete(cache_key)
                 return Response({"message": "面试已放弃"}, status=status.HTTP_200_OK)
             except InterviewSession.DoesNotExist:
@@ -99,6 +107,10 @@ class InterviewSessionViewSet(viewsets.ModelViewSet):
                 old_session = InterviewSession.objects.get(id=existing_session_id, user=request.user)
                 old_session.status = InterviewSession.Status.CANCELED
                 old_session.save()
+                try:
+                    log_interview_aborted(request.user, old_session)
+                except Exception:
+                    pass
             except InterviewSession.DoesNotExist:
                 pass
             cache.delete(cache_key)
@@ -126,6 +138,10 @@ class InterviewSessionViewSet(viewsets.ModelViewSet):
         first_question_text = generate_first_question(job_position, request.user, resume_text)
         InterviewQuestion.objects.create(session=session, question_text=first_question_text, sequence=1)
         cache.set(get_user_cache_key(request.user), str(session.id), timeout=7200)
+        try:
+            log_interview_started(request.user, session)
+        except Exception:
+            pass
         session_data = self.get_serializer(instance=session).data
         return Response(session_data, status=status.HTTP_201_CREATED)
 
@@ -216,6 +232,14 @@ class InterviewSessionViewSet(viewsets.ModelViewSet):
         session.status = InterviewSession.Status.FINISHED
         session.finished_at = timezone.now()
         session.save()
+        try:
+            log_interview_completed(request.user, session)
+        except Exception:
+            pass
+        try:
+            log_report_generated(request.user, session)
+        except Exception:
+            pass
         return Response(report_data, status=status.HTTP_200_OK)
 
         # --- [核心新增] 新增一个 action 用于获取 AI 参考答案 ---
@@ -316,6 +340,10 @@ class ResumeAnalysisView(APIView):
                 report_data=analysis_report_data,
                 overall_score=analysis_report_data.get('overall_score', 0)
             )
+            try:
+                log_resume_diagnosed(request.user, new_report)
+            except Exception:
+                pass
         except Exception as e:
             return Response({'error': f'保存分析报告失败: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

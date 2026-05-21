@@ -625,6 +625,12 @@ onMounted(() => {
   }
   hr { border: none; border-top: 1px solid var(--color-border-cream); margin: 10px 0; }
   a { color: var(--color-terracotta); }
+
+  // Override global * { user-select: none } — v-html children don't inherit .message-text
+  :deep(*) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
 
 /* ===== Typing indicator ===== */

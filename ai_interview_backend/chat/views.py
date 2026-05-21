@@ -92,7 +92,7 @@ class AIMessageView(APIView):
         chat_history = conversation.messages.all().order_by('-timestamp')[:20]
         chat_history_list = [
             {
-                'role': msg.sender_id == request.user.id and 'user' or 'assistant',
+                'role': 'assistant' if (msg.metadata or {}).get('is_ai_response') else 'user',
                 'content': msg.content,
                 'timestamp': msg.timestamp.isoformat()
             }

@@ -13,6 +13,7 @@ from .serializers import (
 )
 # 【新增】导入简历解析服务
 from .services import extract_text_from_file
+from notifications.activity_logger import log_resume_generated, log_resume_saved
 
 class ResumeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -49,10 +50,14 @@ class ResumeViewSet(viewsets.ModelViewSet):
 
                 if extracted_text:
                     resume_instance.parsed_content = extracted_text
-                    resume_instance.status = Resume.Status.PARSED # 标记为“已解析”
+                    resume_instance.status = Resume.Status.PARSED # 标记为”已解析”
                     resume_instance.save()
+                    try:
+                        log_resume_generated(request.user, resume_instance, '文件解析')
+                    except Exception:
+                        pass
                 else:
-                    resume_instance.status = Resume.Status.FAILED # 标记为“解析失败”
+                    resume_instance.status = Resume.Status.FAILED # 标记为”解析失败”
                     resume_instance.save()
             except Exception as e:
                 print(f"解析简历文件失败: {e}")
@@ -69,6 +74,10 @@ class ResumeViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
+            try:
+                log_resume_generated(request.user, serializer.instance, '在线创建')
+            except Exception:
+                pass
             # 使用 Detail 序列化器返回完整的对象
             output_serializer = ResumeDetailSerializer(serializer.instance)
             headers = self.get_success_headers(output_serializer.data)
@@ -77,6 +86,15 @@ class ResumeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # 这个函数会自动保存所有 serializer 中定义的字段，并注入 user
         serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        old_status = serializer.instance.status
+        instance = serializer.save()
+        if old_status != Resume.Status.PUBLISHED and instance.status == Resume.Status.PUBLISHED:
+            try:
+                log_resume_saved(self.request.user, instance)
+            except Exception:
+                pass
 
     @action(detail=True, methods=['patch'], url_path='file')
     def update_file(self, request, pk=None):
