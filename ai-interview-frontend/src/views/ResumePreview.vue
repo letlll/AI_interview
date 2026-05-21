@@ -11,27 +11,23 @@
       </div>
     </div>
     <div v-if="isLoading" class="loading-container"><el-skeleton :rows="10" animated /></div>
-    <div id="resume-content" class="resume-wrapper" v-else>
-      <div class="resume-paper" :style="pageStyles">
-        <!-- 1. content_json 有数据 → 组件渲染 -->
-        <div v-if="allVisibleModules.length > 0">
-          <div v-for="element in allVisibleModules" :key="element.id" class="preview-component-item">
-            <component
-              :is="componentMap[element.componentName]"
-              v-bind="element.props"
-              :style="element.styles"
-            />
-          </div>
-        </div>
-        <!-- 2. content_json 为空，但有 file_url → iframe 直接显示 PDF -->
-        <iframe
-          v-else-if="pdfSrc"
-          :src="pdfSrc"
-          class="pdf-iframe"
-        />
-        <!-- 3. 全部为空 → 空状态 -->
-        <div v-else class="empty-tip"><el-empty description="该简历暂无内容" /></div>
+    <div id="resume-content" v-else class="resume-wrapper" :class="{ 'resume-wrapper--pdf': isPdfMode }">
+      <!-- PDF 模式：独立的大尺寸查看器 -->
+      <div v-if="isPdfMode" class="pdf-viewer">
+        <iframe :src="pdfSrc" class="pdf-iframe" />
       </div>
+      <!-- 组件渲染模式：A4 纸张预览 -->
+      <div v-else-if="allVisibleModules.length > 0" class="resume-paper" :style="pageStyles">
+        <div v-for="element in allVisibleModules" :key="element.id" class="preview-component-item">
+          <component
+            :is="componentMap[element.componentName]"
+            v-bind="element.props"
+            :style="element.styles"
+          />
+        </div>
+      </div>
+      <!-- 空状态 -->
+      <div v-else class="empty-tip"><el-empty description="该简历暂无内容" /></div>
     </div>
   </div>
 </template>
@@ -84,6 +80,7 @@ const pageStyles = computed(() => currentTemplate.value.pageStyles || {});
 const sidebarModules = computed(() => resumeJson.value.sidebar.filter(m => m.props.show !== false));
 const mainModules = computed(() => resumeJson.value.main.filter(m => m.props.show !== false));
 const allVisibleModules = computed(() => [...sidebarModules.value, ...mainModules.value]);
+const isPdfMode = computed(() => allVisibleModules.value.length === 0 && !!pdfSrc.value);
 
 // 将后端相对路径 /media/... 拼成完整 URL，避免被 Vue Router 拦截
 const pdfSrc = computed(() => {
@@ -137,7 +134,7 @@ onMounted(async () => {
 });
 
 const goBack = () => {
-  router.push({ name: 'ResumeEditor', params: { id: resumeId } });
+  router.push({ name: 'ResumeGenerator', query: { resumeId: String(resumeId) } });
 };
 
 	const ELECTRON_PDF_URL = 'http://localhost:9999';
@@ -180,19 +177,105 @@ const goBack = () => {
 </script>
 
 <style lang="scss" scoped>
-.preview-page-container { background-color: var(--color-parchment); min-height: 100vh; }
-.preview-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background-color: var(--color-ivory); box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10; }
-.loading-container { max-width: 210mm; margin: 20px auto; padding: 20px; background: var(--color-ivory); }
-.resume-wrapper { padding: 30px 0; display: flex; justify-content: center; }
-.resume-paper { width: 210mm; min-height: 297mm; background-color: var(--color-white); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); transition: all 0.3s; }
+/* ================================================
+   ResumePreview — 简历预览页
+   遵循 DESIGN.md 设计规范
+   ================================================ */
+
+.preview-page-container {
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--color-parchment);
+}
+
+/* ---- Header ---- */
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 24px;
+  background-color: var(--color-ivory);
+  border-bottom: 1px solid var(--color-border-cream);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 25px;
+    font-weight: 500;
+    line-height: 1.20;
+    color: var(--color-near-black);
+    margin: 0;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+/* ---- Loading ---- */
+.loading-container {
+  max-width: 210mm;
+  margin: 20px auto;
+  padding: 24px;
+  background: var(--color-ivory);
+  border-radius: 8px;
+  border: 1px solid var(--color-border-cream);
+}
+
+/* ---- Wrapper ---- */
+.resume-wrapper {
+  padding: 30px 24px 60px;
+  display: flex;
+  justify-content: center;
+
+  &--pdf {
+    padding: 16px 24px 24px;
+    height: calc(100% - 57px); // header height ≈ 57px
+    overflow: hidden;
+  }
+}
+
+/* ---- A4 Paper (组件渲染模式) ---- */
+.resume-paper {
+  width: 210mm;
+  min-height: 297mm;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border-cream);
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+  flex-shrink: 0;
+}
 
 .preview-component-item {
   border-bottom: none;
   background-color: var(--color-white);
 }
 .canvas-area .preview-component-item:not(:last-child) {
-    border-bottom: 1px solid var(--color-parchment);
+  border-bottom: 1px solid var(--color-parchment);
 }
-.empty-tip { padding-top: 100px; }
-.pdf-iframe { width: 100%; height: 100%; border: none; min-height: 600px; }
+
+/* ---- PDF Viewer (PDF 模式) ---- */
+.pdf-viewer {
+  width: min(960px, 95vw);
+  height: 100%;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border-cream);
+  border-radius: 8px;
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+  overflow: hidden;
+}
+
+.pdf-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* ---- Empty ---- */
+.empty-tip {
+  padding-top: 100px;
+}
 </style>

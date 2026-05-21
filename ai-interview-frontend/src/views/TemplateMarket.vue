@@ -49,7 +49,7 @@ const useThisTemplate = (template: ResumeTemplateItem) => {
   // 假设您有一个 resumeId 在 store 中
   const resumeId = editorStore.resumeMeta?.id;
   if (resumeId) {
-    router.push({ name: 'ResumeEditor', params: { id: resumeId } });
+    router.push({ name: 'ResumeGenerator', query: { resumeId: String(resumeId) } });
   } else {
     // 或者跳转到简历列表页去新建
     router.push({ name: 'ResumeManagement' });

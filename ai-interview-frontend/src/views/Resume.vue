@@ -124,7 +124,7 @@ const handleDelete = async (id: number) => {
 };
 
 const isOnlineResume = (status: string): boolean => status === 'draft' || status === 'published';
-const handleEdit = (id: number) => router.push({ name: 'ResumeEditor', params: { id } });
+const handleEdit = (id: number) => router.push({ name: 'ResumeGenerator', query: { resumeId: String(id) } });
 const handleContinueWithAI = (id: number) => {
   router.push({ name: 'ResumeGenerator', query: { resumeId: id } });
 };
@@ -169,7 +169,7 @@ const handleCreateOnline = async () => {
         cancelButtonText: '稍后',
         type: 'success'
       }).then(() => {
-        router.push({ name: 'ResumeEditor', params: { id: newResume.id } });
+        router.push({ name: 'ResumeGenerator', query: { resumeId: String(newResume.id) } });
       });
     } catch (error) { ElMessage.error('创建失败'); }
   }).catch(() => {

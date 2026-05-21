@@ -315,6 +315,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted , nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 // In the script setup block, after line 330 (import useResumeAI):
 import { useVersionHistory } from '@/composables/useVersionHistory';
@@ -332,6 +333,7 @@ import { set } from 'lodash-es';
 import { useResumeTheme } from '@/composables/useResumeTheme';
 import { usePdfRenderer } from '@/composables/usePdfRenderer';
 import { buildPdfHtmlDocument } from '@/composables/useResumeRenderer';
+const route = useRoute();
 const chatPanelRef = ref<InstanceType<typeof AIChatPanel>>();
 const selectedTemplate = ref('classic');
 // 极简版：content 就是 internalMarkdown（完整 Markdown 字符串）
@@ -671,7 +673,19 @@ const initConversation = async () => {
     // 1. 先加载简历列表
     await loadResumeList();
 
-    // 2. 如果有简历，默认选择最新的
+    // 2. 检查 URL 查询参数中的 resumeId
+    const queryResumeId = Number(route.query.resumeId);
+
+    if (queryResumeId) {
+      const target = resumeList.value.find(r => r.id === queryResumeId);
+      if (target) {
+        currentResumeId.value = target.id;
+        await handleResumeChange(target.id);
+        return;
+      }
+    }
+
+    // 3. 没有 resumeId 参数或未找到 → 默认选择最新的
     if (resumeList.value.length > 0) {
       const latestResume = resumeList.value[0]; // 已按 updated_at 排序
       currentResumeId.value = latestResume.id;

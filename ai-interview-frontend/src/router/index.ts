@@ -31,14 +31,7 @@ const routes: Array<RouteRecordRaw> = [
       { path: 'history', name: 'History', component: () => import('@/views/History.vue') },
       { path: 'report/:id', name: 'ReportDetail', component: () => import('@/views/ReportDetail.vue') },
       { path: 'settings', name: 'Settings', component: () => import('@/views/Settings.vue') },
-      { path: 'profile', name: 'Profile', component: () => import('@/views/Profile.vue') },
-      {
-        path: 'resume/edit/:id',
-        name: 'ResumeEditor',
-        component: () => import('@/views/ResumeEditor.vue'),
-        props: true,
-      },
-      {
+      { path: 'profile', name: 'Profile', component: () => import('@/views/Profile.vue') },      {
         path: 'resume/preview/:id',
         name: 'ResumePreview',
         component: () => import('@/views/ResumePreview.vue'),
