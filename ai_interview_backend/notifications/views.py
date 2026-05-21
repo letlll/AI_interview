@@ -3,8 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.core.paginator import Paginator
 from django.db import models
-from .models import Notification, ActivityLog
-from .serializers import NotificationSerializer, ActivityLogSerializer
+from .models import ActivityLog
+from .serializers import ActivityLogSerializer
 
 from interviews.models import InterviewSession
 from resumes.models import Resume
@@ -171,24 +171,4 @@ class ActivityLogViewSet(viewsets.GenericViewSet):
 
     @action(detail=True, methods=['post'], url_path='mark-as-read')
     def mark_as_read(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = NotificationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return self.request.user.notifications.all()
-
-    @action(detail=False, methods=['post'], url_path='mark-all-as-read')
-    def mark_all_as_read(self, request, *args, **kwargs):
-        self.get_queryset().filter(is_read=False).update(is_read=True)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=['post'], url_path='mark-as-read')
-    def mark_as_read(self, request, *args, **kwargs):
-        notification = self.get_object()
-        notification.is_read = True
-        notification.save()
         return Response(status=status.HTTP_204_NO_CONTENT)

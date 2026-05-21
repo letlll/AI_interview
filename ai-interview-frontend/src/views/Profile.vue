@@ -66,32 +66,6 @@
       </div>
        <el-skeleton :rows="4" animated v-if="loading" />
     </el-card>
-
-    <!-- 第三方账户绑定 -->
-    <el-card>
-      <template #header>
-        <div class="page-card-header">
-          <span>第三方账户绑定</span>
-        </div>
-      </template>
-      <div v-if="!loading" class="social-accounts">
-        <div class="account-item">
-          <div class="account-info">
-            <img src="@/assets/icons/github.svg" alt="GitHub" class="provider-icon" />
-            <span>GitHub</span>
-          </div>
-          <div v-if="githubAccount" class="account-status">
-            <span>已绑定: {{ githubAccount.extra_data.login }}</span>
-            <el-button type="danger" plain size="small" @click="handleDisconnect('github')">解绑</el-button>
-          </div>
-          <div v-else class="account-status">
-            <span>未绑定</span>
-            <el-button type="primary" size="small" @click="handleConnectGitHub">去绑定</el-button>
-          </div>
-        </div>
-      </div>
-      <el-skeleton :rows="2" animated v-if="loading" />
-    </el-card>
   </div>
 </template>
 

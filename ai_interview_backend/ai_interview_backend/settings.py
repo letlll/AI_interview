@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     'resumes',
     'interviews',
     'reports',
-    'questions',
     'system',
     'blog',
     'interactions',
@@ -185,7 +184,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     #添加这一行来全局启用分页
-    'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardResultsSetPagination',
+    'DEFAULT_PAGINATION_CLASS': 'system.pagination.StandardResultsSetPagination',
 # 【核心新增】告诉 DRF 使用 spectacular 来生成 API schema
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
