@@ -57,7 +57,20 @@ export const submitAnswerStreamApi = async (
   });
 
   if (!response.ok) {
-    throw new Error('服务器响应错误');
+    let errorMsg = '服务器响应错误';
+    try {
+      const errorBody = await response.json();
+      if (errorBody) {
+        const messages = Object.entries(errorBody)
+          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join('; ') : msgs}`)
+          .join(' | ');
+        if (messages) errorMsg = messages;
+        else if (typeof errorBody === 'string') errorMsg = errorBody;
+      }
+    } catch {
+      // response body is not JSON, use default message
+    }
+    throw new Error(errorMsg);
   }
 
   if (response.headers.get('Content-Type')?.includes('application/json')) {

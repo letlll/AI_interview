@@ -38,7 +38,7 @@ service.interceptors.response.use(
     switch (status) {
       case 401:
         message = 'Token 已过期或无效，请重新登录';
-        // useAuthStore().logout();
+        useAuthStore().logout();
         break;
       case 403:
         message = '您没有权限访问此资源';
@@ -60,7 +60,14 @@ service.interceptors.response.use(
     
     if (error.response?.data) {
       const responseData = error.response.data as any;
-      message = responseData.detail || responseData.error || message;
+      // DRF field-level errors: {"field": ["msg"]} or DRF non-field: {"detail":"msg"} or custom: {"error":"msg"}
+      if (typeof responseData === 'object' && !responseData.detail && !responseData.error) {
+        const parts = Object.entries(responseData as Record<string,any>)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join('; ') : v}`);
+        if (parts.length) message = parts.join(' | ');
+      } else {
+        message = responseData.detail || responseData.error || message;
+      }
     }
     ElMessage.error(message);
     return Promise.reject(error);

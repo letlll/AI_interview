@@ -1,63 +1,265 @@
 <template>
   <div class="auth-container">
-    <el-card class="auth-card">
-      <template #header>
-        <div class="card-header">
-          <h2>AInterview</h2>
-        </div>
-      </template>
-      <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" label-width="80px" @keyup.enter="handleLogin">
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="loginForm.email" placeholder="请输入邮箱" />
+    <div class="auth-card">
+      <div class="card-header">
+        <h1 class="brand-name">AInterview</h1>
+        <p class="brand-tagline">智能面试，从这里开始</p>
+      </div>
+
+      <el-form
+        ref="loginFormRef"
+        :model="loginForm"
+        :rules="loginRules"
+        hide-required-asterisk
+        @keyup.enter="handleLogin"
+      >
+        <el-form-item prop="email">
+          <el-input
+            v-model="loginForm.email"
+            placeholder="邮箱地址"
+            :prefix-icon="User"
+          />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="loginForm.password" type="password" show-password placeholder="请输入密码" />
+        <el-form-item prop="password">
+          <el-input
+            v-model="loginForm.password"
+            type="password"
+            show-password
+            placeholder="密码"
+            :prefix-icon="Lock"
+          />
         </el-form-item>
         <el-form-item>
-          <el-button :loading="loading" @click="handleLogin" class="beautiful-button">登录</el-button>
+          <el-button
+            :loading="loading"
+            @click="handleLogin"
+            class="login-button"
+            round
+          >
+            登录
+          </el-button>
         </el-form-item>
       </el-form>
+
       <div class="auth-footer">
         还没有账号？ <router-link to="/register">立即注册</router-link>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive} from 'vue';
-import { ElMessage } from 'element-plus';
-import type { FormInstance, FormRules } from 'element-plus';
-import { useAuthStore } from '@/store/modules/auth';
+import { ref, reactive } from 'vue'
+import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
+import { useAuthStore } from '@/store/modules/auth'
 
-const authStore = useAuthStore();
-const loading = ref(false);
-const loginFormRef = ref<FormInstance>();
-const loginForm = reactive({ email: '', password: '' });
+const route = useRoute()
+const authStore = useAuthStore()
+const loading = ref(false)
+const loginFormRef = ref<FormInstance>()
+const loginForm = reactive({ email: '', password: '' })
 
-// 【核心修正】只定义一次
 const loginRules = reactive<FormRules>({
-  email: [{ required: true, message: '请输入邮箱', trigger: 'blur' }, { type: 'email', message: '请输入有效的邮箱地址', trigger: ['blur', 'change'] }],
+  email: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: ['blur', 'change'] },
+  ],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-});
+})
 
-
-// 【核心修正】只定义一次
 const handleLogin = async () => {
-  if (!loginFormRef.value) return;
+  if (!loginFormRef.value) return
   await loginFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true;
-      try {
-        await authStore.loginWithCredentials(loginForm);
-        ElMessage.success('登录成功！');
-      } catch (error) { console.error("登录失败", error); } 
-      finally { loading.value = false; }
+    if (!valid) return
+    loading.value = true
+    try {
+      const redirect = (route.query.redirect as string) || undefined
+      await authStore.loginWithCredentials(loginForm, redirect)
+      ElMessage.success('登录成功！')
+    } catch (error) {
+      console.error('登录失败', error)
+    } finally {
+      loading.value = false
     }
-  });
-};
+  })
+}
 </script>
 
 <style lang="scss" scoped>
+// ── Claude Design System: Login Page ──
 
+// Colors
+$parchment: #f5f4ed;
+$ivory: #faf9f5;
+$near-black: #141413;
+$olive-gray: #5e5d59;
+$stone-gray: #87867f;
+$charcoal-warm: #4d4c48;
+$terracotta: #c96442;
+$terracotta-hover: #b85a3b;
+$border-cream: #f0eee6;
+$border-warm: #e8e6dc;
+$ring-warm: #d1cfc5;
+$focus-blue: #3898ec;
+$warm-sand: #e8e6dc;
+
+// Typography
+$serif: 'Georgia', 'Times New Roman', serif;
+$sans: 'Arial', 'Helvetica Neue', system-ui, sans-serif;
+
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $parchment;
+  padding: 24px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 48px 40px 40px;
+  box-shadow:
+    0px 0px 0px 1px $border-cream,
+    rgba(0, 0, 0, 0.04) 0px 4px 24px;
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.brand-name {
+  font-family: $serif;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: $near-black;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.brand-tagline {
+  font-family: $sans;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: $stone-gray;
+  margin: 0;
+}
+
+// ── Form overrides ──
+
+:deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+:deep(.el-form-item__error) {
+  font-family: $sans;
+  font-size: 13px;
+  color: #b53333;
+  padding-top: 4px;
+}
+
+:deep(.el-input__wrapper) {
+  background: $ivory;
+  border-radius: 12px;
+  padding: 4px 14px;
+  box-shadow: 0px 0px 0px 1px $border-cream;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0px 0px 0px 1px $ring-warm;
+  }
+
+  &.is-focus {
+    box-shadow: 0px 0px 0px 2px $focus-blue;
+  }
+}
+
+:deep(.el-input__inner) {
+  font-family: $sans;
+  font-size: 16px;
+  line-height: 1.6;
+  color: $near-black;
+  height: 44px;
+
+  &::placeholder {
+    color: $stone-gray;
+    font-family: $sans;
+    font-size: 15px;
+  }
+}
+
+:deep(.el-input__prefix-inner) {
+  color: $stone-gray;
+  margin-right: 8px;
+}
+
+// ── Login button ──
+
+.login-button {
+  width: 100%;
+  height: 48px;
+  font-family: $sans;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: $ivory;
+  background: $terracotta;
+  border: none;
+  border-radius: 12px;
+  box-shadow:
+    0px 0px 0px 0px $terracotta,
+    0px 0px 0px 1px $terracotta;
+  margin-top: 4px;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover,
+  &:focus {
+    background: $terracotta-hover;
+    box-shadow:
+      0px 0px 0px 0px $terracotta-hover,
+      0px 0px 0px 1px $terracotta-hover;
+    color: $ivory;
+  }
+
+  &:active {
+    box-shadow: inset 0px 0px 0px 1px rgba(0, 0, 0, 0.15);
+  }
+}
+
+:deep(.el-button.is-loading) {
+  background: $terracotta;
+  box-shadow:
+    0px 0px 0px 0px $terracotta,
+    0px 0px 0px 1px $terracotta;
+}
+
+// ── Footer ──
+
+.auth-footer {
+  text-align: center;
+  margin-top: 28px;
+  font-family: $sans;
+  font-size: 15px;
+  line-height: 1.6;
+  color: $stone-gray;
+
+  a {
+    color: $terracotta;
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
 </style>

@@ -14,11 +14,17 @@ export interface Message {
   file_url: string | null;
   timestamp: string;
   is_read: boolean;
+  metadata: Record<string, any>;
 }
 
 export interface Conversation {
   id: number;
   participants: UserProfile[];
+  conversation_type: 'user_user' | 'user_ai';
+  conversation_type_display: string;
+  resume_id: number | null;
+  resume_title: string | null;
+  resume: { id: number; title: string; content_json: any; template_name: string } | null;
   updated_at: string;
   latest_message: Message | null;
   unread_count: number;
@@ -31,10 +37,10 @@ export interface Conversation {
  * 获取当前用户的所有对话列表
  */
 export const getConversationsApi = (): Promise<Conversation[]> => {
-  // 聊天列表通常不分页，一次性加载
   return request({
     url: '/conversations/',
     method: 'get',
+    params: { page_size: 1000 },
   });
 };
 

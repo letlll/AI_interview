@@ -1,11 +1,11 @@
-<!-- src/views/chat/Chat.vue (修改后) -->
+<!-- src/views/chat/Chat.vue -->
 <template>
-  <div class="page-container h-full flex">
-    <el-container class="h-full bg-white rounded-lg shadow-md">
-      <el-aside width="300px" class="border-r">
+  <div class="chat-page">
+    <el-container class="chat-container">
+      <el-aside width="300px" class="chat-sidebar">
         <ConversationList />
       </el-aside>
-      <el-main class="p-0">
+      <el-main class="chat-main">
         <ChatWindow />
       </el-main>
     </el-container>
@@ -14,19 +14,17 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router'; // <-- 导入 useRoute
+import { useRoute } from 'vue-router';
 import ConversationList from '@/components/chat/ConversationList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
 import { useChatStore } from '@/store/modules/chat';
 
 const chatStore = useChatStore();
-const route = useRoute(); // <-- 获取当前路由信息
+const route = useRoute();
 
 onMounted(() => {
-  // 【核心新增】检查 URL 中是否带有 userId 参数
   const userId = route.params.userId;
   if (userId && typeof userId === 'string') {
-    // 如果有，则立即调用 action 发起对话
     chatStore.startAndSelectConversation(parseInt(userId, 10));
   }
 });
@@ -37,8 +35,25 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.page-container {
+.chat-page {
   padding: 20px;
   height: calc(100vh - 60px);
+  background: var(--color-parchment);
+}
+.chat-container {
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 4px 24px;
+}
+.chat-sidebar {
+  background: var(--color-ivory);
+  border-right: 1px solid var(--color-border-cream);
+}
+.chat-main {
+  background: var(--color-parchment);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 </style>

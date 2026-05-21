@@ -793,7 +793,7 @@ const togglePreview = () => {
 };
 
 // 切换编辑模式
-const switchEditMode = (mode: string) => {
+const switchEditMode = async (mode: string) => {
   console.log('[switchEditMode] 切换模式:', mode);
   editMode.value = mode as 'ai' | 'markdown' | 'source' | 'style';
   if (mode === 'source' && resumeData.value) {
@@ -802,9 +802,16 @@ const switchEditMode = (mode: string) => {
   if (mode === 'markdown' && !isMarkdownEditing.value) {
     markdownEditorValue.value = internalMarkdown.value;
   }
-  // 切回 AI 模式时：v-if 会重建 AIChatPanel，watch 不会触发，手动同步历史
-  if (mode === 'ai' && chatPanelRef.value) {
-    chatPanelRef.value.setMessages([...chatHistory.value]);
+  // 切回 AI 模式：v-if 重建 AIChatPanel，需等 nextTick 组件挂载后再同步历史
+  if (mode === 'ai') {
+    await nextTick();
+    if (chatPanelRef.value) {
+      chatPanelRef.value.setMessages([...chatHistory.value]);
+    }
+    // 同时从服务器刷新最新消息
+    if (currentConversationId.value) {
+      await loadMessages(currentConversationId.value);
+    }
   }
 };
 
@@ -1382,8 +1389,9 @@ const handleRefreshChat = async () => {
 <style scoped lang="scss">
 .resume-generator-new {
   position: relative;
-  height: calc(100vh - 60px);
+  height: 100%;
   background: var(--color-parchment);
+  overflow: hidden; // 防止外层滚动，由内部面板各自管理滚动
 }
 
 .main-content {
@@ -1397,13 +1405,14 @@ const handleRefreshChat = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 8px 20px;
   background: var(--color-ivory);
   border-bottom: 1px solid var(--color-border-warm);
+  flex-shrink: 0;
 }
 
 .page-title {
-  font-size: 20.8px;
+  font-size: 17px;
   font-family: var(--font-serif);
   font-weight: 500;
   line-height: 1.20;
@@ -1469,13 +1478,13 @@ const handleRefreshChat = async () => {
   }
 }
 
-// 统一所有 Header 样式（核心修改：确保高度一致）
+// 统一所有 Header 样式
 .preview-header,
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--color-border-warm);
   background: var(--color-ivory);
   flex-shrink: 0;

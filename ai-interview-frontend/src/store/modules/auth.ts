@@ -18,32 +18,29 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     // 【核心修正】将 loginAction 拆分为更小的、职责单一的函数
     
-    // 内部函数，只负责设置状态和跳转
-    async _handleLoginSuccess(token: string) {
+    async _handleLoginSuccess(token: string, redirect?: string) {
       this.token = token;
       localStorage.setItem('token', token);
-      
+
       try {
         const userProfile = await getUserProfileApi();
         this.user = userProfile;
-        await router.push('/dashboard');
+        await router.push(redirect || '/dashboard');
       } catch (fetchUserError) {
         console.error("登录成功但获取用户信息失败", fetchUserError);
         this.clearAuth();
-        throw fetchUserError; // 将错误继续抛出
+        throw fetchUserError;
       }
     },
-    
-    // 暴露给常规登录使用
-    async loginWithCredentials(data: LoginData) {
+
+    async loginWithCredentials(data: LoginData, redirect?: string) {
         const response = await loginApi(data);
-        await this._handleLoginSuccess(response.access);
+        await this._handleLoginSuccess(response.access, redirect);
     },
 
-    // 暴露给 GitHub 登录使用
-    async loginWithGitHub(data: GitHubLoginData) {
+    async loginWithGitHub(data: GitHubLoginData, redirect?: string) {
         const response = await githubLoginApi(data);
-        await this._handleLoginSuccess(response.access);
+        await this._handleLoginSuccess(response.access, redirect);
     },
     
     async fetchUser() {

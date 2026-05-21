@@ -183,9 +183,11 @@ class ConversationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     一个只读的 ViewSet，用于获取对话列表。
     - GET /api/v1/conversations/
+    不分页，一次性返回用户的所有对话。
     """
     serializer_class = ConversationSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         """确保用户只能看到自己参与的对话"""

@@ -53,8 +53,6 @@ import ProjectModule from '@/components/resume/modules/ProjectModule.vue';
 import SkillsModule from '@/components/resume/modules/SkillsModule.vue';
 import GenericListModule from '@/components/resume/modules/GenericListModule.vue';
 import CustomModule from '@/components/resume/modules/CustomModule.vue';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 
 const route = useRoute();
 const router = useRouter();
@@ -142,33 +140,43 @@ const goBack = () => {
   router.push({ name: 'ResumeEditor', params: { id: resumeId } });
 };
 
-const exportToPDF = async () => {
-  const resumeElement = document.querySelector('#resume-content .resume-paper');
-  if (!resumeElement) { ElMessage.error('找不到简历内容，无法导出。'); return; }
-  isExporting.value = true;
-  try {
-    const canvas = await html2canvas(resumeElement as HTMLElement, { scale: 2.5, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
-    const pdf = new jsPDF('p', 'pt', 'a4');
-    const a4Width = 595.28; const a4Height = 841.89;
-    const imgWidth = canvas.width; const imgHeight = canvas.height;
-    const pageHeight = (imgWidth / a4Width) * a4Height;
-    let position = 0;
-    while (position < imgHeight) {
-      const pageCanvas = document.createElement('canvas');
-      pageCanvas.width = imgWidth;
-      pageCanvas.height = Math.min(pageHeight, imgHeight - position);
-      const ctx = pageCanvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(canvas, 0, position, imgWidth, pageCanvas.height, 0, 0, imgWidth, pageCanvas.height);
-        if (position > 0) pdf.addPage();
-        pdf.addImage(pageCanvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, a4Width, (pageCanvas.height * a4Width) / imgWidth);
-      }
-      position += pageHeight;
-    }
-    pdf.save(`简历-${resumeData.value?.title || '未命名'}.pdf`);
-  } catch (error) { console.error("导出PDF失败:", error); ElMessage.error("导出PDF时发生未知错误。"); }
-  finally { isExporting.value = false; }
-};
+	const ELECTRON_PDF_URL = 'http://localhost:9999';
+
+	const exportToPDF = async () => {
+	  isExporting.value = true;
+	  try {
+	    const health = await fetch(`${ELECTRON_PDF_URL}/health`).then(r => r.ok).catch(() => false);
+	    if (!health) { ElMessage.error('PDF 导出需要 Electron 桌面端运行'); return; }
+
+	    const html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+	    const res = await fetch(`${ELECTRON_PDF_URL}/api/pdf`, {
+	      method: 'POST',
+	      headers: { 'Content-Type': 'application/json' },
+	      body: JSON.stringify({
+	        html,
+	        options: { resumeName: resumeData.value?.title || '未命名简历' },
+	      }),
+	    });
+
+	    if (!res.ok) {
+	      const err = await res.json().catch(() => ({ error: '未知错误' }));
+	      throw new Error(err.error || `导出失败 (${res.status})`);
+	    }
+
+	    const pdfBlob = await res.blob();
+	    const url = URL.createObjectURL(pdfBlob);
+	    const a = document.createElement('a');
+	    a.href = url;
+	    a.download = `简历-${resumeData.value?.title || '未命名'}.pdf`;
+	    a.click();
+	    URL.revokeObjectURL(url);
+	  } catch (error: any) {
+	    console.error('导出PDF失败:', error);
+	    ElMessage.error(error.message || '导出PDF时发生未知错误');
+	  } finally {
+	    isExporting.value = false;
+	  }
+	};
 </script>
 
 <style lang="scss" scoped>

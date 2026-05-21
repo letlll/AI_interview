@@ -56,7 +56,12 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+.analysis-report-detail-container {
+	background: var(--color-parchment);
+	height: 100%;
+	overflow-y: auto;
+}
 .analysis-report-detail-container :deep(.el-card) {
-  break-inside: avoid;
+	break-inside: avoid;
 }
 </style>

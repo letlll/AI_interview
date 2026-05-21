@@ -174,7 +174,7 @@ const submitAnswer = async () => {
       userAnswer.value = '';
       analysisFrames.value = [];
     }
-  } catch (error) { ElMessage.error("提交失败，请重试。");
+  } catch (error) { ElMessage.error(error instanceof Error ? error.message : "提交失败，请重试。");
   } finally { isSubmitting.value = false; }
 };
 const confirmFinishInterview = (isAutoFinish: boolean | Event = false) => { cancel(); stopSpeech(); const action = () => { isFinishing.value = true; if (sessionInfo.value) { ElMessage.success("面试结束，正在生成报告..."); router.push({ name: 'ReportDetail', params: { id: sessionInfo.value.id } }); } }; if(isAutoFinish === true) return action(); ElMessageBox.confirm('您确定要提前结束本次面试吗？', '确认结束', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }).then(action).catch(() => { ElMessage.info('面试已继续'); }); };

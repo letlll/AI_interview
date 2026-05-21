@@ -164,7 +164,17 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error("加载报告数据失败:", error);
-    ElMessage.error("加载报告数据失败，请稍后重试。");
+    const detail = (error as any)?.response?.data;
+    let msg = "加载报告数据失败，请稍后重试。";
+    if (detail) {
+      if (typeof detail === 'string') msg = detail;
+      else if (typeof detail === 'object') {
+        msg = Object.entries(detail as Record<string,any>)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join('; ') : v}`)
+          .join(' | ') || msg;
+      }
+    }
+    ElMessage.error(msg);
   } finally {
     isLoading.value = false;
   }

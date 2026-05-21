@@ -52,7 +52,7 @@ onMounted(() => {
 
       <div class="right-menu">
         <!-- 通知中心 Popover -->
-        <el-popover placement="bottom-end" :width="350" trigger="click">
+        <el-popover placement="bottom-end" :width="360" trigger="click">
           <template #reference>
             <el-badge :value="notificationStore.unreadCount" :max="99" :hidden="notificationStore.unreadCount === 0" class="notification-badge">
               <el-icon :size="20" class="bell-icon"><Bell /></el-icon>
@@ -164,6 +164,7 @@ onMounted(() => {
 .app-main {
   background-color: var(--color-parchment);
   height: calc(100vh - 60px);
-  overflow-y: auto;
+  overflow: hidden; // 由子页面各自管理滚动，避免外层滚动条
+  padding: 0; // 覆盖 el-main 默认 padding
 }
 </style>
