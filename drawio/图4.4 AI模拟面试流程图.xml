@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.2.2 Chrome/134.0.6998.178 Electron/35.1.2 Safari/537.36" version="26.2.2">
+  <diagram name="AI模拟面试流程图" id="interview-flow">
+    <mxGraphModel dx="1600" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== 1. 开始 ==================== -->
+        <mxCell id="start" value="开始" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="20" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 2. 用户选择岗位/难度/题数 ==================== -->
+        <mxCell id="e_start_s1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="start" target="step1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="用户选择目标岗位、难度和题目数&lt;br&gt;（可选关联简历）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="90" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 3. 创建 InterviewSession ==================== -->
+        <mxCell id="e_s1_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step1" target="step2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="创建 InterviewSession（status=pending）&lt;br&gt;初始化 analysis_data 空字典" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="170" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 4. 检查是否有未完成面试 ==================== -->
+        <mxCell id="e_s2_d1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step2" target="dec1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dec1" value="是否有未完成&lt;br&gt;面试？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="250" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- 否 → 直接继续 (直下) -->
+        <mxCell id="e_dec1_no" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=10;fontColor=#009900;" parent="1" source="dec1" target="step4" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 是 → 右分支：提示恢复或放弃 -->
+        <mxCell id="e_dec1_yes" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;fontColor=#cc0000;" parent="1" source="dec1" target="step3a" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step3a" value="弹窗提示：检测到未完成面试&lt;br&gt;是否恢复？" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="580" y="253" width="200" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- 弹窗 → 用户选择判断 -->
+        <mxCell id="e_3a_d1a" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step3a" target="dec1a" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dec1a" value="用户选择？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="615" y="327" width="100" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- 恢复 → 加载未完成会话 → 合并到 step4 -->
+        <mxCell id="e_dec1a_resume" value="恢复" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;fontSize=9;fontColor=#009900;" parent="1" source="dec1a" target="step3b" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="354" />
+              <mxPoint x="570" y="300" />
+              <mxPoint x="510" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="step3b" value="加载未完成会话&lt;br&gt;恢复答题进度" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="278" width="160" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- 放弃 → 创建新会话 → 合并到 step4 -->
+        <mxCell id="e_dec1a_abandon" value="放弃" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=9;fontColor=#cc0000;" parent="1" source="dec1a" target="step3c" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step3c" value="放弃旧会话，创建新会话" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="580" y="412" width="170" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 放弃后 → 合并回主流程 -->
+        <mxCell id="e_3c_to4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="step3c" target="step4" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="530" y="432" />
+              <mxPoint x="530" y="395" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- 恢复后 → 合并回主流程 -->
+        <mxCell id="e_3b_to4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=1;entryY=0.5;" parent="1" source="step3b" target="step4" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="352" />
+              <mxPoint x="530" y="352" />
+              <mxPoint x="530" y="395" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== 5. 用户点击开始面试 ==================== -->
+        <mxCell id="step4" value="用户点击"开始面试"&lt;br&gt;status → running，记录 started_at" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="375" width="280" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 6. AI 生成第一道题 ==================== -->
+        <mxCell id="e_s4_s5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step4" target="step5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step5" value="AI 生成第一道题目（调用 DeepSeek API）&lt;br&gt;Prompt 含岗位信息 + 简历上下文 → 返回题目 JSON" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="260" y="455" width="340" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 7. 前端展示题目 ==================== -->
+        <mxCell id="e_s5_s6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step5" target="step6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step6" value="前端展示题目（题目内容 + 答题区域）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="535" width="280" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 8. 答题方式选择 ==================== -->
+        <mxCell id="e_s6_d2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step6" target="dec2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dec2" value="答题方式？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="609" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 文本分支 → 直下 -->
+        <mxCell id="e_dec2_text" value="文本" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=10;fontColor=#009900;" parent="1" source="dec2" target="step7_text" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_text" value="用户在文本框中输入回答" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="699" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 语音分支 → 左侧 -->
+        <mxCell id="e_dec2_voice" value="语音" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;fontSize=10;fontColor=#0077cc;" parent="1" source="dec2" target="step7_voice1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="639" />
+              <mxPoint x="140" y="639" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="step7_voice1" value="启动 Web Speech API 监听" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="659" width="180" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="e_v1_v2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step7_voice1" target="step7_voice2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_voice2" value="实时语音转录并累积文本" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="717" width="180" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="e_v2_v3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step7_voice2" target="step7_voice3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_voice3" value="用户停止录音，获得完整文本" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="775" width="180" height="38" as="geometry" />
+        </mxCell>
+
+        <!-- 语音分支合并回主流程 -->
+        <mxCell id="e_v3_to_s8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1" source="step7_voice3" target="step8" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="794" />
+              <mxPoint x="250" y="814" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_t7_to_s8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step7_text" target="step8" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 9. 面部表情并行采集（右侧标注） ==================== -->
+        <mxCell id="step_face" value="并行：face-api.js 每 1s 采样&lt;br&gt;记录情绪数据至 analysis_data" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="609" width="220" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_face_note" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;dashed=1;strokeColor=#9673a6;" parent="1" source="step_face" target="step_face_detail" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="631" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="step_face_detail" value="逐帧记录表情数据&lt;br&gt;（开心/紧张/自信/困惑等）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="673" width="190" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 10. 用户提交回答 ==================== -->
+        <mxCell id="step8" value="用户提交回答（含文本 + 语音转录文本）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="769" width="280" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 11. AI 生成即时反馈 ==================== -->
+        <mxCell id="e_s8_s9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step8" target="step9" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step9" value="AI 生成即时反馈（调用 DeepSeek API）&lt;br&gt;Prompt 含岗位 + 题目 + 回答 → 返回反馈 JSON" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="260" y="843" width="340" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 12. 是否还有剩余题目 ==================== -->
+        <mxCell id="e_s9_d3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step9" target="dec3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dec3" value="是否还有&lt;br&gt;剩余题目？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="923" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- 是 → 左侧 SSE 流式推送追问 → 回到步骤7 -->
+        <mxCell id="e_dec3_yes" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;fontColor=#cc0000;" parent="1" source="dec3" target="step_loop" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="958" />
+              <mxPoint x="150" y="958" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="step_loop" value="AI 生成追问&lt;br&gt;（SSE 流式推送）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="55" y="938" width="160" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- 循环箭头回到步骤6 -->
+        <mxCell id="e_loop_back" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;entryX=0;entryY=0.5;endArrow=block;fontSize=10;fontColor=#cc0000;strokeWidth=1.5;" parent="1" source="step_loop" target="step6" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="135" y="920" />
+              <mxPoint x="135" y="557" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 否 → 面试完成，继续向下 -->
+        <mxCell id="e_dec3_no" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=10;fontColor=#009900;" parent="1" source="dec3" target="step10" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 13. status = finished ==================== -->
+        <mxCell id="step10" value="面试完成：status → finished&lt;br&gt;记录 finished_at 时间戳" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="1023" width="280" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 14. 同步生成综合评估报告 ==================== -->
+        <mxCell id="e_s10_s11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step10" target="step11" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step11" value="finish 接口同步生成综合评估报告&lt;br&gt;存入 InterviewSession.report JSON 字段" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="260" y="1103" width="340" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 15. 跳转报告页 ==================== -->
+        <mxCell id="e_s11_s12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step11" target="step12" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="step12" value="前端跳转至报告详情页，展示评估结果" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="1183" width="280" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 16. 结束 ==================== -->
+        <mxCell id="e_s12_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="step12" target="end" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="end" value="结束" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="1253" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 异常分支：用户中途退出 ==================== -->
+        <mxCell id="e_step6_exit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;strokeColor=#b85450;" parent="1" source="step6" target="exit1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exit1" value="用户中途退出面试" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="535" width="160" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="e_exit1_exit2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;strokeColor=#b85450;" parent="1" source="exit1" target="exit2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exit2" value="status 保持 running&lt;br&gt;updated_at 记录最后活跃时间" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="593" width="180" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_exit2_exit3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;strokeColor=#b85450;" parent="1" source="exit2" target="exit3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="exit3" value="下次登录 → 路由守卫检测&lt;br&gt;弹窗确认是否恢复面试" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="657" width="200" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- 退出恢复 → 回到弹窗判断 (dec1a) -->
+        <mxCell id="e_exit3_back" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;endArrow=block;dashed=1;strokeColor=#b85450;fontSize=9;fontColor=#b85450;" parent="1" source="exit3" target="step3a" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="679" />
+              <mxPoint x="620" y="275" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== 超时分支：Celery Beat ==================== -->
+        <mxCell id="timeout_box" value="超时清理机制&lt;br&gt;Celery Beat 每 15min 扫描" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="760" width="200" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_timeout1_timeout2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;strokeColor=#b85450;" parent="1" source="timeout_box" target="timeout2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="timeout2" value="status=running 且&lt;br&gt;updated_at &gt; 30min" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="824" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_timeout2_timeout3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;strokeColor=#b85450;" parent="1" source="timeout2" target="timeout3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="timeout3" value="自动标记 status=canceled" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="655" y="914" width="180" height="38" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 图例区域 ==================== -->
+        <mxCell id="legend_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#cccccc;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1050" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="图例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="1055" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_proc" value="普通处理步骤" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1085" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_ai" value="AI API 调用步骤" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1123" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_dec" value="判断分支" style="rhombus;whiteSpace=wrap;html=1;fontSize=9;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1160" width="80" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_exit" value="异常/退出路径" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#f8cecc;strokeColor=#b85450;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1210" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_face" value="并行采集任务" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="170" y="1085" width="40" height="28" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
