@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.2.2 Chrome/134.0.6998.178 Electron/35.1.2 Safari/537.36" version="26.2.2">
+  <diagram name="第 1 页" id="Em1bI3wpUkPby69HqsNm">
+    <mxGraphModel dx="1369" dy="936" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== 系统边界 ==================== -->
+        <mxCell id="boundary" value="" style="whiteSpace=wrap;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="250" y="80" width="620" height="780" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 系统标题 ==================== -->
+        <mxCell id="title" value="AI面试与简历管理系统" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="460" y="95" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 角色：求职者 ==================== -->
+        <mxCell id="actor-candidate" value="Actor" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontColor=none;noLabel=1;container=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="280" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="label-candidate" value="求职者" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="345" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 角色：管理员 ==================== -->
+        <mxCell id="actor-admin" value="Actor" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontColor=none;noLabel=1;container=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="580" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="label-admin" value="管理员" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="645" width="60" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 求职者用例 ==================== -->
+        <!-- 第1列 -->
+        <mxCell id="uc-register" value="注册" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="115" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-login" value="登录" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="195" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-start-interview" value="开始面试" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="275" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-voice-answer" value="语音答题" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="355" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-interview-done" value="面试完成" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="435" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- 第2列 -->
+        <mxCell id="uc-upload-resume" value="上传简历" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="115" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-edit-resume" value="编辑简历" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="195" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-ai-chat-resume" value="AI对话生成简历" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="275" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-switch-template" value="切换模板" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="355" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-resume-diagnosis" value="简历诊断" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="435" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- 第3列 -->
+        <mxCell id="uc-view-report" value="查看报告" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="115" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-export-pdf" value="导出PDF" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="195" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-view-log" value="查看操作日志" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="275" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-ai-config" value="AI参数配置" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="355" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 管理员用例 ==================== -->
+        <mxCell id="uc-manage-industry" value="管理行业分类" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="565" width="125" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-manage-position" value="管理岗位信息" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="485" y="565" width="125" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-manage-model" value="管理AI模型配置" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="650" width="125" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="uc-manage-user" value="管理用户" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="485" y="650" width="125" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 求职者关联线（到各用例） ==================== -->
+        <!-- 第1列关联 -->
+        <mxCell id="edge-c-register" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-register">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="320" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-login" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-login">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="330" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-start-interview" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-start-interview">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="340" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-voice-answer" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-voice-answer">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="350" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-interview-done" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-interview-done">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="360" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 第2列关联 -->
+        <mxCell id="edge-c-upload-resume" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-upload-resume">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="300" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-edit-resume" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-edit-resume">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="310" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-switch-template" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-switch-template">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="330" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-resume-diagnosis" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-resume-diagnosis">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="340" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 第3列关联 -->
+        <mxCell id="edge-c-export-pdf" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-export-pdf">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="320" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-view-log" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-view-log">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="350" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-c-ai-config" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-ai-config">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="360" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== 管理员关联线 ==================== -->
+        <mxCell id="edge-a-industry" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-manage-industry">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="610" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-a-position" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-manage-position">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="620" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-a-model" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-manage-model">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="660" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-a-user" value="" style="startArrow=none;endArrow=none;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startFill=0;" edge="1" parent="1" target="uc-manage-user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="95" y="670" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== extend 关系 ==================== -->
+        <!-- 查看报告 --extend--> 面试完成 -->
+        <mxCell id="extend-report" value="&lt;&lt;extend&gt;&gt;" style="endArrow=open;html=1;dashed=1;startArrow=none;edgeStyle=orthogonalEdgeStyle;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=10;" edge="1" parent="1" source="uc-view-report" target="uc-interview-done">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- AI对话生成简历 --extend--> 编辑简历 -->
+        <mxCell id="extend-ai-resume" value="&lt;&lt;extend&gt;&gt;" style="endArrow=open;html=1;dashed=1;startArrow=none;edgeStyle=orthogonalEdgeStyle;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=10;" edge="1" parent="1" source="uc-ai-chat-resume" target="uc-edit-resume">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== 区域分隔标签 ==================== -->
+        <mxCell id="label-candidate-area" value="求职者功能" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=2;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="270" y="100" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="label-admin-area" value="管理员功能" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=2;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="270" y="540" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- 分隔虚线 -->
+        <mxCell id="divider" value="" style="endArrow=none;html=1;dashed=1;strokeWidth=1;strokeColor=#CCCCCC;startArrow=none;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="270" y="530" as="sourcePoint" />
+            <mxPoint x="850" y="530" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
