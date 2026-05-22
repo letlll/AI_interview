@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'interactions',
     'notifications',
    'chat',
+    'django_extensions',
 ]
 
 # 3. 将应用的入口指向 Channels 的 ASGI application
