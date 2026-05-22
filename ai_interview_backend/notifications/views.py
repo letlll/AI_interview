@@ -1,7 +1,6 @@
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db import models
 from .models import ActivityLog
 from .serializers import ActivityLogSerializer, ActivityLogCreateSerializer
 

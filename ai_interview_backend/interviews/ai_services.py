@@ -887,32 +887,46 @@ def generate_resume_chat_response(
             "message": "抱歉，AI 服务配置有误，请联系管理员。"
         }
 
-    # 使用 Claude Code 模式的分类器 system prompt
+    import re
+
     system_prompt = RESUME_CHAT_SYSTEM_PROMPT
 
-    # 优先使用前端传来的完整 prompt；否则后端自建
+    # Build proper multi-turn messages (not single-turn with all context packed in one user message)
+    messages = [{"role": "system", "content": system_prompt}]
+
+    # Add previous conversation turns as proper role-based messages (last 6 turns = 12 messages)
+    recent_history = chat_history[-12:] if len(chat_history) > 12 else chat_history
+    for msg in recent_history:
+        role = msg.get('role', 'user')
+        if role in ('user', 'assistant'):
+            content = msg.get('content', '')
+            if len(content) > 2000:
+                content = content[:2000] + "..."
+            messages.append({"role": role, "content": content})
+
+    # Build current user message with resume context
     if optimized_prompt:
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": optimized_prompt}
-        ]
+        # Strip embedded chat history sections — now proper multi-turn messages above
+        context_prompt = re.sub(
+            r'(?:^|\n)## 最近对话\n.*?(?=\n## |\Z)', '', optimized_prompt, flags=re.DOTALL
+        )
+        context_prompt = re.sub(
+            r'(?:^|\n)## 相关历史\n.*?(?=\n## |\Z)', '', context_prompt, flags=re.DOTALL
+        )
+        context_prompt = re.sub(r'\n{3,}', '\n\n', context_prompt).strip()
     else:
         resume_summary = _build_resume_summary(current_resume)
-        compressed_history = _compress_chat_history(chat_history)
         memory_context = _get_memory_context(current_resume)
         resume_content = current_resume.get('content', '') if current_resume else ''
-        user_prompt = (
+        context_prompt = (
             f"## 当前简历完整内容\n{resume_content or '（简历为空）'}\n\n"
             f"## 简历摘要\n{resume_summary}\n\n"
             f"## 记忆上下文\n{memory_context}\n\n"
-            f"## 最近对话\n{compressed_history}\n\n"
             f"## 用户请求\n{user_message}\n\n"
             "请按分类流程：Step 1 输出 classification，Step 2 根据 mode 生成 instructions 和 message。"
         )
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
+
+    messages.append({"role": "user", "content": context_prompt})
 
     try:
         response_data = _call_openai_api(api_key, model, messages, 4096, 0.7)
