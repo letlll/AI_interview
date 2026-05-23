@@ -205,7 +205,7 @@ onUnmounted(() => { if (analysisInterval.value) clearInterval(analysisInterval.v
 .text-blue-600 { color: var(--color-terracotta) !important; }
 .text-red-500 { color: var(--color-error) !important; }
 .text-green-800 { color: #3d5a3d !important; }
-.bg-green-100\/80 { background-color: rgba(221, 251, 230, 0.8) !important; }
+.bg-green-100\/80 { background-color: rgba(221, 251, 230, 0.8) !important; padding: 24px !important; }
 .border-green-200 { border-color: #b8d9b8 !important; }
 .bg-white\/50 { background-color: var(--color-ivory) !important; }
 .bg-white\/60 { background-color: var(--color-white) !important; padding: 24px !important;}

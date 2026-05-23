@@ -1,7 +1,6 @@
 // src/api/modules/interview.ts
 import { useAuthStore } from '@/store/modules/auth';
 import request from '@/api/request';
-import { getInterviewReportApi as getReportApi } from './report';
 
 // --- 类型定义 ---
 export interface UserInfo { id: number; username: string; email: string; }
@@ -37,8 +36,6 @@ export const abandonUnfinishedInterviewApi = (): Promise<{ message: string }> =>
 export const startInterviewApi = (data: StartInterviewData, force: boolean = false): Promise<InterviewSessionItem> => {
   return request({ url: `/interviews/start/?force=${force}`, method: 'post', data });
 };
-export const getInterviewReportApi = getReportApi;
-
 // --- 流式 API ---
 export const submitAnswerStreamApi = async (
   sessionId: string,
