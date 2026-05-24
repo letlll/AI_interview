@@ -6,88 +6,119 @@
         <mxCell id="1" parent="0" />
         <mxCell id="r46-divider" value="" style="endArrow=none;dashed=1;html=1;strokeWidth=1;strokeColor=#cccccc;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="413" y="55" as="sourcePoint" />
-            <mxPoint x="413" y="420" as="targetPoint" />
+            <mxPoint x="413" y="75" as="sourcePoint" />
+            <mxPoint x="413" y="540" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="r46-sse-header" value="SSE（Server-Sent Events）&lt;br&gt;面试追问推送" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
-          <mxGeometry x="40" y="55" width="360" height="32" as="geometry" />
+        <mxCell id="r46-sse-header" value="面试追问推送&lt;br&gt;（HTTP 流式响应：单向推送，无状态）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="40" y="35" width="360" height="36" as="geometry" />
         </mxCell>
         <mxCell id="r46-sse-1" value="① 前端 fetch API 发起 POST 请求至&lt;br&gt;/api/v1/interviews/{id}/submit-answer-stream/" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;" parent="1" vertex="1">
-          <mxGeometry x="60" y="107" width="320" height="42" as="geometry" />
+          <mxGeometry x="60" y="90" width="320" height="42" as="geometry" />
         </mxCell>
         <mxCell id="r46-sse-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-sse-1" target="r46-sse-2" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="r46-sse-2" value="② 后端 DRF 视图创建 StreamingHttpResponse&lt;br&gt;（content_type: text/plain）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;" parent="1" vertex="1">
-          <mxGeometry x="60" y="169" width="320" height="42" as="geometry" />
+        <mxCell id="r46-sse-2" value="② 后端 Django 视图创建 StreamingHttpResponse&lt;br&gt;（自定义流式响应，兼容 HTTP 代理与负载均衡）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="60" y="152" width="320" height="42" as="geometry" />
         </mxCell>
         <mxCell id="r46-sse-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-sse-2" target="r46-sse-3" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="r46-sse-3" value="③ Python Generator 逐块 yield AI 追问文本" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" parent="1" vertex="1">
-          <mxGeometry x="60" y="231" width="320" height="40" as="geometry" />
+        <mxCell id="r46-sse-3" value="③ 通过 Python Generator 逐块 yield AI 生成的追问文本" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="60" y="214" width="320" height="40" as="geometry" />
         </mxCell>
         <mxCell id="r46-sse-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-sse-3" target="r46-sse-4" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="r46-sse-4" value="④ 前端读取响应体流，逐字渲染追加显示" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;" parent="1" vertex="1">
-          <mxGeometry x="60" y="291" width="320" height="40" as="geometry" />
+          <mxGeometry x="60" y="274" width="320" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="r46-sse-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-sse-4" target="r46-sse-5" edge="1">
+        <mxCell id="r46-sse-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.298;exitY=0.985;entryX=0.5;entryY=0;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="r46-sse-4" target="r46-sse-diamond" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="r46-sse-5" value="⑤ 追问文本持久化至 InterviewQuestion 表" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" parent="1" vertex="1">
-          <mxGeometry x="80" y="351" width="280" height="45" as="geometry" />
+        <mxCell id="r46-sse-diamond" value="⑤ 流传输&lt;br&gt;中断？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="66" y="339" width="180" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="r46-sse-anno" value="单向推送 · HTTP 协议 · 流式传输" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
-          <mxGeometry x="60" y="416" width="320" height="26" as="geometry" />
+        <mxCell id="r46-sse-e5n" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.145;entryY=0;fontSize=9;fontColor=#009900;entryDx=0;entryDy=4.35;entryPerimeter=0;" edge="1" parent="1" source="r46-sse-diamond" target="r46-sse-5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="156" y="400" />
+              <mxPoint x="120" y="400" />
+              <mxPoint x="120" y="419" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="r46-ws-header" value="WebSocket&lt;br&gt;AI 简历对话" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
-          <mxGeometry x="427" y="55" width="360" height="32" as="geometry" />
+        <mxCell id="r46-sse-e5y" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=9;fontColor=#cc0000;" edge="1" parent="1" source="r46-sse-diamond" target="r46-sse-disc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r46-sse-disc" value="客户端断开&lt;br&gt;缓存已生成部分文本&lt;br&gt;标记未完成，避免数据丢失" style="rounded=1;whiteSpace=wrap;html=1;fontSize=7;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="286" y="342" width="88" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r46-sse-5" value="⑥ 追问完整文本持久化至 InterviewQuestion 表" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="80" y="415" width="280" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="r46-sse-anno" value="单向推送 · HTTP 协议 · 自定义流式响应（非标准 SSE）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+          <mxGeometry x="60" y="483" width="320" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="r46-ws-header" value="AI 简历对话&lt;br&gt;（WebSocket：全双工，持久连接）" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="427" y="35" width="360" height="36" as="geometry" />
         </mxCell>
         <mxCell id="r46-ws-1" value="① 前端 new WebSocket(&#39;ws://host/ws/chat/{user_id}/&#39;)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;" parent="1" vertex="1">
-          <mxGeometry x="447" y="107" width="320" height="40" as="geometry" />
+          <mxGeometry x="447" y="90" width="340" height="40" as="geometry" />
         </mxCell>
         <mxCell id="r46-ws-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-ws-1" target="r46-ws-2" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="r46-ws-2" value="② Django Channels 路由 → ChatConsumer.connect()&lt;br&gt;JWT 认证 + 加入 Redis Channel Layer 房间组" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
-          <mxGeometry x="447" y="167" width="320" height="46" as="geometry" />
+        <mxCell id="r46-ws-2" value="② Django Channels 路由 → ChatConsumer.connect()&lt;br&gt;JWT 认证 → 按用户 ID 生成专属房间组 → 加入 Redis Channel Layer 房间组" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+          <mxGeometry x="447" y="150" width="340" height="52" as="geometry" />
         </mxCell>
         <mxCell id="r46-ws-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-ws-2" target="r46-ws-3" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="r46-ws-3" value="③ Consumer.receive() 消息类型分支处理&lt;br&gt;chat_message / typing_indicator / read_messages" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fontStyle=1;" parent="1" vertex="1">
-          <mxGeometry x="447" y="233" width="320" height="46" as="geometry" />
+          <mxGeometry x="447" y="222" width="340" height="46" as="geometry" />
         </mxCell>
-        <mxCell id="r46-ws-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-ws-3" target="r46-ws-4" edge="1">
+        <mxCell id="r46-ws-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-ws-3" target="r46-ws-3b" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="r46-ws-4" value="④ Consumer.disconnect()&lt;br&gt;group_discard 离开房间组，释放连接" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
-          <mxGeometry x="447" y="299" width="320" height="44" as="geometry" />
+        <mxCell id="r46-ws-3b" value="③b chat_message 分支：消息持久化至数据库&lt;br&gt;→ group_send 广播至房间内所有连接" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="447" y="288" width="340" height="42" as="geometry" />
         </mxCell>
-        <mxCell id="r46-ws-anno" value="双向全双工 · 持久连接" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
-          <mxGeometry x="447" y="363" width="320" height="26" as="geometry" />
+        <mxCell id="r46-ws-e3b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="r46-ws-3b" target="r46-ws-4">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="r46-redis-box" value="&lt;b&gt;Redis Channel Layer&lt;/b&gt;（跨进程通信基础设施）&lt;br&gt;Pub/Sub：group_add → group_send → broadcast 至同组所有连接" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="130" y="470" width="567" height="52" as="geometry" />
+        <mxCell id="r46-ws-4" value="④ Consumer.disconnect()&lt;br&gt;group_discard 离开房间组，释放 Redis 订阅与连接" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="447" y="350" width="340" height="44" as="geometry" />
         </mxCell>
-        <mxCell id="r46-ws2redis-1" value="group_add / group_send" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#d79b00;fontSize=8;fontColor=#d79b00;fontStyle=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="r46-ws-2" target="r46-redis-box" edge="1">
-          <mxGeometry relative="1" as="geometry">
+        <mxCell id="r46-ws-anno" value="双向全双工 · 持久连接 · 按用户 ID 隔离房间" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+          <mxGeometry x="447" y="416" width="340" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="r46-redis-box" value="&lt;b&gt;Redis Channel Layer&lt;/b&gt;：实现 WebSocket 跨进程通信的关键基础设施&lt;br&gt;单用户对话场景下，通过 Pub/Sub 机制确保消息在多实例间正确路由" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+          <mxGeometry x="130" y="550" width="587" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="r46-ws2redis-add" value="group_add：加入 Redis 房间组" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#d79b00;fontSize=8;fontColor=#d79b00;fontStyle=2;exitX=0.25;exitY=1;entryX=0.685;entryY=0;" edge="1" parent="1" source="r46-ws-2" target="r46-redis-box">
+          <mxGeometry x="0.1379" y="-12" relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="607" y="240" />
-              <mxPoint x="607" y="455" />
+              <mxPoint x="532" y="480" />
             </Array>
+            <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="r46-redis2ws-1" value="broadcast 通知" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#b85450;fontSize=8;fontColor=#b85450;fontStyle=2;exitX=0.8;exitY=0;entryX=0.5;entryY=1;" parent="1" source="r46-redis-box" target="r46-ws-4" edge="1">
-          <mxGeometry relative="1" as="geometry">
+        <mxCell id="r46-ws2redis-send" value="group_send：通过 Redis Pub/Sub&amp;nbsp;&lt;div&gt;广播至同组所有连接&lt;/div&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#d79b00;fontSize=8;fontColor=#d79b00;fontStyle=2;exitX=0.5;exitY=1;entryX=0.83;entryY=0;" edge="1" parent="1" source="r46-ws-3b" target="r46-redis-box">
+          <mxGeometry x="0.1818" y="3" relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="584" y="455" />
-              <mxPoint x="607" y="455" />
-              <mxPoint x="607" y="370" />
+              <mxPoint x="617" y="480" />
             </Array>
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r46-ws2redis-discard" value="group_discard：释放&lt;div&gt;&amp;nbsp;Redis 房间组订阅&lt;/div&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#b85450;fontSize=8;fontColor=#b85450;fontStyle=2;exitX=0.75;exitY=1;entryX=0.975;entryY=0;" edge="1" parent="1" source="r46-ws-4" target="r46-redis-box">
+          <mxGeometry x="0.1004" y="-2" relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="702" y="480" />
+            </Array>
+            <mxPoint x="-2" y="-2" as="offset" />
           </mxGeometry>
         </mxCell>
       </root>

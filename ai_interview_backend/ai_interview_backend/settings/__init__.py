@@ -16,7 +16,7 @@ from pathlib import Path
 from dotenv import load_dotenv # 添加这一行
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # 多一层: __init__.py 在 settings/ 子目录下
 
 load_dotenv(os.path.join(BASE_DIR, '.env')) # 添加这一行，加载 .env 文件
 # Quick-start development settings - unsuitable for production

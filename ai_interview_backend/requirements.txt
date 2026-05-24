@@ -233,3 +233,4 @@ xlsxwriter==3.2.5
 yarl==1.18.3
 zope.event==6.0
 zope.interface==8.0.1
+factory-boy

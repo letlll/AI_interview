@@ -27,7 +27,7 @@
 | 数据库 | MySQL |
 | 缓存 | Redis |
 | 任务队列 | Celery（RabbitMQ 为 Broker，Redis 为 Result Backend） |
-| 实时通信 | Django Channels + WebSocket（AI 对话） / SSE（面试答题流式） |
+| 实时通信 | Django Channels + WebSocket（AI 对话） / HTTP 流式响应（面试答题流式） |
 | AI 接口 | DeepSeek 大语言模型 API（通过 OpenAI SDK 调用） |
 | 面部识别 | face-api.js（7 种基础情绪检测） |
 | 语音识别 | 浏览器原生 Web Speech API |
@@ -42,7 +42,7 @@
 
 **(2) AI 模拟面试系统**
 
-实现多风格 AI 面试官配置、岗位题库匹配、实时面部表情识别（7 种情绪：平静、开心、悲伤、生气、害怕、厌恶、惊讶）、浏览器原生 Web Speech API 语音转文字、**AI 对话 WebSocket 实时通信 + 面试答题 SSE 流式推送**、面试中断恢复（check-unfinished / abandon-unfinished）、**答题后 AI 流式反馈（SSE，提交答案后才开始返回）**。
+实现多风格 AI 面试官配置、岗位题库匹配、实时面部表情识别（7 种情绪：平静、开心、悲伤、生气、害怕、厌恶、惊讶）、浏览器原生 Web Speech API 语音转文字、**AI 对话 WebSocket 实时通信 + 面试答题 HTTP 流式推送**、面试中断恢复（check-unfinished / abandon-unfinished）、**答题后 AI 流式反馈（HTTP 流式响应，提交答案后才开始返回）**。
 
 **(3) 智能评估报告生成**
 
@@ -80,7 +80,7 @@
 
 ### 3. AI 模拟面试核心功能（基本完成，端到端流程已打通）
 
-实现面试会话管理（创建、中断恢复 check-unfinished/abandon-unfinished、缓存），AI 自动出题与流式追问推送，用户文本/语音（Web Speech API）答题后 AI SSE 流式反馈，AI 对话 WebSocket 实时通信（Django Channels），多风格 AI 面试官配置（AISetting）；集成 face-api.js 面部表情识别（7 种基础情绪）与浏览器原生 Web Speech API 语音识别；面试结束后自动触发 Celery 异步报告生成，全流程闭环已跑通。
+实现面试会话管理（创建、中断恢复 check-unfinished/abandon-unfinished、缓存），AI 自动出题与流式追问推送，用户文本/语音（Web Speech API）答题后 AI HTTP 流式反馈，AI 对话 WebSocket 实时通信（Django Channels），多风格 AI 面试官配置（AISetting）；集成 face-api.js 面部表情识别（7 种基础情绪）与浏览器原生 Web Speech API 语音识别；面试结束后自动触发 Celery 异步报告生成，全流程闭环已跑通。
 
 ### 4. 智能评估报告功能（基本完成）
 
@@ -122,7 +122,7 @@
 
 ### 4. WebSocket 并发运行稳定性欠缺
 
-多人同时在线使用 AI 对话时，Django Channels WebSocket 长连接通信容易出现卡顿、延迟甚至断连问题。面试答题部分使用 SSE（非 WebSocket），不受此问题影响。
+多人同时在线使用 AI 对话时，Django Channels WebSocket 长连接通信容易出现卡顿、延迟甚至断连问题。面试答题部分使用 HTTP 流式响应（非 WebSocket），不受此问题影响。
 
 解决办法：优化 Django Channels 配置参数，提升服务并发承载能力；增加心跳检测与重连机制，保障实时通信长效稳定；进行压力测试，排查代码缺陷与性能瓶颈。
 
@@ -165,8 +165,8 @@
 | 1 | 中英双语简历生成 | 删除 | 代码中无此功能 |
 | 2 | 博客社区（Markdown 编辑、点赞收藏评论关注） | 删除 | 前端已移除，后端待清理 |
 | 3 | 9 个核心应用模块 | 保留（users/resumes/interviews/reports/questions/system/interactions/notifications/chat） | 去除 blog 后恰好 9 个 |
-| 4 | WebSocket 实时通信 | AI 对话 WebSocket + 面试答题 SSE 流式 | 面试用 SSE 非 WebSocket |
-| 5 | 实时反馈 | 答题后 AI 流式反馈（SSE） | 反馈在提交后非实时 |
+| 4 | WebSocket 实时通信 | AI 对话 WebSocket + 面试答题 HTTP 流式响应 | 面试用 HTTP 流式响应非 WebSocket |
+| 5 | 实时反馈 | 答题后 AI 流式反馈（HTTP 流式响应） | 反馈在提交后非实时 |
 | 6 | 语音转文字 | 浏览器原生 Web Speech API 语音识别 | 明确技术实现 |
 | 7 | 扫描件自动 OCR 回退 | 功能已实现，pdf2image 依赖待安装 → 移至"存在的问题" | 依赖缺失导致不可用 |
 | 8 | PaddleOCR 扫描件 OCR 回退 | 改为"存在的问题"第 1 条 | 同上 |
