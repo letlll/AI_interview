@@ -28,6 +28,14 @@ DATABASES = {
     }
 }
 
+# ── 缓存用本地内存（测试无需 Redis） ──
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'test-cache',
+    }
+}
+
 # ── Celery 同步执行（避免异步等待，测试可直取结果） ──
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True

@@ -134,12 +134,29 @@ class MockAIService:
         """激活全局 AI Mock——拦截所有 OpenAI SDK chat.completions.create 调用。"""
         self.disable()  # 先清理防止重复 patch
 
+        # 确保测试数据库中存在默认 AIModel，_get_user_ai_config 依赖它
+        self._ensure_ai_model()
+
         patcher = patch(
             'openai.resources.chat.completions.Completions.create',
             side_effect=self._mock_create,
         )
         patcher.start()
         self._patchers.append(patcher)
+
+    def _ensure_ai_model(self):
+        """确保测试数据库中存在默认的 AIModel 记录。"""
+        from system.models import AIModel
+        AIModel.objects.get_or_create(
+            model_slug='deepseek-chat',
+            defaults={
+                'name': 'DeepSeek Chat',
+                'base_url': 'https://api.deepseek.com/v1',
+                'is_active': True,
+                'supports_json_mode': True,
+                'description': 'Mock model for testing',
+            },
+        )
 
     def disable(self):
         """停用所有 mock，恢复真实 API 调用。"""
@@ -210,11 +227,55 @@ class MockAIService:
         # 默认回退：返回 interview_question
         return 'interview_question'
 
+    def _get_streaming_text(self, scene: str, content: dict) -> str:
+        """获取流式响应的纯文本内容。"""
+        if scene in ('interview_question', 'interview_followup'):
+            return content.get('question', '请谈谈您的技术经验。')
+        if scene == 'interview_feedback':
+            return content.get('feedback', '回答不错。')
+        if scene == 'reference_answer':
+            return content.get('answer', '这是一个参考答案。')
+        if scene == 'resume_chat':
+            return content.get('reply', '好的，已更新。')
+        return json.dumps(content, ensure_ascii=False)
+
+    def _build_streaming_chunks(self, scene: str, content: dict) -> list:
+        """构造流式响应的 chunk mock 列表。"""
+        text = self._get_streaming_text(scene, content)
+        chunks = []
+        chunk_size = max(1, len(text) // 4) if len(text) > 4 else 1
+        for i in range(0, len(text), chunk_size):
+            chunk_text = text[i:i + chunk_size]
+            delta_mock = MagicMock()
+            delta_mock.content = chunk_text
+
+            choice_mock = MagicMock()
+            choice_mock.delta = delta_mock
+            choice_mock.index = 0
+            choice_mock.finish_reason = 'stop' if i + chunk_size >= len(text) else None
+
+            chunk_mock = MagicMock()
+            chunk_mock.choices = [choice_mock]
+            chunks.append(chunk_mock)
+        return chunks if chunks else [self._build_empty_chunk()]
+
+    def _build_empty_chunk(self) -> MagicMock:
+        """构造一个空内容的流式 chunk（兜底）。"""
+        delta_mock = MagicMock()
+        delta_mock.content = ''
+        choice_mock = MagicMock()
+        choice_mock.delta = delta_mock
+        choice_mock.index = 0
+        choice_mock.finish_reason = 'stop'
+        chunk_mock = MagicMock()
+        chunk_mock.choices = [choice_mock]
+        return chunk_mock
+
     def _mock_create(self, *args, **kwargs):
         """Mock 的 chat.completions.create 方法。
 
         自动检测场景并返回对应的模拟数据。
-        如果用户通过 side_effect 设置了异常，则直接抛出。
+        如果 stream=True，返回流式 chunk 列表。
         """
         messages = kwargs.get('messages', [])
         scene = self._detect_scene(messages)
@@ -225,4 +286,6 @@ class MockAIService:
         # 合并：overrides 的顶层键覆盖 default
         content = {**default, **overrides}
 
+        if kwargs.get('stream'):
+            return self._build_streaming_chunks(scene, content)
         return self._build_response(scene, content)
