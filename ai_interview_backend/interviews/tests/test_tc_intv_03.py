@@ -112,9 +112,11 @@ class TC_INTV_03_SubmitAnswerTest(TestCase):
         session_id, q_id = self._start_session(question_count=3)
 
         url = f'/api/v1/interviews/{session_id}/submit-answer-stream/'
-        self.client.post(url, {
+        resp = self.client.post(url, {
             'question_id': q_id, 'answer_text': '中间回答',
         }, format='json')
+        # 流式响应需消费 streaming_content 以触发数据库中问题创建
+        b"".join(resp.streaming_content)
 
         count = InterviewQuestion.objects.filter(session_id=session_id).count()
         self.assertEqual(count, 2)  # Q1 + 流式新创建的 Q2

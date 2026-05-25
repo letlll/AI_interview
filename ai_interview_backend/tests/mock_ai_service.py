@@ -90,6 +90,7 @@ class MockAIService:
             'reply': '已在您的简历技能部分添加了 Docker。还需要补充其他技能吗？',
         },
         'jd_match': {
+            'overall_score': 72,
             'match_score': 72,
             'analysis': '您的简历与 JD 匹配度为 72%。主要差距在于"云计算"和"微服务"相关经验不足。',
             'suggestions': [
@@ -210,19 +211,28 @@ class MockAIService:
                 return 'interview_followup'
             return 'interview_question'
 
-        if any(kw in full_text for kw in ['反馈', '评分', '评估回答']):
-            return 'interview_feedback'
-
-        if any(kw in full_text for kw in ['简历', 'resume']):
-            if any(kw in full_text for kw in ['对话', '编辑', '修改', '增量']):
-                return 'resume_chat'
-            if any(kw in full_text for kw in ['生成', 'generate', '创建']):
-                return 'resume_generate'
-            if any(kw in full_text for kw in ['JD', '岗位描述', '匹配', '诊断']):
-                return 'jd_match'
-
+        # 参考回答在简历检测之前（"我(没/未)提供简历"会误触发 resume）
         if any(kw in full_text for kw in ['参考答案', 'STAR', '参考回答', 'reference']):
             return 'reference_answer'
+
+        # 简历检测在反馈之前（RESUME_CHAT_SYSTEM_PROMPT 含"反馈"等词）
+        if any(kw in full_text for kw in ['简历', 'resume']):
+            negative_resume = any(
+                kw in full_text for kw in
+                ['未提供简历', '未上传简历', '没有简历', '无简历',
+                 '没有提供简历', '未提供', 'without resume', 'no resume']
+            )
+            if not negative_resume:
+                # jd_match 先于 resume_chat——"匹配"/"诊断"太泛化，改用 JD/岗位描述
+                if any(kw in full_text for kw in ['JD', '岗位描述', '职位描述']):
+                    return 'jd_match'
+                if any(kw in full_text for kw in ['对话', '编辑', '修改', '增量']):
+                    return 'resume_chat'
+                if any(kw in full_text for kw in ['生成', 'generate', '创建']):
+                    return 'resume_generate'
+
+        if any(kw in full_text for kw in ['反馈', '评分', '评估回答']):
+            return 'interview_feedback'
 
         # 默认回退：返回 interview_question
         return 'interview_question'

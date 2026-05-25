@@ -145,8 +145,9 @@ class TC_INTV_08_InterruptResumeTest(TestCase):
             'question_id': q_id, 'answer_text': '恢复后的回答',
         }, format='json')
         self.assertEqual(resp.status_code, 200)
+        # 流式响应需消费 streaming_content 以触发问题创建
+        b"".join(resp.streaming_content)
 
-        # 下一题被创建
         count = InterviewQuestion.objects.filter(session_id=session_id).count()
         self.assertEqual(count, 2)
 
